@@ -287,10 +287,16 @@ class Source(Base):
         if 'Content-Length' not in headers:
             raise RuntimeError( "Missing 'Content-Length' header" )
         contentlength = int( headers[ 'Content-Length' ] )
-        message = json.loads( _tsserver_handle.stdout.read( contentlength ) )
+        data = json.loads( _tsserver_handle.stdout.read( contentlength ) )
 
-        logger.debug("_ReadMessage: message: {0}".format(message))
+        # logger.debug("_ReadMessage: message: {0}".format(data))
 
-        # self.debug("gather_candidates: entries: {0}".format(entries))
+        completions = []
+        if data is not None:
 
-
+            for rec in data["body"]:
+                completions.append({"word": rec["name"],
+                                    "menu": rec["kind"],
+                                    "info": rec["kindModifiers"]
+                                    })
+        return completions
