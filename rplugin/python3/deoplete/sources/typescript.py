@@ -101,12 +101,10 @@ class Source(Base):
         if data is not None and "body" in data:
 
             for rec in data["body"]:
-                menu = rec["kind"]
-                if rec["kindModifiers"]:
-                    menu += " (" + rec["kindModifiers"] + ")"
                 completions.append({
                     "word": rec["name"],
-                    "menu": menu
+                    "kind": rec["kind"],
+                    "menu": rec["kindModifiers"]
                     })
 
         logger.debug("gather_candidates: returning: {0}".format(completions))
