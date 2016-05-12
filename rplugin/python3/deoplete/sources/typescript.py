@@ -26,6 +26,8 @@ import sys
 import platform
 import subprocess
 import time
+import fcntl
+import locale
 
 from deoplete.sources.base import Base
 from logging import getLogger
@@ -53,7 +55,8 @@ _tsserver_handle = subprocess.Popen("tsserver",
         stdout = subprocess.PIPE,
         stdin = subprocess.PIPE,
         stderr = subprocess.STDOUT,
-        universal_newlines = True )
+        universal_newlines = True,
+        bufsize = 1)
 
 class ResponseEvent( Event ):
   "Used for blocking the SendRequest method until the response is available"
@@ -63,6 +66,7 @@ class ResponseEvent( Event ):
     self._response = None
 
   def SetResponse( self, response ):
+    logger.debug("SetResponse: {0}".format(response))
     self._response = response
     self.set()
 
@@ -113,9 +117,9 @@ class TSServer:
     # is placed in this dictionary and
     self._response_events = {}
     logger.debug("TSServer: __init__: start _MessageReaderLoop")
-    self._thread = Thread(target = self._MessageReaderLoop)
-    self._thread.daemon = True
-    self._thread.start()
+    # self._thread = Thread(target = self._MessageReaderLoop)
+    # self._thread.daemon = True
+    # self._thread.start()
 
   def SendRequest( self, command, arguments = None, wait_for_response = True ):
     logger.debug("SendRequest")
@@ -134,13 +138,13 @@ class TSServer:
 
     # If the request expects a response, use an Event to block
     # until the response is available
-    if wait_for_response:
-        logger.debug("SendRequest: wait_for_response = True")
-        event = ResponseEvent()
-        self._response_events[seq] = event
-        self._WriteMessage(request)
-        logger.debug("SendRequest: event: {0}".format(event))
-        return event.GetResponse()
+    # if wait_for_response:
+    #     logger.debug("SendRequest: wait_for_response = True")
+    #     event = ResponseEvent()
+    #     self._response_events[seq] = event
+    #     self._WriteMessage(request)
+    #     logger.debug("SendRequest: event: {0}".format(event))
+    #     return event.GetResponse()
 
     logger.debug("SendRequest: wait_for_response = False")
     self._WriteMessage(request)
@@ -157,45 +161,50 @@ class TSServer:
       _tsserver_handle.stdin.write("\n")
       logger.debug("_WriteMessage: written")
 
-  def _MessageReaderLoop( self ):
-    while True:
-        try:
-            message = self._ReadMessage()
-            if message[ 'type' ] == 'event':
-                self._HandleEvent( message )
-            if message[ 'type' ] == 'response':
-                self._HandleResponse( message )
-        except Exception as e:
-            logger.error( e )
+  # def _MessageReaderLoop( self ):
+  #   logger.debug("_MessageReaderLoop")
+  #   while True:
+  #       logger.debug("_MessageReaderLoop looping")
+  #       try:
+  #           message = self._ReadMessage()
+  #           logger.debug("_MessageReaderLoop: {0}".format(message["type"]))
+  #           if message[ 'type' ] == 'event':
+  #               logger.debug("_MessageReaderLoop: _HandleEvent")
+  #               self._HandleEvent( message )
+  #           if message[ 'type' ] == 'response':
+  #               logger.debug("_MessageReaderLoop: _HandleResponse")
+  #               self._HandleResponse( message )
+  #       except Exception as e:
+  #           logger.error( e )
 
-  def _ReadMessage( self ):
-    """Read a response message from TSServer."""
-    logger.debug("_ReadMessage")
+  # def _ReadMessage( self ):
+  #   """Read a response message from TSServer."""
+  #   logger.debug("_ReadMessage")
 
-    # The headers are pretty similar to HTTP.
-    # At the time of writing, 'Content-Length' is the only supplied header.
-    headers = {}
-    logger.debug("_ReadMessage: _tsserver_handle: {0}".format(_tsserver_handle))
-    while True:
-        headerline = _tsserver_handle.stdout.readline()
-        logger.debug("_ReadMessage: headerline: {0}".format(headerline))
-        if not headerline:
-            logger.debug("_ReadMessage: headerline is None")
-            break
-        key, value = headerline.split( ':', 1 )
-        headers[ key.strip() ] = value.strip()
+  #   # The headers are pretty similar to HTTP.
+  #   # At the time of writing, 'Content-Length' is the only supplied header.
+  #   headers = {}
+  #   logger.debug("_ReadMessage: _tsserver_handle: {0}".format(_tsserver_handle))
+  #   while True:
+  #       headerline = _tsserver_handle.stdout.readline()
+  #       logger.debug("_ReadMessage: headerline: {0}".format(headerline))
+  #       if not len(headerline):
+  #           logger.debug("_ReadMessage: headerline is None")
+  #           break
+  #       key, value = headerline.split( ':', 1 )
+  #       headers[ key.strip() ] = value.strip()
 
-    logger.debug("_ReadMessage: headers {)}".format(headers))
-    # The response message is a JSON object which comes back on one line.
-    # Since this might change in the future, we use the 'Content-Length'
-    # header.
-    if 'Content-Length' not in headers:
-      raise RuntimeError( "Missing 'Content-Length' header" )
-    contentlength = int( headers[ 'Content-Length' ] )
-    message = json.loads( _tsserver_handle.stdout.read( contentlength ) )
+  #   logger.debug("_ReadMessage: headers {)}".format(headers))
+  #   # The response message is a JSON object which comes back on one line.
+  #   # Since this might change in the future, we use the 'Content-Length'
+  #   # header.
+  #   if 'Content-Length' not in headers:
+  #     raise RuntimeError( "Missing 'Content-Length' header" )
+  #   contentlength = int( headers[ 'Content-Length' ] )
+  #   message = json.loads( _tsserver_handle.stdout.read( contentlength ) )
 
-    logger.debug("_ReadMessage: message: {0}".format(message))
-    return message
+  #   logger.debug("_ReadMessage: message: {0}".format(message))
+  #   return message
 
   def _HandleResponse( self, response ):
     logger.debug("_HandleResponse")
@@ -225,7 +234,7 @@ class Source(Base):
         self.filetypes = ['typescript']
         self.input_pattern = '\.'
         self.is_bytepos = True
-        self.tsserver = TSServer()
+        self.tsserver = None
 
     def relative_file(self):
         return self.vim.eval("expand('%:p')")
@@ -235,6 +244,9 @@ class Source(Base):
         return m.start() if m else -1
 
     def gather_candidates(self, context):
+        if not self.tsserver:
+            self.tsserver = TSServer()
+
         self.debug("gather_candidates")
 
         self.debug("gather_candidates: open file")
@@ -250,11 +262,35 @@ class Source(Base):
             "ch": col
         }
 
-        entries = self.tsserver.SendRequest('completions', {
+        self.tsserver.SendRequest('completions', {
             'file':   self.relative_file(),
             'line':   line,
             'offset': offset
         }, wait_for_response = True)
-        self.debug("gather_candidates: entries: {0}".format(entries))
+
+        headers = {}
+        linecount = 0
+        while True:
+            headerline = _tsserver_handle.stdout.readline().strip()
+            linecount += 1;
+            logger.debug("_ReadMessage: headerline: {0}".format(headerline))
+            if len(headerline):
+                key, value = headerline.split( ':', 2 )
+                headers[ key.strip() ] = value.strip()
+                logger.debug(headers)
+                break
+
+        logger.debug("_ReadMessage: headers {0}".format(headers))
+        # The response message is a JSON object which comes back on one line.
+        # Since this might change in the future, we use the 'Content-Length'
+        # header.
+        if 'Content-Length' not in headers:
+            raise RuntimeError( "Missing 'Content-Length' header" )
+        contentlength = int( headers[ 'Content-Length' ] )
+        message = json.loads( _tsserver_handle.stdout.read( contentlength ) )
+
+        logger.debug("_ReadMessage: message: {0}".format(message))
+
+        # self.debug("gather_candidates: entries: {0}".format(entries))
 
 
