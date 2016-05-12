@@ -292,11 +292,12 @@ class Source(Base):
         # logger.debug("_ReadMessage: message: {0}".format(data))
 
         completions = []
-        if data is not None:
+        if data is not None and "body" in data:
 
             for rec in data["body"]:
                 completions.append({"word": rec["name"],
                                     "menu": rec["kind"],
                                     "info": rec["kindModifiers"]
                                     })
+        logger.debug("gather_candidates: returning: {0}".format(completions))
         return completions
