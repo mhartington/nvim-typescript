@@ -257,16 +257,16 @@ class Source(Base):
         self.debug("gather_candidates: prepare completions request")
         line = context['position'][1]
         col = context['complete_position']
-        offset = {
-            "line": line - 1,
-            "ch": col
-        }
 
-        self.tsserver.SendRequest('completions', {
+        completionsRequestBody = {
             'file':   self.relative_file(),
             'line':   line,
-            'offset': offset
-        }, wait_for_response = True)
+            'offset': col,
+            'prefix': context["input"]
+        }
+        self.tsserver.SendRequest('completions', completionsRequestBody, wait_for_response = True)
+
+        self.debug("gather_candidates: completions request: {0}".format(completionsRequestBody))
 
         headers = {}
         linecount = 0
