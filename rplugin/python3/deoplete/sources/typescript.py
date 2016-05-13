@@ -28,7 +28,7 @@ class Source(Base):
         self._sequenceid = 0
         self._current_file = None
 
-    def SendRequest( self, command, arguments = None ):
+    def _send_request( self, command, arguments = None, wait_for_response = False ):
         seq = self._next_sequence_id()
 
         request = {
@@ -39,16 +39,35 @@ class Source(Base):
         if arguments:
             request[ "arguments" ] = arguments
 
-        logger.debug("SendRequest: request: {0}".format(request))
+        logger.debug("_send_request: request: {0}".format(request))
 
         self._write_message(request)
 
-    def _next_sequence_id( self ):
+        if not wait_for_response:
+            return
+
+        linecount = 0
+        headers = {}
+        while True:
+            headerline = _tsserver_handle.stdout.readline().strip()
+            linecount += 1;
+            if len(headerline):
+                key, value = headerline.split( ":", 2 )
+                headers[ key.strip() ] = value.strip()
+                logger.debug(headers)
+                break
+
+        if "Content-Length" not in headers:
+            raise RuntimeError( "Missing 'Content-Length' header" )
+        contentlength = int(headers["Content-Length"])
+        return json.loads(_tsserver_handle.stdout.read(contentlength))
+
+    def _next_sequence_id(self):
         seq = self._sequenceid
         self._sequenceid += 1
         return seq
 
-    def _write_message( self, message ):
+    def _write_message(self, message):
         _tsserver_handle.stdin.write(json.dumps(message))
         _tsserver_handle.stdin.write("\n")
 
@@ -62,7 +81,7 @@ class Source(Base):
     def gather_candidates(self, context):
         self.debug("gather_candidates: contenxt: {0}".format(context))
 
-        self.SendRequest("open", {
+        self._send_request("open", {
             "file": self.relative_file()
         });
 
@@ -77,29 +96,10 @@ class Source(Base):
         }
 
         self.debug("gather_candidates: completions request: {0}".format(completionsRequestBody))
-        self.SendRequest("completions", completionsRequestBody)
-
-        linecount = 0
-        headers = {}
-        while True:
-            headerline = _tsserver_handle.stdout.readline().strip()
-            linecount += 1;
-            logger.debug("_ReadMessage: headerline: {0}".format(headerline))
-            if len(headerline):
-                key, value = headerline.split( ":", 2 )
-                headers[ key.strip() ] = value.strip()
-                logger.debug(headers)
-                break
-
-        logger.debug("headers {0}".format(headers))
-        if "Content-Length" not in headers:
-            raise RuntimeError( "Missing 'Content-Length' header" )
-        contentlength = int( headers[ "Content-Length" ] )
-        data = json.loads( _tsserver_handle.stdout.read( contentlength ) )
+        data = self._send_request("completions", completionsRequestBody, wait_for_response = True)
 
         completions = []
         if data is not None and "body" in data:
-
             for rec in data["body"]:
                 completions.append({
                     "word": rec["name"],
