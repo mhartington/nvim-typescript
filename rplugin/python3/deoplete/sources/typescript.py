@@ -2,18 +2,12 @@ import os
 import re
 import json
 import subprocess
-
+import platform
 from tempfile import NamedTemporaryFile
 from deoplete.sources.base import Base
 
 MAX_COMPLETION_DETAIL = 100
 
-_tsserver_handle = subprocess.Popen("tsserver",
-        stdout = subprocess.PIPE,
-        stdin = subprocess.PIPE,
-        stderr = subprocess.STDOUT,
-        universal_newlines = True,
-        bufsize = 1)
 
 class Source(Base):
     def __init__(self, vim):
@@ -23,14 +17,55 @@ class Source(Base):
         self.name = "typescript"
         self.mark = "[ts]"
         self.filetypes = ["typescript"]
-        self.input_pattern = "\."
-
+        # self.input_pattern = "\."
+        self.input_pattern = r'\.\w*'
+        self._project_directory = None
         self._sequenceid = 0
         self._current_file = None
+        self._tsserver_handle = None
 
+    # Start the server process
+    def _start_server(self):
+
+        self._search_tern_project_dir()
+        self.debug('getting project directory')
+        env = None
+        if platform.system() == 'Darwin':
+            env = os.environ.copy()
+            env['PATH'] += ':/usr/local/bin'
+        self._tsserver_handle = subprocess.Popen("tsserver",
+                cwd=self._project_directory,env=env,
+                stdout = subprocess.PIPE,
+                stdin = subprocess.PIPE,
+                stderr = subprocess.STDOUT,
+                universal_newlines = True,
+                bufsize = 1)
+    # Get the cwd
+    def _search_tern_project_dir(self):
+        if not self._project_directory:
+            directory = self.vim.eval("expand('%:p:h')")
+
+            if not os.path.isdir(directory):
+                return ''
+
+            if directory:
+                self._project_directory = directory
+                while True:
+                    parent = os.path.dirname(directory[:-1])
+
+                    if not parent:
+                        self._project_directory = self.vim.eval('getcwd()')
+                        break
+
+                    if os.path.isfile(os.path.join(directory, 'tsconfig.json')):
+                        self._project_directory = directory
+                        break
+                    directory = parent
+
+        self.debug(self._project_directory)
+    # builds up the request and calls _write_message
     def _send_request( self, command, arguments = None, wait_for_response = False ):
         seq = self._next_sequence_id()
-
         request = {
             "seq":     seq,
             "type":    "request",
@@ -39,17 +74,16 @@ class Source(Base):
         if arguments:
             request[ "arguments" ] = arguments
 
-        self.debug("_send_request: request: {0}".format(request))
+        # self.debug("_send_request: request: {0}".format(request))
 
         self._write_message(request)
-
         if not wait_for_response:
             return
 
         linecount = 0
         headers = {}
         while True:
-            headerline = _tsserver_handle.stdout.readline().strip()
+            headerline = self._tsserver_handle.stdout.readline().strip()
             linecount += 1;
             if len(headerline):
                 key, value = headerline.split( ":", 2 )
@@ -59,7 +93,7 @@ class Source(Base):
         if "Content-Length" not in headers:
             raise RuntimeError( "Missing 'Content-Length' header" )
         contentlength = int(headers["Content-Length"])
-        return json.loads(_tsserver_handle.stdout.read(contentlength))
+        return json.loads(self._tsserver_handle.stdout.read(contentlength))
 
     def _next_sequence_id(self):
         seq = self._sequenceid
@@ -67,20 +101,21 @@ class Source(Base):
         return seq
 
     def _write_message(self, message):
-        _tsserver_handle.stdin.write(json.dumps(message))
-        _tsserver_handle.stdin.write("\n")
+        self._tsserver_handle.stdin.write(json.dumps(message))
+        self._tsserver_handle.stdin.write("\n")
 
     def relative_file(self):
         return self.vim.eval("expand('%:p')")
 
-    def on_buffer(self, context):
+    def on_event(self, context):
+        self.debug(context)
+        self._start_server()
         self._send_request("open", {
             "file": self.relative_file()
         });
 
     def _reload(self):
         contents = self.vim.eval("join(getline(1,'$'), \"\n\")")
-        self.debug(contents)
         tmpfile = NamedTemporaryFile(delete = False)
         tmpfile.write(contents.encode('utf-8'))
         tmpfile.close()
@@ -93,8 +128,9 @@ class Source(Base):
     def get_complete_position(self, context):
         m = re.search(r"\w*$", context["input"])
         return m.start() if m else -1
-
+    # Gets completion, calls self._send_request
     def gather_candidates(self, context):
+
         self.debug("\n")
 
         self._reload()
