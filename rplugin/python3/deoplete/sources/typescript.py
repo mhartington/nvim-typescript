@@ -6,42 +6,52 @@ import platform
 from tempfile import NamedTemporaryFile
 from deoplete.sources.base import Base
 
-MAX_COMPLETION_DETAIL = 100
+MAX_COMPLETION_DETAIL = 50
 
 
 class Source(Base):
+
+    # Base options
     def __init__(self, vim):
         Base.__init__(self, vim)
 
+        # Deoplete related
         self.debug_enabled = True
         self.name = "typescript"
-        self.mark = "[ts]"
         self.filetypes = ["typescript"]
-        # self.input_pattern = "\."
+        self.mark = "TS"
+        self.rank = 700
         self.input_pattern = r'\.\w*'
+
+        # Project related
         self._project_directory = None
         self._sequenceid = 0
         self._current_file = None
         self._tsserver_handle = None
 
     # Start the server process
-    def _start_server(self):
+    def start_server(self):
+        self.debug("Starting TSSERVER")
+        self.search_tss_project_dir()
 
-        self._search_tern_project_dir()
-        self.debug('getting project directory')
+        self.debug(self._project_directory)
         env = None
         if platform.system() == 'Darwin':
             env = os.environ.copy()
             env['PATH'] += ':/usr/local/bin'
         self._tsserver_handle = subprocess.Popen("tsserver",
-                cwd=self._project_directory,env=env,
+                cwd = self._project_directory,
+                env = env,
                 stdout = subprocess.PIPE,
                 stdin = subprocess.PIPE,
                 stderr = subprocess.STDOUT,
                 universal_newlines = True,
                 bufsize = 1)
+
+        self.on_buffer()
+
     # Get the cwd
-    def _search_tern_project_dir(self):
+    def search_tss_project_dir(self):
         if not self._project_directory:
             directory = self.vim.eval("expand('%:p:h')")
 
@@ -62,9 +72,9 @@ class Source(Base):
                         break
                     directory = parent
 
-        self.debug(self._project_directory)
     # builds up the request and calls _write_message
     def _send_request( self, command, arguments = None, wait_for_response = False ):
+
         seq = self._next_sequence_id()
         request = {
             "seq":     seq,
@@ -75,8 +85,8 @@ class Source(Base):
             request[ "arguments" ] = arguments
 
         # self.debug("_send_request: request: {0}".format(request))
-
         self._write_message(request)
+
         if not wait_for_response:
             return
 
@@ -95,25 +105,29 @@ class Source(Base):
         contentlength = int(headers["Content-Length"])
         return json.loads(self._tsserver_handle.stdout.read(contentlength))
 
+    # increment sequence ids
     def _next_sequence_id(self):
         seq = self._sequenceid
         self._sequenceid += 1
         return seq
 
+    # take the command build-up, and post it subprocess
     def _write_message(self, message):
         self._tsserver_handle.stdin.write(json.dumps(message))
         self._tsserver_handle.stdin.write("\n")
 
+    #  Get the path to the project to set context.
+    #  Needed to make tsconfig work.
     def relative_file(self):
         return self.vim.eval("expand('%:p')")
 
-    def on_event(self, context):
-        self.debug(context)
-        self._start_server()
+    # TODO: NOT SURE WHAT THIS IS
+    def on_buffer(self):
         self._send_request("open", {
             "file": self.relative_file()
         });
 
+    # Send a reload command to make tsserver update with context
     def _reload(self):
         contents = self.vim.eval("join(getline(1,'$'), \"\n\")")
         tmpfile = NamedTemporaryFile(delete = False)
@@ -125,16 +139,21 @@ class Source(Base):
         })
         # os.unlink(tmpfile.name)
 
+    # Get cursor position in the buffer
     def get_complete_position(self, context):
         m = re.search(r"\w*$", context["input"])
         return m.start() if m else -1
+
     # Gets completion, calls self._send_request
     def gather_candidates(self, context):
+        # If the server is running, start it
+        if self._tsserver_handle is None:
+            self.start_server()
 
-        self.debug("\n")
-
-        self._reload()
-
+        # TODO: Calling reload here messes with completions
+        # we end up firing reload multiple times and the context
+        # keeps getting shifted.
+        # self._reload()
         line = context["position"][1]
         col = context["complete_position"] + 1
 
@@ -146,7 +165,6 @@ class Source(Base):
         }, wait_for_response = True)
 
         # exit early if no data
-        self.debug(data)
         if data is None or not "body" in data:
             return []
 
@@ -168,22 +186,26 @@ class Source(Base):
             "entryNames": names
         }, wait_for_response = True)
 
-        self.debug(detailed_data)
         if detailed_data is None or not "body" in detailed_data:
             return []
 
         return [self._convert_detailed_completion_data(e, padding = maxNameLength)
              for e in detailed_data["body"]]
 
+
+    # If the results are over 100, return a simplified list
     def _convert_completion_data(self, entry):
         return {
             "word": entry["name"],
-            "kind": entry["kind"],
-            "menu": entry["kindModifiers"]
+            "kind": entry["kind"]
+            # "menu": entry["kindModifiers"]
+            # "info": menu_text
         }
 
+    # Under 100, provide more detail
+    # TODO: Send method signature to preview window
     def _convert_detailed_completion_data(self, entry, padding = 80):
-        self.debug(entry)
+        # self.debug(entry)
 
         name = entry["name"]
         display_parts = entry['displayParts']
@@ -192,8 +214,9 @@ class Source(Base):
         # needed to strip new lines and indentation from the signature
         signature = re.sub( '\s+', ' ', signature )
         menu_text = '{0} {1}'.format(name.ljust(padding), signature)
+        self.debug(signature)
         return ({
             "word": name,
             "kind": entry["kind"],
-            "menu": menu_text
+            "info": menu_text
         })
