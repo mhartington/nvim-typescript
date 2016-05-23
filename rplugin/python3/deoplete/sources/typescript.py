@@ -47,8 +47,7 @@ class Source(Base):
                 stderr = subprocess.STDOUT,
                 universal_newlines = True,
                 bufsize = 1)
-
-        self.on_buffer()
+        self.on_event(None)
 
     # Get the cwd
     def search_tss_project_dir(self):
@@ -121,8 +120,8 @@ class Source(Base):
     def relative_file(self):
         return self.vim.eval("expand('%:p')")
 
-    # TODO: NOT SURE WHAT THIS IS
-    def on_buffer(self):
+    def on_event(self, context):
+        self.debug("on_event: {0}".format(context))
         self._send_request("open", {
             "file": self.relative_file()
         });
