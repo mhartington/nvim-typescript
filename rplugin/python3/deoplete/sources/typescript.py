@@ -12,7 +12,7 @@ from threading import Lock
 from tempfile import NamedTemporaryFile
 from deoplete.sources.base import Base
 
-MAX_COMPLETION_DETAIL = 50
+MAX_COMPLETION_DETAIL = 25
 RESPONSE_TIMEOUT_SECONDS = 20
 
 
@@ -21,7 +21,6 @@ class Source(Base):
     # Base options
     def __init__(self, vim):
         Base.__init__(self, vim)
-
         # Deoplete related
         self.debug_enabled = True
         self.name = "typescript"
@@ -35,6 +34,10 @@ class Source(Base):
         self._project_directory = os.getcwd()
         self._sequenceid = 0
         self._environ = os.environ.copy()
+        self._tsserver_handle = None
+
+    def startServer(self):
+        self.debug('startig')
         self._tsserver_handle = subprocess.Popen("tsserver",
                                                  env=self._environ,
                                                  cwd=self._project_directory,
@@ -59,7 +62,6 @@ class Source(Base):
             request["arguments"] = arguments
 
         self._write_message(request)
-
         if not wait_for_response:
             return
 
@@ -77,7 +79,6 @@ class Source(Base):
         contentlength = int(headers["Content-Length"])
         return json.loads(self._tsserver_handle.stdout.read(contentlength))
 
-    # take the command build-up, and post it subprocess
     def _write_message(self, message):
         self._tsserver_handle.stdin.write(json.dumps(message))
         self._tsserver_handle.stdin.write("\n")
@@ -92,7 +93,7 @@ class Source(Base):
             'file': filename,
             'tmpfile': tmpfile.name
         }, wait_for_response=True)
-        # os.unlink(tmpfile.name)
+        os.unlink(tmpfile.name)
 
     def relative_file(self):
         return self.vim.eval("expand('%:p')")
@@ -103,11 +104,11 @@ class Source(Base):
         return seq
 
     def on_event(self, context):
-        # if context['event'] == 'BufEnter':
-        self.debug('BUFENTER')
-        self._sendReuest('open', {'file': self.relative_file()})
+        if context['filetype'] == 'typescript':
+            if self._tsserver_handle is None:
+                self.startServer()
+            self._sendReuest('open', {'file': self.relative_file()})
 
-    # Get cursor position in the buffer
     def get_complete_position(self, context):
         m = re.search(r"\w*$", context["input"])
         return m.start() if m else -1
@@ -121,17 +122,12 @@ class Source(Base):
             "prefix": context["complete_str"]
         }, wait_for_response=True)
 
-        self.debug('*' * 25)
-        self.debug(data)
-        self.debug('*' * 25)
-
         if data is None or not "body" in data:
             return []
-        # if there are too many entries, just return basic completion
+
         # if len(data["body"]) > MAX_COMPLETION_DETAIL:
         return [self._convert_completion_data(e) for e in data["body"]]
 
-        # build up more helpful completion data
         # names = []
         # maxNameLength = 0
         # for entry in data["body"]:
@@ -141,39 +137,34 @@ class Source(Base):
         # detailed_data = self._sendReuest('completionEntryDetails', {
         #     "file":   self.relative_file(),
         #     "line":   context["position"][1],
-        #     "offset": context["complete_position"],
+        #     "offset": context["complete_position"] + 1,
         #     "entryNames": names
         # }, wait_for_response=True)
-
+        #
         # if detailed_data is None or not "body" in detailed_data:
-        # return []
-
+        #     return []
+        #
         # return [self._convert_detailed_completion_data(e, padding=maxNameLength)
-        # for e in detailed_data["body"]]
+        #         for e in detailed_data["body"]]
 
-    # If the results are over 100, return a simplified list
     def _convert_completion_data(self, entry):
         return {
             "word": entry["name"],
             "kind": entry["kind"]
-            # "menu": entry["kindModifiers"]
-            # "info": menu_text
         }
 
-    # Under 100, provide more detail
-    # TODO: Send method signature to preview window
     def _convert_detailed_completion_data(self, entry, padding=80):
         # self.debug(entry)
 
         name = entry["name"]
-        # display_parts = entry['displayParts']
-        # signature = ''.join([p['text'] for p in display_parts])
+        display_parts = entry['displayParts']
+        signature = ''.join([p['text'] for p in display_parts])
 
         # needed to strip new lines and indentation from the signature
-        # signature = re.sub( '\s+', ' ', signature )
-        # menu_text = '{0} {1}'.format(name.ljust(padding), signature)
+        signature = re.sub('\s+', ' ', signature)
+        menu_text = '{0} {1}'.format(name.ljust(padding), signature)
         return ({
             "word": name,
             "kind": entry["kind"],
-            # "info": menu_text
+            "info": menu_text
         })
