@@ -5,13 +5,11 @@ import subprocess
 import platform
 import itertools
 
-from threading import Thread
-from threading import Event
-from threading import Lock
-
+from time import time
 from tempfile import NamedTemporaryFile
 from deoplete.sources.base import Base
 
+RELOAD_INTERVAL = 1
 MAX_COMPLETION_DETAIL = 25
 RESPONSE_TIMEOUT_SECONDS = 20
 
@@ -28,7 +26,7 @@ class Source(Base):
         self.mark = "TS"
         self.rank = 700
         self.input_pattern = r'\.\w*'
-        # self.input_pattern = '.'
+        self._last_input_reload = time()
 
         # Project related
         self._project_directory = os.getcwd()
@@ -114,7 +112,10 @@ class Source(Base):
         return m.start() if m else -1
 
     def gather_candidates(self, context):
-        self._reload()
+        # reload if last reload expired or input completion is a method extraction
+        if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", context["input"]):
+            self._last_input_reload = time()
+            self._reload()
         data = self._sendReuest("completions", {
             "file":   self.relative_file(),
             "line":   context["position"][1],
