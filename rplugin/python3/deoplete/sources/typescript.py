@@ -7,7 +7,7 @@ import itertools
 
 from time import time
 from tempfile import NamedTemporaryFile
-from deoplete.sources.base import Base
+from deoplete.source.base import Base
 
 RELOAD_INTERVAL = 1
 MAX_COMPLETION_DETAIL = 25
