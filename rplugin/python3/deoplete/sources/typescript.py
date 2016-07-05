@@ -94,7 +94,7 @@ class Source(Base):
         os.unlink(tmpfile.name)
 
     def relative_file(self):
-        return self.vim.eval("expand('%:p')")
+        return self.vim.current.buffer.name
 
     def _next_sequence_id(self):
         seq = self._sequenceid
@@ -102,9 +102,9 @@ class Source(Base):
         return seq
 
     def on_event(self, context):
-        if context['filetype'] == 'typescript':
-            if self._tsserver_handle is None:
-                self.startServer()
+        if self._tsserver_handle is None:
+            self.startServer()
+        if context["event"] != "BufNew" and context["filetype"] == "typescript":
             self._sendReuest('open', {'file': self.relative_file()})
 
     def get_complete_position(self, context):
