@@ -107,9 +107,6 @@ class Source(Base):
         if context["event"] != "BufNew" and context["filetype"] == "typescript":
             self._sendReuest('open', {'file': self.relative_file()})
 
-    def echo(self, msg):
-        self.vim.command("echomsg '{}'".format(msg))
-
     def get_complete_position(self, context):
         m = re.search(r"\w*$", context["input"])
         return m.start() if m else -1
