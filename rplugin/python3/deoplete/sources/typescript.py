@@ -126,27 +126,32 @@ class Source(Base):
         if data is None or not "body" in data:
             return []
 
-        # if len(data["body"]) > MAX_COMPLETION_DETAIL:
-        return [self._convert_completion_data(e) for e in data["body"]]
+        if len(data["body"]) > MAX_COMPLETION_DETAIL:
+            filtered = []
+            for entry in data["body"]:
+                if (entry["kind"] != "warning"):
+                    filtered.append(entry)
+            return [self._convert_completion_data(e) for e in filtered]
 
-        # names = []
-        # maxNameLength = 0
-        # for entry in data["body"]:
-        #     names.append(entry["name"])
-        #     maxNameLength = max(maxNameLength, len(entry["name"]))
-        #
-        # detailed_data = self._sendReuest('completionEntryDetails', {
-        #     "file":   self.relative_file(),
-        #     "line":   context["position"][1],
-        #     "offset": context["complete_position"] + 1,
-        #     "entryNames": names
-        # }, wait_for_response=True)
-        #
-        # if detailed_data is None or not "body" in detailed_data:
-        #     return []
-        #
-        # return [self._convert_detailed_completion_data(e, padding=maxNameLength)
-        #         for e in detailed_data["body"]]
+        names = []
+        maxNameLength = 0
+        for entry in data["body"]:
+            if (entry["kind"] != "warning"):
+                names.append(entry["name"])
+                maxNameLength = max(maxNameLength, len(entry["name"]))
+
+        detailed_data = self._sendReuest('completionEntryDetails', {
+            "file":   self.relative_file(),
+            "line":   context["position"][1],
+            "offset": context["complete_position"] + 1,
+            "entryNames": names
+        }, wait_for_response=True)
+
+        if detailed_data is None or not "body" in detailed_data:
+            return []
+
+        return [self._convert_detailed_completion_data(e, padding=maxNameLength)
+                for e in detailed_data["body"]]
 
     def _convert_completion_data(self, entry):
         return {
@@ -163,9 +168,9 @@ class Source(Base):
 
         # needed to strip new lines and indentation from the signature
         signature = re.sub('\s+', ' ', signature)
-        menu_text = '{0} {1}'.format(name.ljust(padding), signature)
+        menu_text = signature.strip("(method)").strip("(property)")
         return ({
             "word": name,
             "kind": entry["kind"],
-            "info": menu_text
+            "menu": menu_text
         })
