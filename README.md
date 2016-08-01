@@ -39,6 +39,14 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
   let g:deoplete#enable_at_startup = 1
 ```
 
+## Experimental Javascript support
+
+Did you know Typescript can provide completion and type checking for Javascript? You can enable Javascript completion through TSS by added this variable to your vimrc/init.vim
+
+```viml
+let g:deoplete#sources#tss#javascript_support = 1
+```
+
 ## Limitation
 
 Currently, this plugin requires a `tsconfig.json` to be present in the current working directory. This is how we can feed TSS proper project information, like modules and files. See [this issue](https://github.com/mhartington/deoplete-typescript/issues/10) for clarification.
