@@ -23,7 +23,7 @@ class Source(Base):
         self.debug_enabled = True
         self.name = "typescript"
         self.mark = "TS"
-        self.filetypes = ["typescript", "javascript", "jsx", "javascript.jsx"] if vim.vars["deoplete#sources#tss#javascript_support"] else ["typescript"]
+        self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] if vim.vars["deoplete#sources#tss#javascript_support"] else ["typescript"]
         self.rank = 700
         self.input_pattern = r'\.\w*'
         self._last_input_reload = time()
@@ -104,7 +104,7 @@ class Source(Base):
     def on_event(self, context):
         if self._tsserver_handle is None:
             self.startServer()
-        if context["event"] != "BufNew" and [files for files in self.filetypes if context["filetype"] in files]:
+        if self._tsserver_handle is not None:
             self._sendReuest('open', {'file': self.relative_file()})
 
     def get_complete_position(self, context):
