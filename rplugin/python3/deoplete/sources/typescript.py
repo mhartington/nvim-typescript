@@ -35,7 +35,6 @@ class Source(Base):
         self._tsserver_handle = None
 
     def startServer(self):
-        self.debug('startig')
         self._tsserver_handle = subprocess.Popen("tsserver",
                                                  env=self._environ,
                                                  cwd=self._project_directory,
@@ -161,8 +160,6 @@ class Source(Base):
         }
 
     def _convert_detailed_completion_data(self, entry, padding=80):
-        # self.debug(entry)
-
         name = entry["name"]
         display_parts = entry['displayParts']
         signature = ''.join([p['text'] for p in display_parts])
