@@ -128,7 +128,6 @@ class Source(Base):
 
         # TS2 responds to reloads with {'reloadFinished': True}
         if type(data["body"]) == dict:
-           self.debug("gather_candidates: data['body']: {}".format(data["body"]))
            return []
 
         if len(data["body"]) > MAX_COMPLETION_DETAIL:
@@ -154,6 +153,10 @@ class Source(Base):
 
         if detailed_data is None or not "body" in detailed_data:
             return []
+
+        # TS2 responds to reloads with {'reloadFinished': True}
+        if type(data["body"]) == dict:
+           return []
 
         return [self._convert_detailed_completion_data(e, padding=maxNameLength)
                 for e in detailed_data["body"]]
