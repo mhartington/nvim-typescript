@@ -49,7 +49,7 @@ class Source(Base):
     def search_tss_project_dir(self, context):
         self._project_directory = context['cwd']
 
-    def _sendReuest(self, command, arguments=None, wait_for_response=False):
+    def sendRequest(self, command, arguments=None, wait_for_response=False):
         seq = self._next_sequence_id()
         request = {
             "seq":     seq,
@@ -87,7 +87,7 @@ class Source(Base):
         tmpfile = NamedTemporaryFile(delete=False)
         tmpfile.write(contents.encode('utf-8'))
         tmpfile.close()
-        self._sendReuest('reload', {
+        self.sendRequest('reload', {
             'file': filename,
             'tmpfile': tmpfile.name
         }, wait_for_response=True)
@@ -105,7 +105,7 @@ class Source(Base):
         if self._tsserver_handle is None:
             self.startServer()
         if self._tsserver_handle is not None:
-            self._sendReuest('open', {'file': self.relative_file()})
+            self.sendRequest('open', {'file': self.relative_file()})
 
     def get_complete_position(self, context):
         m = re.search(r"\w*$", context["input"])
@@ -116,7 +116,8 @@ class Source(Base):
         if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", context["input"]):
             self._last_input_reload = time()
             self._reload()
-        data = self._sendReuest("completions", {
+
+        data = self.sendRequest("completions", {
             "file":   self.relative_file(),
             "line":   context["position"][1],
             "offset": context["complete_position"] + 1,
@@ -140,7 +141,7 @@ class Source(Base):
                 names.append(entry["name"])
                 maxNameLength = max(maxNameLength, len(entry["name"]))
 
-        detailed_data = self._sendReuest('completionEntryDetails', {
+        detailed_data = self.sendRequest('completionEntryDetails', {
             "file":   self.relative_file(),
             "line":   context["position"][1],
             "offset": context["complete_position"] + 1,
