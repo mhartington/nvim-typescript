@@ -67,14 +67,8 @@ There are a few things you'll have to modify in your vim config in order to be a
 ```VimL
   call dein#local('~/GitHub', {},['deoplete-typescript'])
 
-  let g:deoplete#enable_at_startup = 1
-  let g:deoplete#enable_ignore_case = 1
-  let g:deoplete#auto_complete_start_length = 0
-  let g:auto_complete_start_length = 0
-  let g:deoplete#enable_refresh_always = 1
-  let g:deoplete#enable_debug = 1
-  let g:deoplete#enable_profile = 1
-  call deoplete#enable_logging('DEBUG', '/PATH_TO/deoplete.log') 
+  call deoplete#custom#set('typescript', 'debug_enabled', 1)
+  call deoplete#enable_logging('DEBUG', '/PATH_TO/deoplete.log')
  ```
- 
+
  You will now be able to `tail -f /PATH_TO/deoplete.log`, and see debug output appear.
