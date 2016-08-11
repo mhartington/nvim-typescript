@@ -86,11 +86,13 @@ class Source(Base):
         tmpfile = NamedTemporaryFile(delete=False)
         tmpfile.write(contents.encode('utf-8'))
         tmpfile.close()
-        self.sendRequest('reload', {
+        data = self.sendRequest('reload', {
             'file': filename,
             'tmpfile': tmpfile.name
         }, wait_for_response=True)
         os.unlink(tmpfile.name)
+        self.debug('reload finished')
+        self.debug(data)
 
     def relative_file(self):
         return self.vim.current.buffer.name
@@ -114,8 +116,10 @@ class Source(Base):
         # reload if last reload expired or input completion is a method extraction
         if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", context["input"]):
             self._last_input_reload = time()
+            self.debug('reload starting')
             self._reload()
 
+        self.debug('request for completions')
         data = self.sendRequest("completions", {
             "file":   self.relative_file(),
             "line":   context["position"][1],
@@ -123,12 +127,13 @@ class Source(Base):
             "prefix": context["complete_str"]
         }, wait_for_response=True)
 
+        self.debug(data)
         if data is None or not "body" in data:
             return []
 
-        # TS2 responds to reloads with {'reloadFinished': True}
-        if type(data["body"]) == dict:
-           return []
+        # # TS2 responds to reloads with {'reloadFinished': True}
+        # if type(data["body"]) == dict:
+        #    return []
 
         if len(data["body"]) > MAX_COMPLETION_DETAIL:
             filtered = []
@@ -154,9 +159,9 @@ class Source(Base):
         if detailed_data is None or not "body" in detailed_data:
             return []
 
-        # TS2 responds to reloads with {'reloadFinished': True}
-        if type(detailed_data["body"]) == dict:
-           return []
+        # # TS2 responds to reloads with {'reloadFinished': True}
+        # if type(detailed_data["body"]) == dict:
+        #    return []
 
         return [self._convert_detailed_completion_data(e, padding=maxNameLength)
                 for e in detailed_data["body"]]
