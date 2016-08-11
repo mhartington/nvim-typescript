@@ -126,6 +126,11 @@ class Source(Base):
         if data is None or not "body" in data:
             return []
 
+        # TS2 responds to reloads with {'reloadFinished': True}
+        if type(data["body"]) == dict:
+           self.debug("gather_candidates: data['body']: {}".format(data["body"]))
+           return []
+
         if len(data["body"]) > MAX_COMPLETION_DETAIL:
             filtered = []
             for entry in data["body"]:
