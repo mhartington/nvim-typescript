@@ -155,7 +155,7 @@ class Source(Base):
             return []
 
         # TS2 responds to reloads with {'reloadFinished': True}
-        if type(data["body"]) == dict:
+        if type(detailed_data["body"]) == dict:
            return []
 
         return [self._convert_detailed_completion_data(e, padding=maxNameLength)
@@ -168,7 +168,15 @@ class Source(Base):
         }
 
     def _convert_detailed_completion_data(self, entry, padding=80):
+        if type(entry) == str:
+            return {}
+
         name = entry["name"]
+        if not "displayParts" in entry:
+            return ({
+                "word": name
+            })
+
         display_parts = entry['displayParts']
         signature = ''.join([p['text'] for p in display_parts])
 
