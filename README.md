@@ -2,6 +2,8 @@
 
 This is the deoplete source for typescript.
 
+![](https://github.com/mhartington/deoplete-typescript/blob/master/deoplete-tss.gif)
+
 This is alpha-ish :smile:
 
 ## Installation
