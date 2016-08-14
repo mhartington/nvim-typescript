@@ -172,5 +172,5 @@ class Source(Base):
         return ({
             "word": name,
             "kind": entry["kind"],
-            "menu": menu_text
+            "info": menu_text
         })
