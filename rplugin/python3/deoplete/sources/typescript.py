@@ -167,7 +167,7 @@ class Source(Base):
         signature = ''.join([p['text'] for p in display_parts])
 
         # needed to strip new lines and indentation from the signature
-        signature = re.sub('\s+', ' ', signature)
+        signature = re.sub('\s+', '', signature)
         menu_text = signature.strip("(method)").strip("(property)")
         documentation = menu_text
         if entry["documentation"]:
