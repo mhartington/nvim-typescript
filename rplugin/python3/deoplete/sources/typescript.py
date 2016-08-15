@@ -167,10 +167,16 @@ class Source(Base):
         signature = ''.join([p['text'] for p in display_parts])
 
         # needed to strip new lines and indentation from the signature
-        signature = re.sub('\s+', ' ', signature)
+        signature = re.sub('\s+', '', signature)
         menu_text = signature.strip("(method)").strip("(property)")
+        documentation = menu_text
+        if "documentation" in entry and entry["documentation"]:
+            documentation += "\n" + entry["documentation"][0]["text"]
+
+        kind = entry["kind"][0].title()
         return ({
             "word": name,
-            "kind": entry["kind"],
-            "info": menu_text
+            "kind": kind,
+            "menu": menu_text,
+            "info": documentation
         })
