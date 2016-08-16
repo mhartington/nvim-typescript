@@ -170,7 +170,7 @@ class Source(Base):
         signature = re.sub('\s+', '', signature)
         menu_text = signature.strip("(method)").strip("(property)")
         documentation = menu_text
-        if entry["documentation"]:
+        if "documentation" in entry and entry["documentation"]:
             documentation += "\n" + entry["documentation"][0]["text"]
 
         kind = entry["kind"][0].title()
