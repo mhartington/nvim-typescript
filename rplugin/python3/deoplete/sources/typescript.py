@@ -71,8 +71,6 @@ class Source(Base):
             if len(headerline):
                 key, value = headerline.split(":", 2)
                 headers[key.strip()] = value.strip()
-                break
-
                 if "Content-Length" not in headers:
                     raise RuntimeError("Missing 'Content-Length' header")
                 contentlength = int(headers["Content-Length"])
