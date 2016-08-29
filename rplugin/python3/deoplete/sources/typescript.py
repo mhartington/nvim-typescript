@@ -71,11 +71,14 @@ class Source(Base):
             if len(headerline):
                 key, value = headerline.split(":", 2)
                 headers[key.strip()] = value.strip()
-                break
-        if "Content-Length" not in headers:
-            raise RuntimeError("Missing 'Content-Length' header")
-        contentlength = int(headers["Content-Length"])
-        return json.loads(self._tsserver_handle.stdout.read(contentlength))
+                if "Content-Length" not in headers:
+                    raise RuntimeError("Missing 'Content-Length' header")
+                contentlength = int(headers["Content-Length"])
+                ret = json.loads(self._tsserver_handle.stdout.read(contentlength))
+                if ret['request_seq'] == seq:
+                    return ret
+                elif ret['request_seq'] > seq:
+                    return None
 
     def _write_message(self, message):
         self._tsserver_handle.stdin.write(json.dumps(message))
