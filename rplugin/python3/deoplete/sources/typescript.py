@@ -45,6 +45,7 @@ class Source(Base):
                                                  universal_newlines=True,
                                                  shell=True,
                                                  bufsize=1)
+        self.vim.command('echom "Deoplete-Typescript: Server Started"')
 
     def search_tss_project_dir(self, context):
         self._project_directory = context['cwd']
