@@ -171,7 +171,7 @@ class Source(Base):
 
         # needed to strip new lines and indentation from the signature
         signature = re.sub('\s+', '', signature)
-        menu_text = signature.strip("(method)").strip("(property)")
+        menu_text = re.sub('^\(method\)|^\(property\)', '', signature)
         documentation = menu_text
         if "documentation" in entry and entry["documentation"]:
             documentation += "\n" + entry["documentation"][0]["text"]
