@@ -171,7 +171,7 @@ class Source(Base):
         signature = ''.join([p['text'] for p in display_parts])
 
         # needed to strip new lines and indentation from the signature
-        signature = re.sub('[\n\r]+|^\s+', '', signature)
+        signature = re.sub('\s+', ' ', signature)
         menu_text = re.sub('^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+', '', signature)
         documentation = menu_text
         if 'documentation' in entry and entry['documentation']:
