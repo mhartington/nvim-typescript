@@ -76,10 +76,10 @@ class Source(Base):
                     raise RuntimeError("Missing 'Content-Length' header")
                 contentlength = int(headers["Content-Length"])
                 ret = json.loads(self._tsserver_handle.stdout.read(contentlength))
-                if ret['request_seq'] == seq:
-                    return ret
-                elif ret['request_seq'] > seq:
+                if 'request_seq' not in ret or ret['request_seq'] > seq:
                     return None
+                elif ret['request_seq'] == seq:
+                    return ret
 
     def _write_message(self, message):
         self._tsserver_handle.stdin.write(json.dumps(message))
