@@ -6,10 +6,10 @@ import itertools
 
 from time import time
 from tempfile import NamedTemporaryFile
+from deoplete.source.base import Base
 
-sys.path.insert(1, os.path.dirname(__file__))
+sys.path.insert(1, os.path.dirname(__file__) + '/../..')
 
-from .base import Base
 from client import Client
 
 RELOAD_INTERVAL = 1
