@@ -8,15 +8,15 @@ class Client:
     __project_directory = os.getcwd()
     __environ = os.environ.copy()
 
-    @property
-    def __next_seq(self):
-        seq = self.__server_seq
-        self.__server_seq += 1
-        return seq
-
     def __init__(self, log_fn=None, debug_fn=None):
         self.log_fn = log_fn
         self.debug_fn = debug_fn
+
+    @classmethod
+    def __get_next_seq(cls):
+        seq = cls.__server_seq
+        cls.__server_seq += 1
+        return seq
 
     def __log(self, message):
         if self.log_fn:
@@ -27,13 +27,13 @@ class Client:
             self.debug_fn(message)
 
     def __start_server(self):
-        if self.__server_handle:
+        if Client.__server_handle:
             return
 
-        self.__server_handle = subprocess.Popen(
+        Client.__server_handle = subprocess.Popen(
             "tsserver",
-            env=self.__environ,
-            cwd=self.__project_directory,
+            env=Client.__environ,
+            cwd=Client.__project_directory,
             stdout=subprocess.PIPE,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -45,8 +45,8 @@ class Client:
         self.__log("TSServer started")
 
     def __send_data_to_server(self, data):
-        self.__server_handle.stdin.write(json.dumps(data))
-        self.__server_handle.stdin.write("\n")
+        Client.__server_handle.stdin.write(json.dumps(data))
+        Client.__server_handle.stdin.write("\n")
 
     def __get_response_body(self, response, default=[]):
         success = bool(response) and "success" in response and response["success"]
@@ -67,7 +67,7 @@ class Client:
         self.__start_server()
 
         # Load next seq id
-        seq = self.__next_seq
+        seq = Client.__get_next_seq()
 
         # Build request
         request = {
@@ -92,7 +92,7 @@ class Client:
         headers = {}
 
         while True:
-            headerline = self.__server_handle.stdout.readline().strip()
+            headerline = Client.__server_handle.stdout.readline().strip()
             linecount += 1
 
             if len(headerline):
@@ -105,7 +105,7 @@ class Client:
 
                 # Read response content
                 contentlength = int(headers["Content-Length"])
-                ret_str = self.__server_handle.stdout.read(contentlength)
+                ret_str = Client.__server_handle.stdout.read(contentlength)
 
                 self.__debug("Response: {}".format(ret_str))
 
