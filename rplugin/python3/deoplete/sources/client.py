@@ -48,8 +48,7 @@ class Client:
         self.__server_handle.stdin.write(json.dumps(data))
         self.__server_handle.stdin.write("\n")
 
-    def __get_response_body(self, response, list=True):
-        default = [] if list else {}
+    def __get_response_body(self, response, default=[]):
         success = bool(response) and "success" in response and response["success"]
 
         # Should we raise an error if success == False ?
