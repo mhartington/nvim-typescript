@@ -13,7 +13,6 @@ sys.path.insert(1, os.path.dirname(__file__) + '/../..')
 from client import Client
 
 RELOAD_INTERVAL = 1
-MAX_COMPLETION_DETAIL = 25
 RESPONSE_TIMEOUT_SECONDS = 20
 
 
@@ -31,6 +30,7 @@ class Source(Base):
         self.rank = 700
         self.input_pattern = r"\.\w*"
         self._last_input_reload = time()
+        self._max_completion_detail = vim.eval("g:deoplete#sources#tss#max_completion_detail")
 
         # TSServer client
         self._client = Client(debug_fn=self.debug, log_fn=self.log)
@@ -76,7 +76,7 @@ class Source(Base):
         if len(data) == 0:
             return []
 
-        if len(data) > MAX_COMPLETION_DETAIL:
+        if len(data) > self._max_completion_detail:
             filtered = []
             for entry in data:
                 if (entry["kind"] != "warning"):
