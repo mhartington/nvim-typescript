@@ -2,6 +2,7 @@ import os
 import json
 import subprocess
 
+
 class Client:
     __server_handle = None
     __server_seq = 0
@@ -49,7 +50,8 @@ class Client:
         Client.__server_handle.stdin.write("\n")
 
     def __get_response_body(self, response, default=[]):
-        success = bool(response) and "success" in response and response["success"]
+        success = bool(response) and "success" in response and response[
+            "success"]
 
         # Should we raise an error if success == False ?
 
@@ -157,6 +159,37 @@ class Client:
 
         return response["success"] if response and "success" in response else False
 
+    def getDoc(self, file, line, offset):
+        """
+            Sends a "quickinfo" request
+
+            :type file: string
+            :type line: number
+            :type offset: number
+        """
+        args = {"file": file, "line": line, "offset": offset}
+        response = self.send_request("quickinfo", args, True)
+
+        return response
+
+    def goToDefinition(self, file, line, offset):
+        """
+            Sends a "definition" request
+
+            :type file: string
+            :type line: number
+            :type offset: number
+        """
+        args = {"file": file, "line": line, "offset": offset}
+        response = self.send_request("definition", args, True)
+        return response
+
+    def renameSymbol(self, file, line, offset):
+        args = {"file": file, "line": line, "offset": offset,
+                'findInComments': True, 'findInStrings': True}
+        response = self.send_request("rename", args, True)
+        return response
+
     def completions(self, file, line, offset, prefix=""):
         """
             Sends a "completions" request
@@ -173,7 +206,8 @@ class Client:
             "prefix": prefix
         }
 
-        response = self.send_request("completions", args, wait_for_response=True)
+        response = self.send_request(
+            "completions", args, wait_for_response=True)
 
         return self.__get_response_body(response)
 
@@ -193,6 +227,7 @@ class Client:
             "entryNames": entry_names
         }
 
-        response = self.send_request("completionEntryDetails", args, wait_for_response=True)
+        response = self.send_request(
+            "completionEntryDetails", args, wait_for_response=True)
 
         return self.__get_response_body(response)
