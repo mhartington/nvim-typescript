@@ -82,7 +82,7 @@ class TypescriptHost():
         line = self.vim.current.window.cursor[0]
         offset = self.vim.current.window.cursor[1] + 2
         info = self._client.getDoc(file, line, offset)
-        if not info['success']:
+        if (not info) or (not info['success']):
             self.vim.command(
                 'echohl WarningMsg | echo "TS: No doc at cursor" | echohl None')
         else:
@@ -100,7 +100,7 @@ class TypescriptHost():
         line = self.vim.current.window.cursor[0]
         offset = self.vim.current.window.cursor[1] + 2
         info = self._client.goToDefinition(file, line, offset)
-        if not info['success']:
+        if (not info) or (not info['success']):
             self.vim.command(
                 'echohl WarningMsg | echo "TS: No definition" | echohl None')
         else:
@@ -121,7 +121,7 @@ class TypescriptHost():
         offset = self.vim.current.window.cursor[1] + 2
 
         info = self._client.getDoc(file, line, offset)
-        if not info['success']:
+        if (not info) or (not info['success']):
             pass
         else:
             message = '{0}'.format(info['body']['displayString'])
