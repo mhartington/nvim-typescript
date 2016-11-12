@@ -53,9 +53,6 @@ class Source(Base):
     def relative_file(self):
         return self.vim.current.buffer.name
 
-    def on_event(self, context):
-        self._client.open(self.relative_file())
-
     def get_complete_position(self, context):
         m = re.search(r"\w*$", context["input"])
         return m.start() if m else -1

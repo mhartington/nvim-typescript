@@ -27,7 +27,11 @@ class Client:
         if self.debug_fn:
             self.debug_fn(message)
 
-    def __start_server(self):
+    def stop(self):
+        self.send_request("exit")
+        Client.__server_handle = None
+
+    def start(self):
         if Client.__server_handle:
             return
 
@@ -44,6 +48,11 @@ class Client:
         )
 
         self.__log("TSServer started")
+        return True
+
+    def restart(self):
+        self.stop()
+        self.start()
 
     def __send_data_to_server(self, data):
         Client.__server_handle.stdin.write(json.dumps(data))
@@ -65,8 +74,6 @@ class Client:
             :type arguments: dict
             :type wait_for_response: boolean
         """
-        # Make sure server is started
-        self.__start_server()
 
         # Load next seq id
         seq = Client.__get_next_seq()

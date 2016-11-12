@@ -47,6 +47,7 @@ class TypescriptHost():
     def __init__(self, vim):
         self.vim = vim
         self._client = Client()
+        self.server = None
 
     def relative_file(self):
         """
@@ -71,42 +72,81 @@ class TypescriptHost():
 
         os.unlink(tmpfile.name)
 
+    @neovim.command("TSStop")
+    def tsstop(self):
+        """
+            Stop the client
+        """
+        self.reload()
+        self._client.stop()
+        self.server = None
+        self.vim.out_write('TS: Server Stopped')
+
+    @neovim.command("TSStart")
+    def tsstart(self):
+        """
+            Stat the client
+        """
+        if self.server is None:
+            self._client.start()
+            self.server = True
+            self._client.open(self.relative_file())
+            self.vim.out_write('TS: Server Started \n')
+        else:
+            self.reload()
+
+    @neovim.command("TSRestart")
+    def tsrestart(self):
+        """
+            Restart the Client
+        """
+        self._client.restart()
+        self._client.open(self.relative_file())
+
     @neovim.command("TSDoc")
     def tsdoc(self):
         """
             Get the doc strings and type info
 
         """
-        self.reload()
-        file = self.vim.current.buffer.name
-        line = self.vim.current.window.cursor[0]
-        offset = self.vim.current.window.cursor[1] + 2
-        info = self._client.getDoc(file, line, offset)
-        if (not info) or (not info['success']):
-            self.vim.command(
-                'echohl WarningMsg | echo "TS: No doc at cursor" | echohl None')
+        if self.server is not None:
+            self.reload()
+            file = self.vim.current.buffer.name
+            line = self.vim.current.window.cursor[0]
+            offset = self.vim.current.window.cursor[1] + 2
+            info = self._client.getDoc(file, line, offset)
+            if (not info) or (not info['success']):
+                self.vim.command(
+                    'echohl WarningMsg | echo "TS: No doc at cursor" | echohl None')
+            else:
+                message = '{0}\n\n{1}'.format(info['body']['displayString'],
+                                              info['body']['documentation'])
+                self.vim.command('echo' + repr(PythonToVimStr(message)))
         else:
-            message = '{0}\n\n{1}'.format(info['body']['displayString'],
-                                          info['body']['documentation'])
-            self.vim.command('echom' + repr(PythonToVimStr(message)))
+            self.vim.command(
+                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
     @neovim.command("TSDef")
     def tsdef(self):
         """
             Get the definition
         """
-        self.reload()
-        file = self.vim.current.buffer.name
-        line = self.vim.current.window.cursor[0]
-        offset = self.vim.current.window.cursor[1] + 2
-        info = self._client.goToDefinition(file, line, offset)
-        if (not info) or (not info['success']):
-            self.vim.command(
-                'echohl WarningMsg | echo "TS: No definition" | echohl None')
+        if self.server is not None:
+            self.reload()
+            file = self.vim.current.buffer.name
+            line = self.vim.current.window.cursor[0]
+            offset = self.vim.current.window.cursor[1] + 2
+            info = self._client.goToDefinition(file, line, offset)
+            if (not info) or (not info['success']):
+                self.vim.command(
+                    'echohl WarningMsg | echo "TS: No definition" | echohl None')
+            else:
+                defFile = info['body'][0]['file']
+                defLine = '{0}'.format(info['body'][0]['start']['line'])
+                self.vim.command('e +' + defLine + ' ' + defFile)
         else:
-            defFile = info['body'][0]['file']
-            defLine = '{0}'.format(info['body'][0]['start']['line'])
-            self.vim.command('e +' + defLine + ' ' + defFile)
+            self.vim.command(
+                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
     @neovim.command("TSType")
     def tstype(self):
@@ -114,34 +154,37 @@ class TypescriptHost():
             Get the type info
 
         """
+        if self.server is not None:
+            self.reload()
+            file = self.vim.current.buffer.name
+            line = self.vim.current.window.cursor[0]
+            offset = self.vim.current.window.cursor[1] + 2
 
-        self.reload()
-        file = self.vim.current.buffer.name
-        line = self.vim.current.window.cursor[0]
-        offset = self.vim.current.window.cursor[1] + 2
-
-        info = self._client.getDoc(file, line, offset)
-        if (not info) or (not info['success']):
-            pass
+            info = self._client.getDoc(file, line, offset)
+            if (not info) or (not info['success']):
+                pass
+            else:
+                message = '{0}'.format(info['body']['displayString'])
+                message = re.sub("\s+", " ", message)
+                self.vim.command('echo \'' + message + '\'')
         else:
-            message = '{0}'.format(info['body']['displayString'])
-            message = re.sub("\s+", " ", message)
-            self.vim.command('echo \'' + message + '\'')
+            self.vim.command(
+                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
     # Various Auto Commands
     @neovim.autocmd('CursorHold', pattern='*.ts', sync=True)
     def on_cursorhold(self):
         self.vim.command('TSType')
 
-    @neovim.autocmd('BufEnter', pattern='*.ts', sync=False)
+    @neovim.autocmd('BufEnter', pattern='*.ts', sync=True)
     def on_bufenter(self):
         """
            Send open event when a ts file is open
 
         """
-        self._client.open(self.relative_file())
+        self.vim.command('TSStart')
 
-    @neovim.autocmd('BufWritePost', pattern='*.ts', sync=False)
+    @neovim.autocmd('BufWritePost', pattern='*.ts', sync=True)
     def on_bufwritepost(self):
         """
            On save, reload to detect changes
