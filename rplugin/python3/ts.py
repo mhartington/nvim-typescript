@@ -72,6 +72,14 @@ class TypescriptHost():
 
         os.unlink(tmpfile.name)
 
+    def projectRoot(self):
+        if os.path.isfile(os.path.join(os.getcwd(), 'tsconfig.json')):
+            return True
+        elif os.path.isfile(os.path.join(os.getcwd(), 'jsconfig.json')):
+            return True
+        else:
+            return False
+
     @neovim.command("TSStop")
     def tsstop(self):
         """
@@ -90,10 +98,7 @@ class TypescriptHost():
         if self.server is None:
             self._client.start()
             self.server = True
-            self._client.open(self.relative_file())
             self.vim.out_write('TS: Server Started \n')
-        else:
-            self.reload()
 
     @neovim.command("TSRestart")
     def tsrestart(self):
@@ -166,25 +171,28 @@ class TypescriptHost():
             else:
                 message = '{0}'.format(info['body']['displayString'])
                 message = re.sub("\s+", " ", message)
-                self.vim.command('echo \'' + message + '\'')
+                # self.vim.command('echo \'' + message + '\'')
+                self.vim.out_write(message + '\n')
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
     # Various Auto Commands
-    @neovim.autocmd('CursorHold', pattern='*.ts', sync=True)
+    @neovim.autocmd('CursorHold', pattern='*.ts')
     def on_cursorhold(self):
         self.vim.command('TSType')
 
-    @neovim.autocmd('BufEnter', pattern='*.ts', sync=True)
+    @neovim.autocmd('BufEnter', pattern='*.ts')
     def on_bufenter(self):
         """
            Send open event when a ts file is open
 
         """
-        self.vim.command('TSStart')
+        if self.projectRoot():
+            self.vim.command('TSStart')
+            self._client.open(self.relative_file())
 
-    @neovim.autocmd('BufWritePost', pattern='*.ts', sync=True)
+    @neovim.autocmd('BufWritePost', pattern='*.ts')
     def on_bufwritepost(self):
         """
            On save, reload to detect changes

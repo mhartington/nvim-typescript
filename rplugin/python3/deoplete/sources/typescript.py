@@ -26,11 +26,13 @@ class Source(Base):
         self.debug_enabled = True
         self.name = "typescript"
         self.mark = "TS"
-        self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] if vim.vars["deoplete#sources#tss#javascript_support"] else ["typescript"]
+        self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] if vim.vars[
+            "deoplete#sources#tss#javascript_support"] else ["typescript"]
         self.rank = 700
         self.input_pattern = r"\.\w*"
         self._last_input_reload = time()
-        self._max_completion_detail = vim.eval("g:deoplete#sources#tss#max_completion_detail")
+        self._max_completion_detail = vim.eval(
+            "g:deoplete#sources#tss#max_completion_detail")
 
         # TSServer client
         self._client = Client(debug_fn=self.debug, log_fn=self.log)
@@ -58,48 +60,55 @@ class Source(Base):
         return m.start() if m else -1
 
     def gather_candidates(self, context):
-        # reload if last reload expired or input completion is a method extraction
-        if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", context["input"]):
-            self._last_input_reload = time()
-            self.reload()
+        if os.path.isfile(os.path.join(os.getcwd(), 'tsconfig.json')) or os.path.isfile(os.path.join(os.getcwd(), 'tsconfig.json')):
 
-        data = self._client.completions(
-            file=self.relative_file(),
-            line=context["position"][1],
-            offset=context["complete_position"] + 1,
-            prefix=context["complete_str"]
-        )
+            # reload if last reload expired or input completion is a method
+            # extraction
+            if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", context["input"]):
+                self._last_input_reload = time()
+                self.reload()
 
-        if len(data) == 0:
-            return []
+            data = self._client.completions(
+                file=self.relative_file(),
+                line=context["position"][1],
+                offset=context["complete_position"] + 1,
+                prefix=context["complete_str"]
+            )
 
-        if len(data) > self._max_completion_detail:
-            filtered = []
+            if len(data) == 0:
+                return []
+
+            if len(data) > self._max_completion_detail:
+                filtered = []
+                for entry in data:
+                    if (entry["kind"] != "warning"):
+                        filtered.append(entry)
+                return [self._convert_completion_data(e) for e in filtered]
+
+            names = []
+            maxNameLength = 0
+
             for entry in data:
                 if (entry["kind"] != "warning"):
-                    filtered.append(entry)
-            return [self._convert_completion_data(e) for e in filtered]
+                    names.append(entry["name"])
+                    maxNameLength = max(maxNameLength, len(entry["name"]))
 
-        names = []
-        maxNameLength = 0
+            detailed_data = self._client.completion_entry_details(
+                file=self.relative_file(),
+                line=context["position"][1],
+                offset=context["complete_position"] + 1,
+                entry_names=names
+            )
 
-        for entry in data:
-            if (entry["kind"] != "warning"):
-                names.append(entry["name"])
-                maxNameLength = max(maxNameLength, len(entry["name"]))
+            if len(detailed_data) == 0:
+                return []
 
-        detailed_data = self._client.completion_entry_details(
-            file=self.relative_file(),
-            line=context["position"][1],
-            offset=context["complete_position"] + 1,
-            entry_names=names
-        )
-
-        if len(detailed_data) == 0:
+            return [self._convert_detailed_completion_data(e, padding=maxNameLength)
+                    for e in detailed_data]
+       # if there's no tsconfig...
+       # return an empty array to not error out
+        else:
             return []
-
-        return [self._convert_detailed_completion_data(e, padding=maxNameLength)
-                for e in detailed_data]
 
     def _convert_completion_data(self, entry):
         return {
@@ -114,11 +123,13 @@ class Source(Base):
 
         # needed to strip new lines and indentation from the signature
         signature = re.sub("\s+", " ", signature)
-        menu_text = re.sub("^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+", "", signature)
+        menu_text = re.sub(
+            "^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+", "", signature)
         documentation = menu_text
 
         if "documentation" in entry and entry["documentation"]:
-            documentation += "\n" + "".join([d["text"] for d in entry["documentation"]])
+            documentation += "\n" + \
+                "".join([d["text"] for d in entry["documentation"]])
 
         kind = entry["kind"][0].title()
 
