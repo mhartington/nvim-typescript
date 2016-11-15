@@ -48,6 +48,10 @@ class TypescriptHost():
         self.vim = vim
         self._client = Client()
         self.server = None
+        self.__bufvars = self.vim.current.buffer.vars
+
+        self.settings = ['setl modifiable', 'setl noswapfile',
+                         'setl buftype=nofile', 'setl nomodifiable', 'setl nomodified']
 
     def relative_file(self):
         """
@@ -96,9 +100,9 @@ class TypescriptHost():
             Stat the client
         """
         if self.server is None:
-            self._client.start()
-            self.server = True
-            self.vim.out_write('TS: Server Started \n')
+            if self._client.start():
+                self.server = True
+                self.vim.out_write('TS: Server Started \n')
 
     @neovim.command("TSRestart")
     def tsrestart(self):
@@ -124,8 +128,18 @@ class TypescriptHost():
                 self.vim.command(
                     'echohl WarningMsg | echo "TS: No doc at cursor" | echohl None')
             else:
+                displayString = '{0}'.format(info['body']['displayString'])
+                documentation = '{0}'.format(info['body']['documentation'])
+                documentation = re.sub("\s+", " ", documentation)
+
                 message = '{0}\n\n{1}'.format(info['body']['displayString'],
                                               info['body']['documentation'])
+                # self.vim.command("split '__doc__'")
+                # self.vim.command('resize 10')
+                # self.vim.current.buffer.append(
+                #     [displayString, '', documentation], 0)
+                # for e in self.settings:
+                #     self.vim.command(e)
                 self.vim.command('echo' + repr(PythonToVimStr(message)))
         else:
             self.vim.command(
@@ -148,6 +162,7 @@ class TypescriptHost():
             else:
                 defFile = info['body'][0]['file']
                 defLine = '{0}'.format(info['body'][0]['start']['line'])
+
                 self.vim.command('e +' + defLine + ' ' + defFile)
         else:
             self.vim.command(
@@ -188,8 +203,12 @@ class TypescriptHost():
            Send open event when a ts file is open
 
         """
-        if self.projectRoot():
-            self.vim.command('TSStart')
+        if self.server is None:
+            if self.projectRoot():
+                self._client.start()
+                self.server = True
+                self.vim.out_write('TS: Server Started \n')
+        else:
             self._client.open(self.relative_file())
 
     @neovim.autocmd('BufWritePost', pattern='*.ts')

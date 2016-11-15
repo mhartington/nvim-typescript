@@ -8,7 +8,7 @@ from time import time
 from tempfile import NamedTemporaryFile
 from deoplete.source.base import Base
 
-sys.path.insert(1, os.path.dirname(__file__) + '/../..')
+sys.path.insert(1, os.path.dirname(__file__) + '/../../nvim-typescript')
 
 from client import Client
 
