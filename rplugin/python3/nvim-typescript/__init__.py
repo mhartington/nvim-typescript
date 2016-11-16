@@ -56,7 +56,6 @@ class TypescriptHost():
     def relative_file(self):
         """
             Return the current file
-
         """
         return self.vim.current.buffer.name
 
@@ -78,8 +77,6 @@ class TypescriptHost():
 
     def projectRoot(self):
         if os.path.isfile(os.path.join(os.getcwd(), 'tsconfig.json')):
-            return True
-        elif os.path.isfile(os.path.join(os.getcwd(), 'jsconfig.json')):
             return True
         else:
             return False
@@ -193,11 +190,11 @@ class TypescriptHost():
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
     # Various Auto Commands
-    @neovim.autocmd('CursorHold', pattern='*.ts')
+    @neovim.autocmd('CursorHold', pattern='*.ts,*.tsx')
     def on_cursorhold(self):
         self.vim.command('TSType')
 
-    @neovim.autocmd('BufEnter', pattern='*.ts')
+    @neovim.autocmd('BufEnter', pattern='*.ts,*.tsx')
     def on_bufenter(self):
         """
            Send open event when a ts file is open
@@ -208,10 +205,13 @@ class TypescriptHost():
                 self._client.start()
                 self.server = True
                 self.vim.out_write('TS: Server Started \n')
+                self._client.open(self.relative_file())
+            else:
+                self.vim.out_write('TS: Cannot start server \n')
         else:
             self._client.open(self.relative_file())
 
-    @neovim.autocmd('BufWritePost', pattern='*.ts')
+    @neovim.autocmd('BufWritePost', pattern='*.ts,*.tsx')
     def on_bufwritepost(self):
         """
            On save, reload to detect changes

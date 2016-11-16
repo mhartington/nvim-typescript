@@ -43,11 +43,7 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 
 ## Experimental Javascript support
 
-Did you know Typescript can provide completion and type checking for Javascript? You can enable Javascript completion through TSS by added this variable to your vimrc/init.vim
-
-```viml
-let g:deoplete#sources#tss#javascript_support = 1
-```
+Disabled for now... Need to do some more work on this.
 
 ## Limitation
 

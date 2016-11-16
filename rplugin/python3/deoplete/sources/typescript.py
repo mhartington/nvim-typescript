@@ -26,8 +26,7 @@ class Source(Base):
         self.debug_enabled = True
         self.name = "typescript"
         self.mark = "TS"
-        self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] if vim.vars[
-            "deoplete#sources#tss#javascript_support"] else ["typescript"]
+        self.filetypes = ["typescript", "tsx", "typescript.tsx"]
         self.rank = 700
         self.input_pattern = r"\.\w*"
         self._last_input_reload = time()
@@ -60,7 +59,7 @@ class Source(Base):
         return m.start() if m else -1
 
     def gather_candidates(self, context):
-        if os.path.isfile(os.path.join(os.getcwd(), 'tsconfig.json')) or os.path.isfile(os.path.join(os.getcwd(), 'tsconfig.json')):
+        if os.path.isfile(os.path.join(os.getcwd(), 'tsconfig.json')):
 
             # reload if last reload expired or input completion is a method
             # extraction
