@@ -5,7 +5,7 @@ import subprocess
 
 class Client:
     __server_handle = None
-    __server_seq = 0
+    __server_seq = 1
     __project_directory = os.getcwd()
     __environ = os.environ.copy()
 
@@ -28,10 +28,16 @@ class Client:
             self.debug_fn(message)
 
     def stop(self):
+        """
+        send a stop request
+        """
         self.send_request("exit")
         Client.__server_handle = None
 
     def start(self):
+        """
+        start proc
+        """
         if Client.__server_handle:
             return
 
@@ -51,6 +57,10 @@ class Client:
         return True
 
     def restart(self):
+        """
+        internal
+        start/stop the proc
+        """
         self.stop()
         self.start()
 
@@ -89,7 +99,7 @@ class Client:
         if arguments:
             request["arguments"] = arguments
 
-        self.__debug("Request: {}".format(json.dumps(request)))
+        # self.__debug("Request: {}".format(json.dumps(request)))
 
         # Send request
         self.__send_data_to_server(request)
@@ -114,14 +124,23 @@ class Client:
 
                 # Read response content
                 contentlength = int(headers["Content-Length"])
-                ret_str = Client.__server_handle.stdout.read(contentlength)
+                returned_string = Client.__server_handle.stdout.read(
+                    contentlength)
 
-                self.__debug("Response: {}".format(ret_str))
+                # self.__debug("Response: {}".format(returned_string))
 
-                ret = json.loads(ret_str)
+                ret = json.loads(returned_string)
 
                 # Each response should contain a "request_seq"
-                if "request_seq" not in ret or ret["request_seq"] > seq:
+                # TS 2.0.6 introduces configFileDiag event, ignore
+                if ("event", "configFileDiag") in ret.items():
+                    continue
+                # TS 1.9.x returns two reload finished responses
+                if ('body', {'reloadFinished': True}) in ret.items():
+                    continue
+                if "request_seq" not in ret:
+                    return None
+                if ret["request_seq"] > seq:
                     return None
                 elif ret["request_seq"] == seq:
                     return ret
@@ -176,6 +195,19 @@ class Client:
         """
         args = {"file": file, "line": line, "offset": offset}
         response = self.send_request("quickinfo", args, True)
+
+        return response
+
+    def getSignature(self, file, line, offset):
+        """
+            Sends a "signatureHelp" request
+
+            :type file: string
+            :type line: number
+            :type offset: number
+        """
+        args = {"file": file, "line": line, "offset": offset}
+        response = self.send_request("signatureHelp", args, True)
 
         return response
 

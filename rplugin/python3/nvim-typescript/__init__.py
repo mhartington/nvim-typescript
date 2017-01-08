@@ -189,9 +189,36 @@ class TypescriptHost():
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
+    @neovim.command("TSSig")
+    def tssig(self):
+        """
+            Get the type info
+
+        """
+        if self.server is not None:
+            self.reload()
+            file = self.vim.current.buffer.name
+            line = self.vim.current.window.cursor[0]
+            offset = self.vim.current.window.cursor[1] + 2
+
+            info = self._client.getDoc(file, line, offset)
+            if (not info) or (not info['success']):
+                pass
+            else:
+                message = '{0}'.format(info['body']['displayString'])
+                message = re.sub("\s+", " ", message)
+                # self.vim.command('echo \'' + message + '\'')
+                self.vim.out_write(message + '\n')
+        else:
+            self.vim.command(
+                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+
     # Various Auto Commands
     @neovim.autocmd('CursorHold', pattern='*.ts,*.tsx')
     def on_cursorhold(self):
+        """
+        get type info on cursor hold
+        """
         self.vim.command('TSType')
 
     @neovim.autocmd('BufEnter', pattern='*.ts,*.tsx')
