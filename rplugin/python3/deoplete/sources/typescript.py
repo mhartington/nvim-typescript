@@ -26,7 +26,7 @@ class Source(Base):
         self.debug_enabled = True
         self.name = "typescript"
         self.mark = "TS"
-        self.filetypes = ["typescript", "tsx", "typescript.tsx"]
+        self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] if vim.vars["nvim_typescript#javascript_support"] else ["typescript", "tsx", "typescript.tsx"]
         self.rank = 1000
         self.input_pattern = r"\.\w*"
         self._last_input_reload = time()
