@@ -75,11 +75,6 @@ class TypescriptHost():
 
         os.unlink(tmpfile.name)
 
-    def projectRoot(self):
-        if os.path.isfile(os.path.join(os.getcwd(), 'tsconfig.json')):
-            return True
-        else:
-            return False
 
     @neovim.command("TSStop")
     def tsstop(self):
@@ -226,13 +221,10 @@ class TypescriptHost():
 
         """
         if self.server is None:
-            if self.projectRoot():
-                self._client.start()
-                self.server = True
-                self.vim.out_write('TS: Server Started \n')
-                self._client.open(self.relative_file())
-            else:
-                self.vim.out_write('TS: Cannot start server \n')
+            self._client.start()
+            self.server = True
+            self.vim.out_write('TS: Server Started \n')
+            self._client.open(self.relative_file())
         else:
             self._client.open(self.relative_file())
 
