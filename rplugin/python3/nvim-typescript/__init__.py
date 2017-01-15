@@ -207,19 +207,17 @@ class TypescriptHost():
             else:
                 message = '{0}'.format(info['body']['displayString'])
                 message = re.sub("\s+", " ", message)
-                # self.vim.command('echo \'' + message + '\'')
-                self.vim.out_write(message + '\n')
+                self.vim.command(
+                    'redraws! | echo "nvim-ts: " | echohl Function | echon \"' +
+                    message + '\" | echohl None'
+                )
+                # self.vim.command('redraws!')
+                # self.vim.out_write(message + '\n')
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
     # Various Auto Commands
-    @neovim.autocmd('CursorHold', pattern='*.ts,*.tsx')
-    def on_cursorhold(self):
-        """
-        get type info on cursor hold
-        """
-        self.vim.command('TSType')
 
     @neovim.autocmd('BufEnter', pattern='*.ts,*.tsx')
     def on_bufenter(self):
@@ -242,6 +240,5 @@ class TypescriptHost():
     def on_bufwritepost(self):
         """
            On save, reload to detect changes
-
         """
         self.reload()

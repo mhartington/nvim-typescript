@@ -31,7 +31,7 @@ class Source(Base):
         self.input_pattern = r"\.\w*"
         self._last_input_reload = time()
         self._max_completion_detail = vim.eval(
-            "g:deoplete#sources#tss#max_completion_detail")
+            "nvim_typescript#max_completion_detail")
 
         # TSServer client
         self._client = Client(debug_fn=self.debug, log_fn=self.log)
@@ -66,7 +66,7 @@ class Source(Base):
     def get_complete_position(self, context):
         """
         returns the cursor position
-        """        
+        """
         m = re.search(r"\w*$", context["input"])
         return m.start() if m else -1
 
