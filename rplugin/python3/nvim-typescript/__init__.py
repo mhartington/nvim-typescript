@@ -75,7 +75,6 @@ class TypescriptHost():
 
         os.unlink(tmpfile.name)
 
-
     @neovim.command("TSStop")
     def tsstop(self):
         """
@@ -116,6 +115,7 @@ class TypescriptHost():
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1] + 2
             info = self._client.getDoc(file, line, offset)
+
             if (not info) or (not info['success']):
                 self.vim.command(
                     'echohl WarningMsg | echo "TS: No doc at cursor" | echohl None')
@@ -178,7 +178,7 @@ class TypescriptHost():
             else:
                 message = '{0}'.format(info['body']['displayString'])
                 message = re.sub("\s+", " ", message)
-                # self.vim.command('echo \'' + message + '\'')
+                self.vim.command('redraws!')
                 self.vim.out_write(message + '\n')
         else:
             self.vim.command(
@@ -190,24 +190,24 @@ class TypescriptHost():
             Get the type info
 
         """
+        # self.vim.command('echom "completion done"')
+
         if self.server is not None:
             self.reload()
             file = self.vim.current.buffer.name
             line = self.vim.current.window.cursor[0]
-            offset = self.vim.current.window.cursor[1] + 2
-
+            offset = self.vim.current.window.cursor[1]
             info = self._client.getDoc(file, line, offset)
-            if (not info) or (not info['success']):
+            if (not info) or (info['success'] is False):
                 pass
             else:
                 message = '{0}'.format(info['body']['displayString'])
                 message = re.sub("\s+", " ", message)
-                self.vim.command(
-                    'redraws! | echo "nvim-ts: " | echohl Function | echon \"' +
-                    message + '\" | echohl None'
-                )
-                # self.vim.command('redraws!')
-                # self.vim.out_write(message + '\n')
+                if 'method' in info['body']['kind']:
+                    # pylint: disable=locally-disabled, line-too-long
+                    self.vim.command('redraws! | echom "nvim-ts: " | echohl Function | echon \"' + message + '\" | echohl None')
+                else:
+                    pass
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')

@@ -99,8 +99,6 @@ class Client:
         if arguments:
             request["arguments"] = arguments
 
-        # self.__debug("Request: {}".format(json.dumps(request)))
-
         # Send request
         self.__send_data_to_server(request)
 
@@ -126,8 +124,6 @@ class Client:
                 contentlength = int(headers["Content-Length"])
                 returned_string = Client.__server_handle.stdout.read(
                     contentlength)
-
-                # self.__debug("Response: {}".format(returned_string))
 
                 ret = json.loads(returned_string)
 
