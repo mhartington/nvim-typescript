@@ -53,6 +53,13 @@ class TypescriptHost():
         self.settings = ['setl modifiable', 'setl noswapfile',
                          'setl buftype=nofile', 'setl nomodifiable', 'setl nomodified']
 
+    def is_valid(self, filename):
+        """
+            Return whether or not the current file is valid for commands
+        """
+        # pylint: disable=locally-disabled, line-too-long
+        return filename.endswith((".ts", ".tsx")) or self.vim.vars["nvim_typescript#javascript_support"]
+
     def relative_file(self):
         """
             Return the current file
@@ -213,24 +220,33 @@ class TypescriptHost():
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
     # Various Auto Commands
+    @neovim.autocmd('CursorHold', pattern='*.ts,*.tsx,*.js,*.jsx')
+    def on_cursorhold(self):
+        """
+        get type info on cursor hold
+        """
+        self.vim.command('TSType')
 
-    @neovim.autocmd('BufEnter', pattern='*.ts,*.tsx')
+    @neovim.autocmd('BufEnter', pattern='*.ts,*.tsx,*.js,*.jsx')
     def on_bufenter(self):
         """
            Send open event when a ts file is open
 
         """
-        if self.server is None:
-            self._client.start()
-            self.server = True
-            self.vim.out_write('TS: Server Started \n')
-            self._client.open(self.relative_file())
-        else:
-            self._client.open(self.relative_file())
+        if self.is_valid(self.relative_file()):
+            if self.server is None:
+                self._client.start()
+                self.server = True
+                self.vim.out_write('TS: Server Started \n')
+                self._client.setDefaultCompileOptions()
+                self._client.open(self.relative_file())
+            else:
+                self._client.open(self.relative_file())
 
-    @neovim.autocmd('BufWritePost', pattern='*.ts,*.tsx')
+    @neovim.autocmd('BufWritePost', pattern='*.ts,*.tsx,*.js,*.jsx')
     def on_bufwritepost(self):
         """
            On save, reload to detect changes
         """
-        self.reload()
+        if self.is_valid(self.relative_file()):
+            self.reload()
