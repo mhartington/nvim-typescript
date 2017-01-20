@@ -42,7 +42,7 @@ class Client:
             return
 
         Client.__server_handle = subprocess.Popen(
-            "tsserver",
+            "tsserver --useSingleInferredProject",
             env=Client.__environ,
             cwd=Client.__project_directory,
             stdout=subprocess.PIPE,
@@ -112,7 +112,7 @@ class Client:
             headerline = Client.__server_handle.stdout.readline().strip()
             linecount += 1
 
-            if len(headerline):
+            if len(headerline) and ":" in headerline:
                 key, value = headerline.split(":", 2)
                 headers[key.strip()] = value.strip()
 
@@ -224,6 +224,22 @@ class Client:
                 'findInComments': True, 'findInStrings': True}
         response = self.send_request("rename", args, True)
         return response
+
+    def setDefaultCompileOptions(self):
+        """
+            Sends a "compilerOptionsForInferredProjects" request
+        """
+        args = {
+            "compilerOptions": {
+                "target": "es2017",
+                "module": "es6",
+                "jsx": "preserve",
+                "allowSyntheticDefaultImports": "true",
+                "allowNonTsExtensions": "true",
+                "allowJs": "true",
+            }
+        }
+        self.send_request("compilerOptionsForInferredProjects", args)
 
     def completions(self, file, line, offset, prefix=""):
         """

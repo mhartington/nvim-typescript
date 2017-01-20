@@ -238,6 +238,7 @@ class TypescriptHost():
                 self._client.start()
                 self.server = True
                 self.vim.out_write('TS: Server Started \n')
+                self._client.setDefaultCompileOptions()
                 self._client.open(self.relative_file())
             else:
                 self._client.open(self.relative_file())
