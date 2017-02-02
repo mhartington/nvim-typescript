@@ -1,10 +1,12 @@
-import neovim
 import sys
 import os
 import re
+import json
+import neovim
 from tempfile import NamedTemporaryFile
 sys.path.insert(1, os.path.dirname(__file__))
 from client import Client
+from dir import Dir
 
 is_py3 = sys.version_info[0] >= 3
 if is_py3:
@@ -12,6 +14,24 @@ if is_py3:
     unicode = str
 else:
     ELLIPSIS = u"…"
+
+"""
+These default args are arbitrary
+They could be anything, but this
+is better than nothing. Feel free
+to change to fit your needs
+"""
+defaultArgs = {
+    "compilerOptions": {
+        "target": "es2017",
+        "module": "es6",
+        "jsx": "preserve",
+        "allowSyntheticDefaultImports": "true",
+        "allowNonTsExtensions": "true",
+        "allowJs": "true",
+        "lib": ["dom", "es2015"]
+    }
+}
 
 
 class PythonToVimStr(unicode):
@@ -49,9 +69,9 @@ class TypescriptHost():
         self._client = Client()
         self.server = None
         self.__bufvars = self.vim.current.buffer.vars
-
         self.settings = ['setl modifiable', 'setl noswapfile',
                          'setl buftype=nofile', 'setl nomodifiable', 'setl nomodified']
+        self.files = Dir().files()
 
     def relative_file(self):
         """
@@ -75,6 +95,25 @@ class TypescriptHost():
 
         os.unlink(tmpfile.name)
 
+    def findconfig(self):
+        files = self.files
+        m = re.compile(r'(ts|js)config.json$')
+        for file in files:
+            if m.search(file):
+                return True
+
+    def writeFile(self):
+        jsSupport = self.vim.eval('g:nvim_typescript#javascript_support')
+        if bool(jsSupport):
+            with open('jsconfig.json', 'w') as config:
+                json.dump(defaultArgs, config, indent=2,
+                          separators=(',', ': '))
+                config.close()
+                self.vim.command('redraws')
+                self.vim.out_write(
+                    'nvim-ts: js support was enable, but no config is present, writting defualt jsconfig.json \n')
+                self.tsstart()
+
     @neovim.command("TSStop")
     def tsstop(self):
         """
@@ -93,6 +132,7 @@ class TypescriptHost():
         if self.server is None:
             if self._client.start():
                 self.server = True
+                self.vim.command('redraws')
                 self.vim.out_write('TS: Server Started \n')
 
     @neovim.command("TSRestart")
@@ -205,31 +245,31 @@ class TypescriptHost():
                 message = re.sub("\s+", " ", message)
                 if 'method' in info['body']['kind']:
                     # pylint: disable=locally-disabled, line-too-long
-                    self.vim.command('redraws! | echom "nvim-ts: " | echohl Function | echon \"' + message + '\" | echohl None')
+                    self.vim.command(
+                        'redraws! | echom "nvim-ts: " | echohl Function | echon \"' + message + '\" | echohl None')
                 else:
                     pass
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
-    # Various Auto Commands
-
-    @neovim.autocmd('BufEnter', pattern='*.ts,*.tsx')
-    def on_bufenter(self):
+    @neovim.function('NvimTSEnter')
+    def on_bufenter(self, args):
         """
            Send open event when a ts file is open
 
         """
-        if self.server is None:
-            self._client.start()
-            self.server = True
-            self.vim.out_write('TS: Server Started \n')
-            self._client.open(self.relative_file())
+        if self.findconfig():
+            if self.server is None:
+                self.tsstart()
+                self._client.open(self.relative_file())
+            else:
+                self._client.open(self.relative_file())
         else:
-            self._client.open(self.relative_file())
+            self.writeFile()
 
-    @neovim.autocmd('BufWritePost', pattern='*.ts,*.tsx')
-    def on_bufwritepost(self):
+    @neovim.function('NvimTsSave')
+    def on_bufwritepost(self, args):
         """
            On save, reload to detect changes
         """

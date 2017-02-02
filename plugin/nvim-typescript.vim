@@ -13,10 +13,24 @@ let g:nvim_typescript#signature_complete =
 
 augroup nvim-typescript
   autocmd!
+
   if get(g:, 'nvim_typescript#type_info_on_hold', 1)
+    if get(g:, 'nvim_typescript#javascript_support', 1)
+       autocmd CursorHold *.ts,*.tsx,*.js,*.jsx TSType
+    endif
      autocmd CursorHold *.ts,*.tsx TSType
   endif
+
   if get(g:, 'nvim_typescript#signature_complete', 1)
      autocmd CompleteDone *.ts,*.tsx TSSig
   endif
+
+  if get(g:, 'nvim_typescript#javascript_support', 1)
+    autocmd BufEnter *.ts,*.tsx,*.js,*.jsx call NvimTSEnter()
+    autocmd BufWritePost *.ts,*.tsx,*.js,*.jsx call NvimTsSave()
+  else
+    autocmd BufEnter *.ts,*.tsx call NvimTSEnter()
+    autocmd BufWritePost *.ts,*.tsx call NvimTsSave()
+  endif
+
 augroup end
