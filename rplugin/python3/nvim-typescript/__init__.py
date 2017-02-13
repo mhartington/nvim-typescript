@@ -105,14 +105,18 @@ class TypescriptHost():
     def writeFile(self):
         jsSupport = self.vim.eval('g:nvim_typescript#javascript_support')
         if bool(jsSupport):
-            with open('jsconfig.json', 'w') as config:
-                json.dump(defaultArgs, config, indent=2,
-                          separators=(',', ': '))
-                config.close()
-                self.vim.command('redraws')
-                self.vim.out_write(
-                    'nvim-ts: js support was enable, but no config is present, writting defualt jsconfig.json \n')
-                self.tsstart()
+            input = self.vim.call('input', 'nvim-ts: config is not present, create one? ')
+            if input == "yes":
+                with open('jsconfig.json', 'w') as config:
+                    json.dump(defaultArgs, config, indent=2,
+                              separators=(',', ': '))
+                    config.close()
+                    self.vim.command('redraws')
+                    self.vim.out_write(
+                        'nvim-ts: js support was enable, but no config is present, writting defualt jsconfig.json \n')
+                    self.tsstart()
+            else:
+                self.vim.out_write('TSServer not started.')
 
     @neovim.command("TSStop")
     def tsstop(self):
