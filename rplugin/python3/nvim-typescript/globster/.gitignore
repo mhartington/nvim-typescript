@@ -1,0 +1,10 @@
+*.pyc
+build/
+dist/
+packagename.egg-info/
+.sass-cache
+.DS_Store
+*tar.gz
+*.zip
+.pypirc
+docs/_build
