@@ -26,12 +26,14 @@ class Source(Base):
         self.debug_enabled = True
         self.name = "typescript"
         self.mark = "TS"
-        self.filetypes = ["typescript", "tsx", "typescript.tsx"]
+        self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] if self.vim.vars[
+            "nvim_typescript#javascript_support"] else ["typescript", "tsx", "typescript.tsx"]
         self.rank = 1000
         self.input_pattern = r"\.\w*"
         self._last_input_reload = time()
-        self._max_completion_detail = vim.eval(
-            "nvim_typescript#max_completion_detail")
+        # pylint: disable=locally-disabled, line-too-long
+        self._max_completion_detail = self.vim.eval(
+            "g:nvim_typescript#max_completion_detail")
 
         # TSServer client
         self._client = Client(debug_fn=self.debug, log_fn=self.log)
@@ -132,7 +134,8 @@ class Source(Base):
 
         # needed to strip new lines and indentation from the signature
         signature = re.sub("\s+", " ", signature)
-        menu_text = re.sub("^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+", "", signature)
+        menu_text = re.sub(
+            "^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+", "", signature)
         documentation = menu_text
 
         if "documentation" in entry and entry["documentation"]:
