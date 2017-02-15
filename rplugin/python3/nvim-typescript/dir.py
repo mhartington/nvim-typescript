@@ -1,7 +1,6 @@
 import os
 import sys
 import logging
-sys.path.insert(1, os.path.dirname(__file__) + '/globster')
 from globster import Globster
 log = logging.getLogger("nvim-dir")
 

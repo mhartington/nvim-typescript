@@ -68,10 +68,7 @@ class TypescriptHost():
         self.vim = vim
         self._client = Client()
         self.server = None
-        # self.__bufvars = self.vim.current.buffer.vars
-        # self.settings = ['setl modifiable', 'setl noswapfile',
-        #                  'setl buftype=nofile', 'setl nomodifiable', 'setl nomodified']
-        self.files = Dir().files()
+        self.files = Dir()
 
     def relative_file(self):
         """
@@ -96,7 +93,7 @@ class TypescriptHost():
         os.unlink(tmpfile.name)
 
     def findconfig(self):
-        files = self.files
+        files = self.files.files()
         m = re.compile(r'(ts|js)config.json$')
         for file in files:
             if m.search(file):
@@ -105,7 +102,7 @@ class TypescriptHost():
     def writeFile(self):
         jsSupport = self.vim.eval('g:nvim_typescript#javascript_support')
         if bool(jsSupport):
-            input = self.vim.call('input', 'nvim-ts: config is not present, create one? ')
+            input = self.vim.call('input', 'nvim-ts: config is not present, create one [yes|no]? ')
             if input == "yes":
                 with open('jsconfig.json', 'w') as config:
                     json.dump(defaultArgs, config, indent=2,
@@ -116,6 +113,7 @@ class TypescriptHost():
                         'nvim-ts: js support was enable, but no config is present, writting defualt jsconfig.json \n')
                     self.tsstart()
             else:
+                self.vim.command('redraws')
                 self.vim.out_write('TSServer not started.')
 
     @neovim.command("TSStop")
