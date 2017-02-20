@@ -1,8 +1,8 @@
-# Deoplete-Typescript
+# nvim-typescript
 
 This is the deoplete source for typescript.
 
-![](https://github.com/mhartington/deoplete-typescript/blob/master/deoplete-tss.gif)
+![](https://github.com/mhartington/nvim-typescript/blob/master/deoplete-tss.gif)
 
 This is alpha-ish :smile:
 
@@ -30,11 +30,11 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 ```viml
  " Dein
   call dein#add('Shougo/deoplete.nvim')
-  call dein#add('mhartington/deoplete-typescript')
+  call dein#add('mhartington/nvim-typescript')
 
  " Plug
   Plug 'Shougo/deoplete.nvim'
-  Plug 'mhartington/deoplete-typescript'
+  Plug 'mhartington/nvim-typescript'
 
 " Enable deoplete at startup
 
@@ -47,7 +47,7 @@ Disabled for now... Need to do some more work on this.
 
 ## Limitation
 
-Currently, this plugin requires a `tsconfig.json` to be present in the current working directory. This is how we can feed TSS proper project information, like modules and files. See [this issue](https://github.com/mhartington/deoplete-typescript/issues/10) for clarification.
+Currently, this plugin requires a `tsconfig.json` to be present in the current working directory. This is how we can feed TSS proper project information, like modules and files. See [this issue](https://github.com/mhartington/nvim-typescript/issues/10) for clarification.
 
 If no completion is happening, please be sure to have a Typescript syntax file in your RTP. Neovim does not include a default syntax for Typescript, so be sure to include one. A popular syntax file for Typescript is [yats.vim](https://github.com/HerringtonDarkholme/yats.vim)
 
@@ -65,7 +65,7 @@ See:
 There are a few things you'll have to modify in your vim config in order to be able to effectively work on this plugin:
 
 ```VimL
-  call dein#local('~/GitHub', {},['deoplete-typescript'])
+  call dein#local('~/GitHub', {},['nvim-typescript'])
 
   let g:deoplete#enable_at_startup = 1
   let g:deoplete#enable_ignore_case = 1
