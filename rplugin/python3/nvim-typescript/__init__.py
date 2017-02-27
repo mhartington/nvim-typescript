@@ -102,7 +102,8 @@ class TypescriptHost():
     def writeFile(self):
         jsSupport = self.vim.eval('g:nvim_typescript#javascript_support')
         if bool(jsSupport):
-            input = self.vim.call('input', 'nvim-ts: config is not present, create one [yes|no]? ')
+            input = self.vim.call(
+                'input', 'nvim-ts: config is not present, create one [yes|no]? ')
             if input == "yes":
                 with open('jsconfig.json', 'w') as config:
                     json.dump(defaultArgs, config, indent=2,
@@ -251,6 +252,43 @@ class TypescriptHost():
                         'redraws! | echom "nvim-ts: " | echohl Function | echon \"' + message + '\" | echohl None')
                 else:
                     pass
+        else:
+            self.vim.command(
+                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+
+    @neovim.command("TSRefs")
+    def tsrefs(self):
+        """
+            Get the type info
+
+        """
+
+        if self.server is not None:
+            self.reload()
+            file = self.vim.current.buffer.name
+            line = self.vim.current.window.cursor[0]
+            offset = self.vim.current.window.cursor[1] + 2
+
+            refs = self._client.getRef(file, line, offset)
+
+            if (not refs) or (refs['success'] is False):
+                pass
+            else:
+                location_list = []
+                refList = refs["body"]["refs"]
+                if len(refList) > -1:
+                    for ref in refList:
+                        location_list.append({
+                            'filename': ref['file'],
+                            'lnum': ref['start']['line'],
+                            'col': ref['start']['offset'],
+                            'text': ref['lineText']
+                        })
+                    self.vim.call('setloclist', 0, location_list, 'r', 'References')
+                    self.vim.command('lwindow')
+                else:
+                    self.vim.command(
+                        'echohl WarningMsg | echo "nvim-ts: References not found" | echohl None')
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')

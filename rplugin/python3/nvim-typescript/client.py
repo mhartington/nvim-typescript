@@ -207,6 +207,12 @@ class Client:
 
         return response
 
+    def getRef(self, file, line, offset):
+        args = {"file": file, "line": line, "offset": offset}
+        response = self.send_request("references", args, True)
+
+        return response
+
     def goToDefinition(self, file, line, offset):
         """
             Sends a "definition" request
