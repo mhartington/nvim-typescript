@@ -1,0 +1,213 @@
+*nvim-typescript.txt* Typescript development plugin for neovim
+
+*nvim-typescript*
+
+
+CONTENTS                                                  *typescript-contents*
+
+  1. Intro........................................|typescript-intro|
+  2. Install......................................|typescript-install|
+  3. Commands.....................................|typescript-commands|
+  4. Variables....................................|typescript-variables|
+  5. Mappings.....................................|typescript-mappings|
+  7. Functions....................................|typescript-functions|
+  8. Settings.....................................|typescript-settings|
+  9. Troubleshooting..............................|typescript-troubleshooting|
+
+===============================================================================
+INTRO                                                        *typescript-intro*
+
+Typescript support for Vim. Nvim-typescript provide standard IDE-like features
+like auto-completion, viewing of documentation, type-signature, go to
+definition, and refernce finder.
+
+
+===============================================================================
+INSTALL                                                    *typescript-install*
+
+To install, use your typical plugin manager and add a reference in your
+init.vim. If you'd like completion support, install Deoplete.nvim as well.
+
+*  https://github.com/junegunn/vim-plug >
+
+    Plug 'Shougo/deoplete.nvim'
+    Plug 'mhartington/nvim-typescript'
+<
+
+*  https://github.com/Shougo/dein.vim >
+
+    call dein#add('Shougo/deoplete.nvim')
+    call dein#add('mhartington/nvim-typescript')
+<
+
+In you install Deoplete as well, make sure you also have the python3 bindings
+to Neovim. >
+
+pip3 install neovim
+
+
+
+
+
+Then run `UpdateRemotePlugins`.
+
+
+Currently, a global install of typescript is required. So make sure your have
+it installed with >
+
+npm install -g typescript
+
+
+===============================================================================
+COMMANDS                                                  *typescript-commands*
+
+                                                                       *:TSDef*
+:TSDef
+
+    Opens the definition file for symbol under the cursor.
+
+                                                                      *:TSRefs*
+:TSRefs
+
+    Gathers all reference of the symbol under ther cursor and displays them in
+    a quick-fix window.
+
+                                                                       *:TSDoc*
+:TSDoc
+
+    Prints the documentation for the symbol under the cursor and displays it in
+    the echo area. Plans are to make this display in it's own split.
+
+                                                                     *:TSStart*
+:TSStart
+
+    Starts the typescript client. This is called automatically.
+
+
+                                                                      *:TSStop*
+:TSStop
+
+    Stops the typescript client
+
+
+                                                                   *:TSRestart*
+:TSRestart
+
+    Restarts the client. This is useful if changes to the `tsconfig.json` are
+    made during the current nvim session.
+
+                                                                      *:TSType*
+:TSType
+
+    Prints the type signature for the symbol under the cursor.
+
+===============================================================================
+VARIABLES                                                *typescript-variables*
+
+                                      	 *g:nvim_typescript#javascript_support*
+g:nvim_typescript#javascript_support
+Values: 0 or 1
+Default: 0
+
+    Enables javascript support via the typescript client. Requires a
+    `jsconfig.json` to be present. If one is not found, a boilerplate one will
+    be created in your current working directory.
+
+
+                                      *g:nvim_typescript#max_completion_detail*
+g:nvim_typescript#javascript_support
+Values: Any natural number
+Default: 25
+
+    If the completion returned by the client exceed this number, the deoplete
+    source will return less detail complete. This is for performance reasons.
+    This can be bumped up to 100 without any real performance issues, but is
+    set to 25 as a safe default.
+
+
+                                          *g:nvim_typescript#type_info_on_hold*
+g:nvim_typescript#type_info_on_hold
+Values: 0 or 1
+Default: 0
+
+    If set to 1, the type info for the symbol under the cursor will be
+    displayed in the echo area.
+
+
+                                         *g:nvim_typescript#signature_complete*
+g:nvim_typescript#signature_complete
+Values: 0 or 1
+Default: 0
+
+    If set to 1, the function signature will be printed to the echo area. Since
+    this plugin integrates with Deoplete, this is disabled in favor of echodoc.
+    * https://github.com/Shougo/echodoc.vim
+
+
+                                                 *g:nvim_typescript#ts_version*
+g:nvim_typescript#ts_version
+
+    The current version typescript that is supported by this plugin. Version
+    past this may include breaking changes.
+
+===============================================================================
+MAPPINGS                                                  *typescript-mappings*
+
+This plugin comes with no default mappings, as a feature :)
+Feel free the add your mappings that fit your own ergonomics.
+
+===============================================================================
+FUNCTIONS                                                *typescript-functions*
+
+
+                                                                  *NvimTSEnter*
+NvimTSEnter
+
+    Function called when a typescript file is opened. This starts the server
+    client.
+
+                                                                   *NvimTSSave*
+NvimTSSave
+
+    Function called when a typescript file is saved. This send a reload event
+    to the client, notifying it of changes made to the project.
+
+===============================================================================
+TROUBLESHOOTING                                    *typescript-troubleshooting*
+
+
+Q: No completions show up on typing.
+
+A: Make sure you have Deoplete installed and have it enabled on startup.
+
+>
+  let g:deoplete#enable_at_startup=1
+<
+
+Q: I get errors when using this plugin.
+
+A: This could happen for a number of reasons
+  1. No valid tsconfig.json in your project
+  2. No installation of typescript on your system.
+  3. `UpdateRemotePlugins` has not been called since installation.
+
+Q: The plugin does not recognize my file as typescript.
+
+A: This file does not include a syntax file for typescript. I do not want to
+   write one. Please install *https://github.com/HerringtonDarkholme/yats.vim*
+   or *https://github.com/leafgarland/typescript-vim*
+
+Q: Why better than tsuquyomi? Why is this better than other plugins?
+
+A: This plugin does not claim to be better than any other plugin, and is more
+   for my own needs. Maybe you would like it too?
+   The plugin is all asynchronous and is lag free. Other plugins do not offer
+   this, mostly because they rely on Vim, or other synchronous methods.
+
+
+Q: This breaks with specific version of Typescript.
+
+A: New versions of typescript could contain breaking changes. This is to be
+   expected. See the `g:nvim_typescript#ts_version` variable for the  current
+   version support.
+
