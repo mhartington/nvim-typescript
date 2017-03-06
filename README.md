@@ -71,3 +71,11 @@ There are a few things you'll have to modify in your vim config in order to be a
 ```
 
  You will now be able to `tail -f /PATH_TO/deoplete.log`, and see debug output appear.
+
+
+## TODOS
+
+- [ ] Refactor `TSDoc`, print docs to split.
+- [ ] Add `TSRename`
+- [ ] Refactor client to support `geterr` request
+- [ ] Add `TSGetErr`
