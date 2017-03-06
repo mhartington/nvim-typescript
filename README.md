@@ -1,6 +1,7 @@
-# nvim-typescript
+# Nvim-Typescript
 
-This is the deoplete source for typescript.
+
+Nvim language service plugin for typescript
 
 ![](https://github.com/mhartington/nvim-typescript/blob/master/deoplete-tss.gif)
 
@@ -41,10 +42,6 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
   let g:deoplete#enable_at_startup = 1
 ```
 
-## Experimental Javascript support
-
-Disabled for now... Need to do some more work on this.
-
 ## Limitation
 
 Currently, this plugin requires a `tsconfig.json` to be present in the current working directory. This is how we can feed TSS proper project information, like modules and files. See [this issue](https://github.com/mhartington/nvim-typescript/issues/10) for clarification.
@@ -64,17 +61,13 @@ See:
 
 There are a few things you'll have to modify in your vim config in order to be able to effectively work on this plugin:
 
-```VimL
+```viml
   call dein#local('~/GitHub', {},['nvim-typescript'])
 
   let g:deoplete#enable_at_startup = 1
-  let g:deoplete#enable_ignore_case = 1
-  let g:deoplete#auto_complete_start_length = 0
-  let g:auto_complete_start_length = 0
-  let g:deoplete#enable_refresh_always = 1
   let g:deoplete#enable_debug = 1
   let g:deoplete#enable_profile = 1
   call deoplete#enable_logging('DEBUG', '/PATH_TO/deoplete.log')
- ```
+```
 
  You will now be able to `tail -f /PATH_TO/deoplete.log`, and see debug output appear.
