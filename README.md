@@ -79,3 +79,4 @@ There are a few things you'll have to modify in your vim config in order to be a
 - [ ] Add `TSRename`
 - [ ] Refactor client to support `geterr` request
 - [ ] Add `TSGetErr`
+- [x] Use local install of `tsserver` and not global

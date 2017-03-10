@@ -198,7 +198,7 @@ class TypescriptHost():
                 defFile = info['body'][0]['file']
                 defLine = '{0}'.format(info['body'][0]['start']['line'])
 
-                self.vim.command('e +' + defLine + ' ' + defFile)
+                self.vim.command('e! +' + defLine + ' ' + defFile)
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
@@ -293,7 +293,14 @@ class TypescriptHost():
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
-    @neovim.function('NvimTSEnter')
+    @neovim.function('TSGetServerPath')
+    def tstest(self, args):
+        """
+        Get the path of the tsserver
+        """
+        self.vim.out_write(self._client.getServer() + '\n')
+
+    @neovim.function('TSOnBufEnter')
     def on_bufenter(self, args):
         """
            Send open event when a ts file is open
@@ -308,7 +315,7 @@ class TypescriptHost():
         else:
             self.writeFile()
 
-    @neovim.function('NvimTsSave')
+    @neovim.function('TSOnBufSave')
     def on_bufwritepost(self, args):
         """
            On save, reload to detect changes

@@ -160,17 +160,23 @@ Feel free the add your mappings that fit your own ergonomics.
 FUNCTIONS                                                *typescript-functions*
 
 
-                                                                  *NvimTSEnter*
-NvimTSEnter
+                                                                 *TSOnBufEnter*
+TSOnBufEnter
 
     Function called when a typescript file is opened. This starts the server
     client.
 
-                                                                   *NvimTSSave*
-NvimTSSave
+                                                                  *TSOnBufSave*
+TSOnBufSave
 
     Function called when a typescript file is saved. This send a reload event
     to the client, notifying it of changes made to the project.
+
+                                                              *TSGetServerPath*
+TSGetServerPath
+
+    Function for checking the path of `tsserver`. By default, we'll use the
+    binary in node_modules, but will switch to global when that fails.
 
 ===============================================================================
 TROUBLESHOOTING                                    *typescript-troubleshooting*

@@ -19,6 +19,12 @@ class Client:
         cls.__server_seq += 1
         return seq
 
+    def getServer(self):
+        if os.path.isfile(os.getcwd() + '/node_modules/.bin/tsserver'):
+            return os.getcwd() + '/node_modules/.bin/tsserver'
+        else:
+            return 'tsserver'
+
     def __log(self, message):
         if self.log_fn:
             self.log_fn(message)
@@ -42,7 +48,7 @@ class Client:
             return
 
         Client.__server_handle = subprocess.Popen(
-            "tsserver",
+            self.getServer(),
             env=Client.__environ,
             cwd=Client.__project_directory,
             stdout=subprocess.PIPE,

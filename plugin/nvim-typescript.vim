@@ -29,11 +29,11 @@ augroup nvim-typescript "{{{
   endif
 
   if get(g:, 'nvim_typescript#javascript_support', 1)
-    autocmd BufEnter *.ts,*.tsx,*.js,*.jsx call NvimTSEnter()
-    autocmd BufWritePost *.ts,*.tsx,*.js,*.jsx call NvimTsSave()
+    autocmd BufEnter *.ts,*.tsx,*.js,*.jsx call TSOnBufEnter()
+    autocmd BufWritePost *.ts,*.tsx,*.js,*.jsx call TSOnBufSave()
   else
-    autocmd BufEnter *.ts,*.tsx call NvimTSEnter()
-    autocmd BufWritePost *.ts,*.tsx call NvimTsSave()
+    autocmd BufEnter *.ts,*.tsx call TSOnBufEnter()
+    autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   endif
 
 augroup end "}}}
