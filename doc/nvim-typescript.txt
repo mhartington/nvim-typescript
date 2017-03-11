@@ -66,6 +66,12 @@ COMMANDS                                                  *typescript-commands*
 
     Opens the definition file for symbol under the cursor.
 
+                                                                *:TSDefPreview*
+:TSDefPreview
+
+    Open the defintion file for the symbol under the cursor but in a split
+    below.
+
                                                                       *:TSRefs*
 :TSRefs
 
@@ -76,7 +82,7 @@ COMMANDS                                                  *typescript-commands*
 :TSDoc
 
     Prints the documentation for the symbol under the cursor and displays it in
-    the echo area. Plans are to make this display in it's own split.
+    a split.
 
                                                                      *:TSStart*
 :TSStart

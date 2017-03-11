@@ -69,6 +69,7 @@ class TypescriptHost():
         self._client = Client()
         self.server = None
         self.files = Dir()
+        self.cwd = os.getcwd()
 
     def relative_file(self):
         """
@@ -191,7 +192,7 @@ class TypescriptHost():
                 self.vim.command('resize 10')
                 self.vim.current.buffer.append(message, 0)
                 self.vim.command("setlocal nomodifiable")
-                self.vim.feedkeys('gg')
+                self.vim.command('sil normal! gg')
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
@@ -215,6 +216,29 @@ class TypescriptHost():
                 defLine = '{0}'.format(info['body'][0]['start']['line'])
 
                 self.vim.command('e! +' + defLine + ' ' + defFile)
+        else:
+            self.vim.command(
+                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+
+    @neovim.command("TSDefPreview")
+    def tsdefpreview(self):
+        """
+            Get the definition
+        """
+        if self.server is not None:
+            self.reload()
+            file = self.vim.current.buffer.name
+            line = self.vim.current.window.cursor[0]
+            offset = self.vim.current.window.cursor[1] + 2
+            info = self._client.goToDefinition(file, line, offset)
+            if (not info) or (not info['success']):
+                self.vim.command(
+                    'echohl WarningMsg | echo "TS: No definition" | echohl None')
+            else:
+                defFile = info['body'][0]['file']
+                defLine = '{0}'.format(info['body'][0]['start']['line'])
+
+                self.vim.command('split! +' + defLine + ' ' + defFile)
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
@@ -292,10 +316,10 @@ class TypescriptHost():
                 if len(refList) > -1:
                     for ref in refList:
                         location_list.append({
-                            'filename': ref['file'],
+                            'filename': re.sub(self.cwd + '/', '', ref['file']),
                             'lnum': ref['start']['line'],
                             'col': ref['start']['offset'],
-                            'text': ref['lineText']
+                            'text': (ref['lineText'][:20]+'...') if len(ref['lineText']) > 20 else ref['lineText']
                         })
                     self.vim.call('setloclist', 0, location_list,
                                   'r', 'References')
