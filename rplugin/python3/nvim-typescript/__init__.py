@@ -122,10 +122,12 @@ class TypescriptHost():
         """
             Stop the client
         """
-        self.reload()
-        self._client.stop()
-        self.server = None
-        self.vim.out_write('TS: Server Stopped')
+        if self.server is not None:
+            self.reload()
+            self._client.stop()
+            self.server = None
+            self.vim.command('redraws!')
+            self.vim.out_write('TS: Server Stopped')
 
     @neovim.command("TSStart")
     def tsstart(self):
@@ -165,17 +167,31 @@ class TypescriptHost():
             else:
                 displayString = '{0}'.format(info['body']['displayString'])
                 documentation = '{0}'.format(info['body']['documentation'])
-                documentation = re.sub("\s+", " ", documentation)
+                documentation = documentation.split('\n')
+                displayString = displayString.split('\n')
+                message = displayString + documentation
+                buf = self.vim.eval("bufnr('__doc__')")
+                if buf > 0:
+                    wi = self.vim.eval("index(tabpagebuflist(tabpagenr())," + str(buf) + ")")
+                    if wi >= 0:
+                        self.vim.command(str(wi + 1) + 'wincmd w')
+                    else:
+                        self.vim.command('sbuffer ' + str(buf))
+                else:
+                    self.vim.command("split __doc__")
 
-                message = '{0}\n\n{1}'.format(info['body']['displayString'],
-                                              info['body']['documentation'])
-                # self.vim.command("split '__doc__'")
-                # self.vim.command('resize 10')
-                # self.vim.current.buffer.append(
-                #     [displayString, '', documentation], 0)
-                # for e in self.settings:
-                #     self.vim.command(e)
-                self.vim.command('echo' + repr(PythonToVimStr(message)))
+                for setting in [
+                        "setlocal modifiable",
+                        "setlocal noswapfile",
+                        "setlocal nonumber",
+                        "setlocal buftype=nofile"
+                ]:
+                    self.vim.command(setting)
+                self.vim.feedkeys('ggdG')
+                self.vim.command('resize 10')
+                self.vim.current.buffer.append(message, 0)
+                self.vim.command("setlocal nomodifiable")
+                self.vim.feedkeys('gg')
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
@@ -233,8 +249,6 @@ class TypescriptHost():
             Get the type info
 
         """
-        # self.vim.command('echom "completion done"')
-
         if self.server is not None:
             self.reload()
             file = self.vim.current.buffer.name
@@ -260,7 +274,6 @@ class TypescriptHost():
     def tsrefs(self):
         """
             Get the type info
-
         """
 
         if self.server is not None:
@@ -284,7 +297,8 @@ class TypescriptHost():
                             'col': ref['start']['offset'],
                             'text': ref['lineText']
                         })
-                    self.vim.call('setloclist', 0, location_list, 'r', 'References')
+                    self.vim.call('setloclist', 0, location_list,
+                                  'r', 'References')
                     self.vim.command('lwindow')
                 else:
                     self.vim.command(

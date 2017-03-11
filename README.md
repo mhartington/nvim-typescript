@@ -75,7 +75,7 @@ There are a few things you'll have to modify in your vim config in order to be a
 
 ## TODOS
 
-- [ ] Refactor `TSDoc`, print docs to split.
+- [x] Refactor `TSDoc`, print docs to split.
 - [ ] Add `TSRename`
 - [ ] Refactor client to support `geterr` request
 - [ ] Add `TSGetErr`
