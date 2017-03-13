@@ -1,15 +1,17 @@
 import os
 import sys
+from subprocess import check_output, CalledProcessError
 import logging
 from globster import Globster
 log = logging.getLogger("nvim-dir")
 
+
 class Dir(object):
 
-    def __init__(self, directory=".", excludes=['.git/', '.hg/', '.svn/', 'node_modules']):
-
-        self.directory = os.path.basename(directory)
-        self.path = os.path.abspath(directory)
+    def __init__(self):
+        excludes = ['.git/', '.hg/', '.svn/', 'node_modules']
+        self.directory = os.path.basename(self.getRootPath())
+        self.path = os.path.abspath(self.getRootPath())
         self.parent = os.path.dirname(self.path)
         self.exclude_file = self.load_ignore()
         self.patterns = excludes
@@ -17,6 +19,11 @@ class Dir(object):
             self.patterns.extend(self.load_patterns(self.exclude_file))
         self.globster = Globster(self.patterns)
 
+    def getRootPath(self):
+        try:
+            return check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip('\n')
+        except CalledProcessError:
+            return '.'
 
     def load_ignore(self):
         if os.path.isfile(os.path.join(self.path, '.gitignore')):

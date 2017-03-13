@@ -188,7 +188,7 @@ class TypescriptHost():
                         "setlocal buftype=nofile"
                 ]:
                     self.vim.command(setting)
-                self.vim.feedkeys('ggdG')
+                self.vim.command('sil normal! ggdG')
                 self.vim.command('resize 10')
                 self.vim.current.buffer.append(message, 0)
                 self.vim.command("setlocal nomodifiable")
