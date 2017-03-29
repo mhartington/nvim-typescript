@@ -66,7 +66,7 @@ class TypescriptHost():
 
     def __init__(self, vim):
         self.vim = vim
-        self._client = Client()
+        self._client = Client(debug_fn=self.log, log_fn=self.log)
         self.server = None
         self.files = Dir()
         self.cwd = os.getcwd()
@@ -173,7 +173,8 @@ class TypescriptHost():
                 message = displayString + documentation
                 buf = self.vim.eval("bufnr('__doc__')")
                 if buf > 0:
-                    wi = self.vim.eval("index(tabpagebuflist(tabpagenr())," + str(buf) + ")")
+                    wi = self.vim.eval(
+                        "index(tabpagebuflist(tabpagenr())," + str(buf) + ")")
                     if wi >= 0:
                         self.vim.command(str(wi + 1) + 'wincmd w')
                     else:
@@ -267,6 +268,38 @@ class TypescriptHost():
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
+    @neovim.command("TSGetErr")
+    def tsgeterr(self):
+        """
+            Get the type info
+
+        """
+        if self.server is not None:
+            self.reload()
+            files = [self.relative_file()]
+            getErrRes = self._client.getErr(files)
+            if not getErrRes:
+                pass
+            else:
+                errorLoc = []
+                filename = getErrRes['body']['file']
+                errorList = getErrRes['body']['diagnostics']
+
+                if len(errorList) > -1:
+                    for error in errorList:
+                        errorLoc.append({
+                            'filename': re.sub(self.cwd + '/', '', filename),
+                            'lnum': error['start']['line'],
+                            'col': error['start']['offset'],
+                            'text': error['text']
+                        })
+                    self.vim.call('setqflist', errorLoc, 'r', 'Errors')
+                    self.vim.command('cwindow')
+                    # 'text': (error['text'][:20]+'...') if len(error['text']) > 20 else error['text']
+        else:
+            self.vim.command(
+                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+
     @neovim.command("TSSig")
     def tssig(self):
         """
@@ -319,7 +352,7 @@ class TypescriptHost():
                             'filename': re.sub(self.cwd + '/', '', ref['file']),
                             'lnum': ref['start']['line'],
                             'col': ref['start']['offset'],
-                            'text': (ref['lineText'][:20]+'...') if len(ref['lineText']) > 20 else ref['lineText']
+                            'text': (ref['lineText'][:20] + '...') if len(ref['lineText']) > 20 else ref['lineText']
                         })
                     self.vim.call('setloclist', 0, location_list,
                                   'r', 'References')
@@ -359,3 +392,11 @@ class TypescriptHost():
            On save, reload to detect changes
         """
         self.reload()
+
+    def log(self, message):
+        """
+        Log message to vim echo
+        """
+        val = "{}".format(message)
+        self.vim.command('redraws!')
+        self.vim.out_write(val + '\n')

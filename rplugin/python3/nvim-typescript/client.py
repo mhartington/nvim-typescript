@@ -1,7 +1,7 @@
 import os
 import json
 import subprocess
-
+from numbers import Number
 
 class Client:
     __server_handle = None
@@ -132,7 +132,6 @@ class Client:
                     contentlength)
 
                 ret = json.loads(returned_string)
-
                 # Each response should contain a "request_seq"
                 # TS 2.0.6 introduces configFileDiag event, ignore
                 if ("event", "configFileDiag") in ret.items():
@@ -141,7 +140,12 @@ class Client:
                 if ('body', {'reloadFinished': True}) in ret.items():
                     continue
                 if "request_seq" not in ret:
-                    return None
+                    if ("event", "syntaxDiag") in ret.items():
+                        continue
+                    if ("event", "semanticDiag") in ret.items():
+                        return ret
+                    else:
+                        return None
                 if ret["request_seq"] > seq:
                     return None
                 elif ret["request_seq"] == seq:
@@ -186,6 +190,11 @@ class Client:
         response = self.send_request("reload", args, True)
 
         return response["success"] if response and "success" in response else False
+
+    def getErr(self, files):
+        args = {"files": files}
+        response = self.send_request("geterr", args, True)
+        return response
 
     def getDoc(self, file, line, offset):
         """

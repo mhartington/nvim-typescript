@@ -42,7 +42,9 @@ class Source(Base):
         """
         Log message to vim echo
         """
-        self.vim.command("echom '{}'".format(re.sub("'", "\'", message)))
+        self.debug('************')
+        self.debug(message)
+        self.debug('************')
 
     def reload(self):
         """
