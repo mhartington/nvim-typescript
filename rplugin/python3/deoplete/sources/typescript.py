@@ -81,47 +81,52 @@ class Source(Base):
         """
         # reload if last reload expired or input completion is a method extraction
         # pylint: disable=locally-disabled, line-too-long
-        if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", context["input"]):
-            self._last_input_reload = time()
-            self.reload()
+        try:
 
-        data = self._client.completions(
-            file=self.relative_file(),
-            line=context["position"][1],
-            offset=context["complete_position"] + 1,
-            prefix=context["complete_str"]
-        )
 
-        if len(data) == 0:
-            return []
+            if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", context["input"]):
+                self._last_input_reload = time()
+                self.reload()
 
-        if len(data) > self._max_completion_detail:
-            filtered = []
+            data = self._client.completions(
+                file=self.relative_file(),
+                line=context["position"][1],
+                offset=context["complete_position"] + 1,
+                prefix=context["complete_str"]
+            )
+
+            if len(data) == 0:
+                return []
+
+            if len(data) > self._max_completion_detail:
+                filtered = []
+                for entry in data:
+                    if entry["kind"] != "warning":
+                        filtered.append(entry)
+                return [self._convert_completion_data(e) for e in filtered]
+
+            names = []
+            maxNameLength = 0
+
             for entry in data:
-                if entry["kind"] != "warning":
-                    filtered.append(entry)
-            return [self._convert_completion_data(e) for e in filtered]
+                if (entry["kind"] != "warning"):
+                    names.append(entry["name"])
+                    maxNameLength = max(maxNameLength, len(entry["name"]))
 
-        names = []
-        maxNameLength = 0
+            detailed_data = self._client.completion_entry_details(
+                file=self.relative_file(),
+                line=context["position"][1],
+                offset=context["complete_position"] + 1,
+                entry_names=names
+            )
 
-        for entry in data:
-            if (entry["kind"] != "warning"):
-                names.append(entry["name"])
-                maxNameLength = max(maxNameLength, len(entry["name"]))
+            if len(detailed_data) == 0:
+                return []
 
-        detailed_data = self._client.completion_entry_details(
-            file=self.relative_file(),
-            line=context["position"][1],
-            offset=context["complete_position"] + 1,
-            entry_names=names
-        )
-
-        if len(detailed_data) == 0:
+            return [self._convert_detailed_completion_data(e, padding=maxNameLength)
+                    for e in detailed_data]
+        except:
             return []
-
-        return [self._convert_detailed_completion_data(e, padding=maxNameLength)
-                for e in detailed_data]
 
     def _convert_completion_data(self, entry):
         return {

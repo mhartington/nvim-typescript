@@ -89,8 +89,10 @@ class TypescriptHost():
         tmpfile.write(contents.encode("utf-8"))
         tmpfile.close()
 
-        self._client.reload(filename, tmpfile.name)
-
+        try:
+            self._client.reload(filename, tmpfile.name)
+        except:
+            pass
         os.unlink(tmpfile.name)
 
     def findconfig(self):
