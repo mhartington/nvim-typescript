@@ -95,7 +95,8 @@ class TypescriptHost():
             pass
         os.unlink(tmpfile.name)
 
-    def findconfig(self):
+    @neovim.function("TSFindConfig", sync=True)
+    def findconfig(self, args):
         files = self.files.files()
         m = re.compile(r'(ts|js)config.json$')
         for file in files:
@@ -130,7 +131,7 @@ class TypescriptHost():
             self._client.stop()
             self.server = None
             self.vim.command('redraws!')
-            self.vim.out_write('TS: Server Stopped')
+            self.vim.out_write('TS: Server Stopped \n' )
 
     @neovim.command("TSStart")
     def tsstart(self):
@@ -140,7 +141,6 @@ class TypescriptHost():
         if self.server is None:
             if self._client.start():
                 self.server = True
-                self.vim.command('redraws')
                 self.vim.out_write('TS: Server Started \n')
 
     @neovim.command("TSRestart")
@@ -379,7 +379,7 @@ class TypescriptHost():
            Send open event when a ts file is open
 
         """
-        if self.findconfig():
+        if self.findconfig(None):
             if self.server is None:
                 self.tsstart()
                 self._client.open(self.relative_file())
@@ -388,7 +388,7 @@ class TypescriptHost():
         else:
             self.writeFile()
 
-    @neovim.function('TSOnBufSave')
+    @neovim.function('TSOnBufSave', sync=True)
     def on_bufwritepost(self, args):
         """
            On save, reload to detect changes
@@ -400,5 +400,5 @@ class TypescriptHost():
         Log message to vim echo
         """
         val = "{}".format(message)
-        self.vim.command('redraws!')
+        # self.vim.command('redraws!')
         self.vim.out_write(val + '\n')

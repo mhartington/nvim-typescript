@@ -58,8 +58,6 @@ class Client:
             shell=True,
             bufsize=1
         )
-
-        self.__log("TSServer started")
         return True
 
     def restart(self):
@@ -98,12 +96,9 @@ class Client:
         request = {
             "seq": seq,
             "type": "request",
-            "command": command
+            "command": command,
+            "arguments" :arguments
         }
-
-        # Add arguments if provided
-        if arguments:
-            request["arguments"] = arguments
 
         # Send request
         self.__send_data_to_server(request)
@@ -122,16 +117,14 @@ class Client:
                 key, value = headerline.split(":", 2)
                 headers[key.strip()] = value.strip()
 
-                # Response should contain a "Content-Length" header
                 if "Content-Length" not in headers:
                     raise RuntimeError("Missing 'Content-Length' header")
 
-                # Read response content
                 contentlength = int(headers["Content-Length"])
-                returned_string = Client.__server_handle.stdout.read(
-                    contentlength)
-
+                returned_string = Client.__server_handle.stdout.read(contentlength)
                 ret = json.loads(returned_string)
+
+
                 # Each response should contain a "request_seq"
                 # TS 2.0.6 introduces configFileDiag event, ignore
                 if ("event", "configFileDiag") in ret.items():
@@ -139,16 +132,19 @@ class Client:
                 # TS 1.9.x returns two reload finished responses
                 if ('body', {'reloadFinished': True}) in ret.items():
                     continue
+
                 if "request_seq" not in ret:
                     if ("event", "syntaxDiag") in ret.items():
                         continue
                     if ("event", "semanticDiag") in ret.items():
                         return ret
                     else:
-                        return None
+                        continue
+
                 if ret["request_seq"] > seq:
-                    return None
-                elif ret["request_seq"] == seq:
+                    continue
+
+                if ret["request_seq"] == seq:
                     return ret
 
     def open(self, file):
@@ -282,8 +278,5 @@ class Client:
             "offset": offset,
             "entryNames": entry_names
         }
-
-        response = self.send_request(
-            "completionEntryDetails", args, wait_for_response=True)
-
+        response = self.send_request("completionEntryDetails", args, True)
         return self.__get_response_body(response)

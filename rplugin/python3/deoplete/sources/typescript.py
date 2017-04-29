@@ -7,7 +7,7 @@ import itertools
 from time import time
 from tempfile import NamedTemporaryFile
 from deoplete.source.base import Base
-
+from deoplete.util import error
 sys.path.insert(1, os.path.dirname(__file__) + '/../../nvim-typescript')
 
 from client import Client
@@ -23,7 +23,7 @@ class Source(Base):
         Base.__init__(self, vim)
 
         # Deoplete related
-        self.debug_enabled = True
+        # self.debug_enabled = True
         self.name = "typescript"
         self.mark = "TS"
         self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] if self.vim.vars[
@@ -32,8 +32,7 @@ class Source(Base):
         self.input_pattern = r"\.\w*"
         self._last_input_reload = time()
         # pylint: disable=locally-disabled, line-too-long
-        self._max_completion_detail = self.vim.eval(
-            "g:nvim_typescript#max_completion_detail")
+        self._max_completion_detail = self.vim.vars["nvim_typescript#max_completion_detail"]
 
         # TSServer client
         self._client = Client(debug_fn=self.debug, log_fn=self.log)
@@ -94,7 +93,7 @@ class Source(Base):
                 offset=context["complete_position"] + 1,
                 prefix=context["complete_str"]
             )
-
+            # self.log(data)
             if len(data) == 0:
                 return []
 
@@ -123,9 +122,11 @@ class Source(Base):
             if len(detailed_data) == 0:
                 return []
 
-            return [self._convert_detailed_completion_data(e, padding=maxNameLength)
-                    for e in detailed_data]
+            return [self._convert_detailed_completion_data(e, padding=maxNameLength) for e in detailed_data]
         except:
+            e = sys.exc_info()[0]
+
+            error(self.vim, "<p>Error: %s</p>" % e)
             return []
 
     def _convert_completion_data(self, entry):
