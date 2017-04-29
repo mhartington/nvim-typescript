@@ -70,6 +70,7 @@ class TypescriptHost():
         self.server = None
         self.files = Dir()
         self.cwd = os.getcwd()
+        self.serverPath = self.vim.vars["nvim_typescript#server_path"]
 
     def relative_file(self):
         """
@@ -139,7 +140,7 @@ class TypescriptHost():
             Stat the client
         """
         if self.server is None:
-            if self._client.start():
+            if self._client.start(user_path=self.serverPath):
                 self.server = True
                 self.vim.out_write('TS: Server Started \n')
 
@@ -371,7 +372,7 @@ class TypescriptHost():
         """
         Get the path of the tsserver
         """
-        self.vim.out_write(self._client.getServer() + '\n')
+        self.vim.out_write(self._client.printServer() + '\n')
 
     @neovim.function('TSOnBufEnter')
     def on_bufenter(self, args):

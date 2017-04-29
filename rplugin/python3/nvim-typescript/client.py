@@ -19,11 +19,15 @@ class Client:
         cls.__server_seq += 1
         return seq
 
-    def getServer(self):
-        if os.path.isfile(os.getcwd() + '/node_modules/.bin/tsserver'):
-            return os.getcwd() + '/node_modules/.bin/tsserver'
+    def getServer(self, user_path):
+        serverPath = user_path
+        if os.path.isfile(serverPath):
+            return serverPath
         else:
             return 'tsserver'
+
+    def printServer(self):
+        return Client.__server_handle.args
 
     def __log(self, message):
         if self.log_fn:
@@ -40,7 +44,7 @@ class Client:
         self.send_request("exit")
         Client.__server_handle = None
 
-    def start(self):
+    def start(self, user_path):
         """
         start proc
         """
@@ -48,7 +52,7 @@ class Client:
             return
 
         Client.__server_handle = subprocess.Popen(
-            self.getServer(),
+            self.getServer(user_path),
             env=Client.__environ,
             cwd=Client.__project_directory,
             stdout=subprocess.PIPE,

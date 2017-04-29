@@ -109,6 +109,17 @@ COMMANDS                                                  *typescript-commands*
 
 ===============================================================================
 VARIABLES                                                *typescript-variables*
+                                                *g:nvim_typescript#server_path*
+
+g:nvim_typescript#server_path
+Values: string
+Default: ''./node_modules/.bin/tsserver'
+
+    Set the path of the tsserver. By default, this will be your projects local
+    copy in node_modules. If you would like to point this elsewhere, set this
+    variable to the path you want. If that path is invalid, it will default to
+    the global installed version of typescript
+
 
                                       	 *g:nvim_typescript#javascript_support*
 g:nvim_typescript#javascript_support
