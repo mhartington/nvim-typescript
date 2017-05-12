@@ -3,10 +3,13 @@ import os
 import re
 import json
 import neovim
+from time import time
 from tempfile import NamedTemporaryFile
 sys.path.insert(1, os.path.dirname(__file__))
 from client import Client
 from dir import Dir
+RELOAD_INTERVAL = 1
+RESPONSE_TIMEOUT_SECONDS = 20
 
 is_py3 = sys.version_info[0] >= 3
 if is_py3:
@@ -33,44 +36,17 @@ defaultArgs = {
     }
 }
 
-
-class PythonToVimStr(unicode):
-    """
-        Vim has a different string implementation of single quotes
-        Borrowed from vim-jedi
-    """
-    __slots__ = []
-
-    def __new__(cls, obj, encoding='UTF-8'):
-        if not (is_py3 or isinstance(obj, unicode)):
-            obj = unicode.__new__(cls, obj, encoding)
-
-        # Vim cannot deal with zero bytes:
-        obj = obj.replace('\0', '\\0')
-        return unicode.__new__(cls, obj)
-
-    def __repr__(self):
-        # this is totally stupid and makes no sense but vim/python unicode
-        # support is pretty bad. don't ask how I came up with this... It just
-        # works...
-        # It seems to be related to that bug: http://bugs.python.org/issue5876
-        if unicode is str:
-            s = self
-        else:
-            s = self.encode('UTF-8')
-        return '"%s"' % s.replace('\\', '\\\\').replace('"', r'\"')
-
-
 @neovim.plugin
-class TypescriptHost():
+class TypescriptHost(object):
 
     def __init__(self, vim):
         self.vim = vim
-        self._client = Client(debug_fn=self.log, log_fn=self.log)
+        # self._client = Client(debug_fn=self.log, log_fn=self.log)
+        self._client = Client()
         self.server = None
         self.files = Dir()
+        self._last_input_reload = time()
         self.cwd = os.getcwd()
-        self.serverPath = self.vim.vars["nvim_typescript#server_path"]
 
     def relative_file(self):
         """
@@ -132,7 +108,7 @@ class TypescriptHost():
             self._client.stop()
             self.server = None
             self.vim.command('redraws!')
-            self.vim.out_write('TS: Server Stopped \n' )
+            self.vim.out_write('TS: Server Stopped \n')
 
     @neovim.command("TSStart")
     def tsstart(self):
@@ -140,7 +116,9 @@ class TypescriptHost():
             Stat the client
         """
         if self.server is None:
-            if self._client.start(user_path=self.serverPath):
+            self._client.serverPath = self.vim.vars[
+                "nvim_typescript#server_path"]
+            if self._client.start():
                 self.server = True
                 self.vim.out_write('TS: Server Started \n')
 
@@ -219,7 +197,7 @@ class TypescriptHost():
                 defFile = info['body'][0]['file']
                 defLine = '{0}'.format(info['body'][0]['start']['line'])
 
-                self.vim.command('e! +' + defLine + ' ' + defFile)
+                self.vim.command('e +' + defLine + ' ' + defFile)
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
@@ -372,7 +350,7 @@ class TypescriptHost():
         """
         Get the path of the tsserver
         """
-        self.vim.out_write(self._client.printServer() + '\n')
+        self.vim.out_write(self._client.serverPath + '\n')
 
     @neovim.function('TSOnBufEnter')
     def on_bufenter(self, args):
@@ -389,12 +367,81 @@ class TypescriptHost():
         else:
             self.writeFile()
 
-    @neovim.function('TSOnBufSave', sync=True)
+    @neovim.function('TSOnBufSave')
     def on_bufwritepost(self, args):
         """
            On save, reload to detect changes
         """
         self.reload()
+
+    # @neovim.function('TSComplete', sync=True)
+    # def tsomnifunc(self, args):
+    #     line_str = self.vim.current.line
+    #     line = self.vim.current.window.cursor[0]
+    #     offset = self.vim.current.window.cursor[1]
+    #     if args[0]:
+    #         while offset > 0 and re.match(r"([a-zA-Z])", line_str[offset - 1]):
+    #             offset -= 1
+    #         return offset
+    #     else:
+    #         if self.server is not None:
+    #             if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", args[1]):
+    #                 self._last_input_reload = time()
+    #                 self.reload()
+    #             data = self._client.completions(
+    #                 self.relative_file(), line, offset + 1, args[1])
+    #
+    #             if len(data) == 0:
+    #                 return []
+    #
+    #             if len(data) > self.vim.vars["nvim_typescript#max_completion_detail"]:
+    #                 filtered = []
+    #                 for entry in data:
+    #                     if entry["kind"] != "warning":
+    #                         filtered.append(entry)
+    #                 return [self._convert_completion_data(e) for e in filtered]
+    #
+    #             names = []
+    #             maxNameLength = 0
+    #
+    #             for entry in data:
+    #                 if (entry["kind"] != "warning"):
+    #                     names.append(entry["name"])
+    #                     maxNameLength = max(maxNameLength, len(entry["name"]))
+    #             detailed_data = self._client.completion_entry_details(
+    #                 self.relative_file(), line, offset + 1, names)
+    #             if len(detailed_data) == 0:
+    #                 return []
+    #
+    #             return [self._convert_detailed_completion_data(e, padding=maxNameLength) for e in detailed_data]
+    # def _convert_completion_data(self, entry):
+    #     return {
+    #         "word": entry["name"],
+    #         "kind": entry["kind"]
+    #     }
+    # def _convert_detailed_completion_data(self, entry, padding=80):
+    #     name = entry["name"]
+    #     display_parts = entry["displayParts"]
+    #     signature = "".join([p["text"] for p in display_parts])
+    #
+    #     # needed to strip new lines and indentation from the signature
+    #     signature = re.sub("\s+", " ", signature)
+    #     menu_text = re.sub(
+    #         "^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+", "", signature)
+    #     documentation = menu_text
+    #
+    #     if "documentation" in entry and entry["documentation"]:
+    #         documentation += "\n" + \
+    #             "".join([d["text"] for d in entry["documentation"]])
+    #
+    #     kind = entry["kind"][0].title()
+    #
+    #     return ({
+    #         "word": name,
+    #         "kind": kind,
+    #         "menu": 'TS ' + menu_text,
+    #         "info": documentation
+    #     })
 
     def log(self, message):
         """

@@ -21,9 +21,6 @@ class Source(Base):
     # Base options
     def __init__(self, vim):
         Base.__init__(self, vim)
-
-        # Deoplete related
-        # self.debug_enabled = True
         self.name = "typescript"
         self.mark = "TS"
         self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] if self.vim.vars[
@@ -31,18 +28,25 @@ class Source(Base):
         self.rank = 1000
         self.input_pattern = r"\.\w*"
         self._last_input_reload = time()
-        # pylint: disable=locally-disabled, line-too-long
-        self._max_completion_detail = self.vim.vars["nvim_typescript#max_completion_detail"]
+        self._max_completion_detail = self.vim.vars[
+            "nvim_typescript#max_completion_detail"]
 
         # TSServer client
         self._client = Client(debug_fn=self.debug, log_fn=self.log)
+        # self._client = Client()
+
+    # def get_complete_position(self, context):
+    #     return self.vim.call('TSComplete', 1, '')
+    #
+    # def gather_candidates(self, context):
+    #     return self.vim.call('TSComplete', 0, context['complete_str'])
 
     def log(self, message):
         """
         Log message to vim echo
         """
         self.debug('************')
-        self.debug(message)
+        self.vim.out_write(str(message))
         self.debug('************')
 
     def reload(self):
@@ -80,8 +84,8 @@ class Source(Base):
         """
         # reload if last reload expired or input completion is a method extraction
         # pylint: disable=locally-disabled, line-too-long
-        try:
 
+        try:
 
             if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", context["input"]):
                 self._last_input_reload = time()
@@ -108,7 +112,7 @@ class Source(Base):
             maxNameLength = 0
 
             for entry in data:
-                if (entry["kind"] != "warning"):
+                if entry["kind"] != "warning":
                     names.append(entry["name"])
                     maxNameLength = max(maxNameLength, len(entry["name"]))
 
@@ -125,7 +129,6 @@ class Source(Base):
             return [self._convert_detailed_completion_data(e, padding=maxNameLength) for e in detailed_data]
         except:
             e = sys.exc_info()[0]
-
             error(self.vim, "<p>Error: %s</p>" % e)
             return []
 

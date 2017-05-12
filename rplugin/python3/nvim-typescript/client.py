@@ -1,9 +1,13 @@
 import os
+import sys
 import json
 import subprocess
-from numbers import Number
 
-class Client:
+from logging import getLogger
+logger = getLogger('deoplete')
+
+
+class Client(object):
     __server_handle = None
     __server_seq = 1
     __project_directory = os.getcwd()
@@ -12,6 +16,7 @@ class Client:
     def __init__(self, log_fn=None, debug_fn=None):
         self.log_fn = log_fn
         self.debug_fn = debug_fn
+        # self._poll = select.poll()
 
     @classmethod
     def __get_next_seq(cls):
@@ -19,19 +24,26 @@ class Client:
         cls.__server_seq += 1
         return seq
 
-    def getServer(self, user_path):
-        serverPath = user_path
-        if os.path.isfile(serverPath):
-            return serverPath
-        else:
-            return 'tsserver'
+    @property
+    def serverPath(self):
+        """
+        Server path property
+        """
+        return self._serverPath
 
-    def printServer(self):
-        return Client.__server_handle.args
+    @serverPath.setter
+    def serverPath(self, value):
+        """
+        Set the server Path
+        """
+        if os.path.isfile(value):
+            self._serverPath = value
+        else:
+            self._serverPath = 'tsserver'
 
     def __log(self, message):
         if self.log_fn:
-            self.log_fn(message)
+            self.log_fn(str(message))
 
     def __debug(self, message):
         if self.debug_fn:
@@ -44,23 +56,27 @@ class Client:
         self.send_request("exit")
         Client.__server_handle = None
 
-    def start(self, user_path):
+    def start(self):
         """
         start proc
         """
         if Client.__server_handle:
             return
+        # Client.__environ['TSS_LOG'] = "-logToFile true -file ./server.log"
+
+        # Client.__server_handle = run([sys.executable,self.serverPath], input=Client.__feeder, async=True, stdout=Capture())
+        # Client.__server_handle = pexpect.spawnu(self.serverPath)
 
         Client.__server_handle = subprocess.Popen(
-            self.getServer(user_path),
+            self.serverPath,
             env=Client.__environ,
             cwd=Client.__project_directory,
-            stdout=subprocess.PIPE,
             stdin=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stderr=None,
+            stdout=subprocess.PIPE,
             universal_newlines=True,
             shell=True,
-            bufsize=1
+            bufsize=-1
         )
         return True
 
@@ -73,48 +89,29 @@ class Client:
         self.start()
 
     def __send_data_to_server(self, data):
-        Client.__server_handle.stdin.write(json.dumps(data))
-        Client.__server_handle.stdin.write("\n")
+        serialized_request = json.dumps(data) + "\n"
 
-    def __get_response_body(self, response, default=[]):
-        success = bool(response) and "success" in response and response[
-            "success"]
+        # Client.__feeder.feed(serialized_request)
+        # Client.__server_handle.sendline(serialized_request)
+        Client.__server_handle.stdin.write(serialized_request)
+        Client.__server_handle.stdin.flush()
 
-        # Should we raise an error if success == False ?
-
-        return response["body"] if success and "body" in response else default
-
-    def send_request(self, command, arguments=None, wait_for_response=False):
+    def send_request(self, command, arguments=None):
         """
             Sends a properly formated request to the server
-
             :type command: string
             :type arguments: dict
             :type wait_for_response: boolean
         """
-
-        # Load next seq id
-        seq = Client.__get_next_seq()
-
-        # Build request
-        request = {
-            "seq": seq,
-            "type": "request",
-            "command": command,
-            "arguments" :arguments
-        }
-
-        # Send request
+        request = self.build_request(command, arguments)
         self.__send_data_to_server(request)
-
-        if not wait_for_response:
-            return
 
         linecount = 0
         headers = {}
-
         while True:
             headerline = Client.__server_handle.stdout.readline().strip()
+            Client.__server_handle.stdin.flush()
+            logger.debug(headerline)
             linecount += 1
 
             if len(headerline):
@@ -125,18 +122,19 @@ class Client:
                     raise RuntimeError("Missing 'Content-Length' header")
 
                 contentlength = int(headers["Content-Length"])
-                returned_string = Client.__server_handle.stdout.read(contentlength)
+                returned_string = Client.__server_handle.stdout.read(
+                    contentlength)
                 ret = json.loads(returned_string)
 
-
-                # Each response should contain a "request_seq"
-                # TS 2.0.6 introduces configFileDiag event, ignore
-                if ("event", "configFileDiag") in ret.items():
-                    continue
+                # try:
                 # TS 1.9.x returns two reload finished responses
                 if ('body', {'reloadFinished': True}) in ret.items():
                     continue
-
+                # TS 2.0.6 introduces configFileDiag event, ignore
+                if ("event", "requestCompleted") in ret.items():
+                    continue
+                if ("event", "configFileDiag") in ret.items():
+                    continue
                 if "request_seq" not in ret:
                     if ("event", "syntaxDiag") in ret.items():
                         continue
@@ -144,12 +142,27 @@ class Client:
                         return ret
                     else:
                         continue
-
-                if ret["request_seq"] > seq:
-                    continue
-
-                if ret["request_seq"] == seq:
+                if ret["request_seq"] > request['seq']:
+                    return None
+                if ret["request_seq"] == request['seq']:
                     return ret
+                # except:
+                #     e = sys.exc_info()[0]
+                #     logger.debug(e)
+
+    def send_command(self, command, arguments=None):
+        request = self.build_request(command, arguments)
+        self.__send_data_to_server(request)
+
+    def build_request(self, command, arguments=None):
+        request = {
+            "seq": Client.__get_next_seq(),
+            "type": "request",
+            "command": command
+        }
+        if arguments:
+            request['arguments'] = arguments
+        return request
 
     def open(self, file):
         """
@@ -158,7 +171,7 @@ class Client:
             :type file: string
         """
         args = {"file": file}
-        self.send_request("open", args)
+        self.send_command("open", args)
 
     def close(self, file):
         """
@@ -167,7 +180,7 @@ class Client:
             :type file: string
         """
         args = {"file": file}
-        self.send_request("close", args)
+        self.send_command("close", args)
 
     def saveto(self, file, tmpfile):
         """
@@ -177,7 +190,7 @@ class Client:
             :type tmpfile: string
         """
         args = {"file": file, "tmpfile": tmpfile}
-        self.send_request("saveto", args)
+        self.send_command("saveto", args)
 
     def reload(self, file, tmpfile):
         """
@@ -187,13 +200,13 @@ class Client:
             :type tmpfile: string
         """
         args = {"file": file, "tmpfile": tmpfile}
-        response = self.send_request("reload", args, True)
+        response = self.send_request("reload", args)
 
         return response["success"] if response and "success" in response else False
 
     def getErr(self, files):
         args = {"files": files}
-        response = self.send_request("geterr", args, True)
+        response = self.send_request("geterr", args)
         return response
 
     def getDoc(self, file, line, offset):
@@ -205,7 +218,7 @@ class Client:
             :type offset: number
         """
         args = {"file": file, "line": line, "offset": offset}
-        response = self.send_request("quickinfo", args, True)
+        response = self.send_request("quickinfo", args)
 
         return response
 
@@ -218,13 +231,13 @@ class Client:
             :type offset: number
         """
         args = {"file": file, "line": line, "offset": offset}
-        response = self.send_request("signatureHelp", args, True)
+        response = self.send_request("signatureHelp", args)
 
         return response
 
     def getRef(self, file, line, offset):
         args = {"file": file, "line": line, "offset": offset}
-        response = self.send_request("references", args, True)
+        response = self.send_request("references", args)
 
         return response
 
@@ -237,13 +250,13 @@ class Client:
             :type offset: number
         """
         args = {"file": file, "line": line, "offset": offset}
-        response = self.send_request("definition", args, True)
+        response = self.send_request("definition", args)
         return response
 
     def renameSymbol(self, file, line, offset):
         args = {"file": file, "line": line, "offset": offset,
                 'findInComments': True, 'findInStrings': True}
-        response = self.send_request("rename", args, True)
+        response = self.send_request("rename", args)
         return response
 
     def completions(self, file, line, offset, prefix=""):
@@ -262,10 +275,9 @@ class Client:
             "prefix": prefix
         }
 
-        response = self.send_request(
-            "completions", args, wait_for_response=True)
+        response = self.send_request("completions", args)
 
-        return self.__get_response_body(response)
+        return get_response_body(response)
 
     def completion_entry_details(self, file, line, offset, entry_names):
         """
@@ -276,11 +288,19 @@ class Client:
             :type offset: int
             :type entry_names: array
         """
+
         args = {
             "file": file,
             "line": line,
             "offset": offset,
             "entryNames": entry_names
         }
-        response = self.send_request("completionEntryDetails", args, True)
-        return self.__get_response_body(response)
+        response = self.send_request("completionEntryDetails", args)
+        return get_response_body(response)
+
+
+def get_response_body(response, default=[]):
+    success = bool(response) and "success" in response and response[
+        "success"]
+    # Should we raise an error if success == False ?
+    return response["body"] if success and "body" in response else default
