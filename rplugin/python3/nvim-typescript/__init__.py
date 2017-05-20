@@ -36,13 +36,14 @@ defaultArgs = {
     }
 }
 
+
 @neovim.plugin
 class TypescriptHost(object):
 
     def __init__(self, vim):
         self.vim = vim
-        # self._client = Client(debug_fn=self.log, log_fn=self.log)
-        self._client = Client()
+        self._client = Client(debug_fn=self.log, log_fn=self.log)
+        # self._client = Client()
         self.server = None
         self.files = Dir()
         self._last_input_reload = time()
@@ -104,7 +105,6 @@ class TypescriptHost(object):
             Stop the client
         """
         if self.server is not None:
-            self.reload()
             self._client.stop()
             self.server = None
             self.vim.command('redraws!')
@@ -276,10 +276,90 @@ class TypescriptHost(object):
                         })
                     self.vim.call('setqflist', errorLoc, 'r', 'Errors')
                     self.vim.command('cwindow')
-                    # 'text': (error['text'][:20]+'...') if len(error['text']) > 20 else error['text']
         else:
-            self.vim.command(
-                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+            self.printError('Server is not Running')
+
+    # REQUEST NAVTREE/DOC SYMBOLS
+    @neovim.function("TSGetDocSymbolsFunc", sync=True)
+    def getDocSymbolsFunc(self, args=None):
+        return self._client.getDocumentSymbols(self.relative_file())
+
+    # Display Doc symbols in loclist
+    @neovim.command("TSGetDocSymbols")
+    def tsgetdocsymbols(self):
+        if self.server is not None:
+            self.reload()
+            docSysmbols = self.getDocSymbolsFunc()
+            if not docSysmbols:
+                pass
+            else:
+                docSysmbolsLoc = []
+                symbolList = docSysmbols['body']['childItems']
+                filename = re.sub(self.cwd + '/', '', self.relative_file())
+                if len(symbolList) > -1:
+                    for symbol in symbolList:
+                        docSysmbolsLoc.append({
+                            'filename': filename,
+                            'lnum': symbol['spans'][0]['start']['line'],
+                            'col':  symbol['spans'][0]['start']['offset'],
+                            'text': symbol['text']
+                        })
+
+                    if 'childItems' in symbol and len(symbol['childItems']) > 0:
+                        for childSymbol in symbol['childItems']:
+                            docSysmbolsLoc.append({
+                                'filename': filename,
+                                'lnum': childSymbol['spans'][0]['start']['line'],
+                                'col':  childSymbol['spans'][0]['start']['offset'],
+                                'text': childSymbol['text']
+                            })
+                    self.vim.call('setloclist', 0,
+                                  docSysmbolsLoc, 'r', 'Symbols')
+                    self.vim.command('lwindow')
+        else:
+            self.printError('Server is not running')
+
+
+    # REQUEST NAVTo/Workplace symbols
+    @neovim.function("TSGetWorkplaceSymbolsFunc", sync=True)
+    def getWorkplaceSymbolsFunc(self, args=None):
+        return self._client.getWorkplaceSymbols(self.relative_file(), args[0])
+
+    # Display Doc symbols in loclist
+    # @neovim.command("TSGetDocSymbols")
+    # def tsgetdocsymbols(self):
+    #     if self.server is not None:
+    #         self.reload()
+    #         docSysmbols = self.getDocSymbolsFunc()
+    #         if not docSysmbols:
+    #             pass
+    #         else:
+    #             docSysmbolsLoc = []
+    #             symbolList = docSysmbols['body']['childItems']
+    #             filename = re.sub(self.cwd + '/', '', self.relative_file())
+    #             if len(symbolList) > -1:
+    #                 for symbol in symbolList:
+    #                     docSysmbolsLoc.append({
+    #                         'filename': filename,
+    #                         'lnum': symbol['spans'][0]['start']['line'],
+    #                         'col':  symbol['spans'][0]['start']['offset'],
+    #                         'text': symbol['text']
+    #                     })
+    #
+    #                 if 'childItems' in symbol and len(symbol['childItems']) > 0:
+    #                     for childSymbol in symbol['childItems']:
+    #                         docSysmbolsLoc.append({
+    #                             'filename': filename,
+    #                             'lnum': childSymbol['spans'][0]['start']['line'],
+    #                             'col':  childSymbol['spans'][0]['start']['offset'],
+    #                             'text': childSymbol['text']
+    #                         })
+    #                 self.vim.call('setloclist', 0,
+    #                               docSysmbolsLoc, 'r', 'Symbols')
+    #                 self.vim.command('lwindow')
+    #     else:
+    #         self.printError('Server is not running')
+
 
     @neovim.command("TSSig")
     def tssig(self):
@@ -305,8 +385,7 @@ class TypescriptHost(object):
                 else:
                     pass
         else:
-            self.vim.command(
-                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+            self.printError('Server is not running')
 
     @neovim.command("TSRefs")
     def tsrefs(self):
@@ -339,11 +418,9 @@ class TypescriptHost(object):
                                   'r', 'References')
                     self.vim.command('lwindow')
                 else:
-                    self.vim.command(
-                        'echohl WarningMsg | echo "nvim-ts: References not found" | echohl None')
+                    self.printError('References not found')
         else:
-            self.vim.command(
-                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+            self.printError('Server is not Running')
 
     @neovim.function('TSGetServerPath')
     def tstest(self, args):
@@ -374,74 +451,79 @@ class TypescriptHost(object):
         """
         self.reload()
 
-    # @neovim.function('TSComplete', sync=True)
-    # def tsomnifunc(self, args):
-    #     line_str = self.vim.current.line
-    #     line = self.vim.current.window.cursor[0]
-    #     offset = self.vim.current.window.cursor[1]
-    #     if args[0]:
-    #         while offset > 0 and re.match(r"([a-zA-Z])", line_str[offset - 1]):
-    #             offset -= 1
-    #         return offset
-    #     else:
-    #         if self.server is not None:
-    #             if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", args[1]):
-    #                 self._last_input_reload = time()
-    #                 self.reload()
-    #             data = self._client.completions(
-    #                 self.relative_file(), line, offset + 1, args[1])
-    #
-    #             if len(data) == 0:
-    #                 return []
-    #
-    #             if len(data) > self.vim.vars["nvim_typescript#max_completion_detail"]:
-    #                 filtered = []
-    #                 for entry in data:
-    #                     if entry["kind"] != "warning":
-    #                         filtered.append(entry)
-    #                 return [self._convert_completion_data(e) for e in filtered]
-    #
-    #             names = []
-    #             maxNameLength = 0
-    #
-    #             for entry in data:
-    #                 if (entry["kind"] != "warning"):
-    #                     names.append(entry["name"])
-    #                     maxNameLength = max(maxNameLength, len(entry["name"]))
-    #             detailed_data = self._client.completion_entry_details(
-    #                 self.relative_file(), line, offset + 1, names)
-    #             if len(detailed_data) == 0:
-    #                 return []
-    #
-    #             return [self._convert_detailed_completion_data(e, padding=maxNameLength) for e in detailed_data]
-    # def _convert_completion_data(self, entry):
-    #     return {
-    #         "word": entry["name"],
-    #         "kind": entry["kind"]
-    #     }
-    # def _convert_detailed_completion_data(self, entry, padding=80):
-    #     name = entry["name"]
-    #     display_parts = entry["displayParts"]
-    #     signature = "".join([p["text"] for p in display_parts])
-    #
-    #     # needed to strip new lines and indentation from the signature
-    #     signature = re.sub("\s+", " ", signature)
-    #     menu_text = re.sub(
-    #         "^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+", "", signature)
-    #     documentation = menu_text
-    #
-    #     if "documentation" in entry and entry["documentation"]:
-    #         documentation += "\n" + \
-    #             "".join([d["text"] for d in entry["documentation"]])
-    #
-    #     kind = entry["kind"][0].title()
-    #
-    #     return ({
-    #         "word": name,
-    #         "kind": kind,
-    #         "menu": 'TS ' + menu_text,
-    #         "info": documentation
-    #     })
+    @neovim.function('TSComplete', sync=True)
+    def tsomnifunc(self, args):
+        line_str = self.vim.current.line
+        line = self.vim.current.window.cursor[0]
+        offset = self.vim.current.window.cursor[1]
+        if args[0]:
+            while offset > 0 and re.match(r"([a-zA-Z])", line_str[offset - 1]):
+                offset -= 1
+            return offset
+        else:
+            if self.server is not None:
+                if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", args[1]):
+                    self._last_input_reload = time()
+                    self.reload()
+                data = self._client.completions(
+                    self.relative_file(), line, offset + 1, args[1])
+
+                if len(data) == 0:
+                    return []
+
+                if len(data) > self.vim.vars["nvim_typescript#max_completion_detail"]:
+                    filtered = []
+                    for entry in data:
+                        if entry["kind"] != "warning":
+                            filtered.append(entry)
+                    return [self._convert_completion_data(e) for e in filtered]
+
+                names = []
+                maxNameLength = 0
+
+                for entry in data:
+                    if (entry["kind"] != "warning"):
+                        names.append(entry["name"])
+                        maxNameLength = max(maxNameLength, len(entry["name"]))
+                detailed_data = self._client.completion_entry_details(
+                    self.relative_file(), line, offset + 1, names)
+                if len(detailed_data) == 0:
+                    return []
+
+                return [self._convert_detailed_completion_data(e, padding=maxNameLength) for e in detailed_data]
+    def _convert_completion_data(self, entry):
+        return {
+            "word": entry["name"],
+            "kind": entry["kind"]
+        }
+    def _convert_detailed_completion_data(self, entry, padding=80):
+        name = entry["name"]
+        display_parts = entry["displayParts"]
+        signature = "".join([p["text"] for p in display_parts])
+
+        # needed to strip new lines and indentation from the signature
+        signature = re.sub("\s+", " ", signature)
+        menu_text = re.sub(
+            "^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+", "", signature)
+        documentation = menu_text
+
+        if "documentation" in entry and entry["documentation"]:
+            documentation += "\n" + \
+                "".join([d["text"] for d in entry["documentation"]])
+
+        kind = entry["kind"][0].title()
+
+        return ({
+            "word": name,
+            "kind": kind,
+            "menu": 'TS ' + menu_text,
+            "info": documentation
+        })
+
+    def printError(self, message):
+        self.vim.err_write(message + '\n')
+        # self.vim.command(
+        #     'echohl WarningMsg | echo "TS: ' + messagee + '" | echohl None')
 
     def log(self, message):
         """

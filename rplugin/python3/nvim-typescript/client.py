@@ -54,6 +54,7 @@ class Client(object):
         send a stop request
         """
         self.send_request("exit")
+        # Client.__server_handle.kill()
         Client.__server_handle = None
 
     def start(self):
@@ -68,7 +69,7 @@ class Client(object):
         # Client.__server_handle = pexpect.spawnu(self.serverPath)
 
         Client.__server_handle = subprocess.Popen(
-            self.serverPath,
+            [self.serverPath, "--disableAutomaticTypingAcquisition"],
             env=Client.__environ,
             cwd=Client.__project_directory,
             stdin=subprocess.PIPE,
@@ -90,9 +91,6 @@ class Client(object):
 
     def __send_data_to_server(self, data):
         serialized_request = json.dumps(data) + "\n"
-
-        # Client.__feeder.feed(serialized_request)
-        # Client.__server_handle.sendline(serialized_request)
         Client.__server_handle.stdin.write(serialized_request)
         Client.__server_handle.stdin.flush()
 
@@ -207,6 +205,18 @@ class Client(object):
     def getErr(self, files):
         args = {"files": files}
         response = self.send_request("geterr", args)
+        return response
+
+    def getDocumentSymbols(self, file):
+        args = {"file": file}
+        response = self.send_request("navtree", args)
+        return response
+
+
+    def getWorkplaceSymbols(self, file, term):
+        args = {"file": file, "searchValue": term}
+        # self.__log(args)
+        response = self.send_request("navto", args)
         return response
 
     def getDoc(self, file, line, offset):

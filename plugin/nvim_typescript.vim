@@ -16,6 +16,39 @@ let g:nvim_typescript#type_info_on_hold =
 let g:nvim_typescript#signature_complete =
       \ get(g:, 'nvim_typescript#signature_complete', 0)
 
+
+let s:kind_symbols = {
+    \ 'keyword': 'keyword',
+    \ 'class': 'class',
+    \ 'interface': 'interface',
+    \ 'script': 'script',
+    \ 'module': 'module',
+    \ 'local class': 'local class',
+    \ 'type': 'type',
+    \ 'enum': 'enum',
+    \ 'alias': 'alias',
+    \ 'type parameter': 'type param',
+    \ 'primitive type': 'primitive type',
+    \ 'var': 'var',
+    \ 'local var': 'local var',
+    \ 'property': 'prop',
+    \ 'let': 'let',
+    \ 'const': 'const',
+    \ 'label': 'label',
+    \ 'parameter': 'param',
+    \ 'index': 'index',
+    \ 'function': 'function',
+    \ 'local function': 'local function',
+    \ 'method': 'method',
+    \ 'getter': 'getter',
+    \ 'setter': 'setter',
+    \ 'call': 'call',
+    \ 'constructor': 'constructor'
+    \}
+
+let g:nvim_typescript#kind_symbols =
+      \ get(g:, 'nvim_typescript#kind_symbols', s:kind_symbols)
+
 augroup nvim-typescript "{{{
   autocmd!
 
