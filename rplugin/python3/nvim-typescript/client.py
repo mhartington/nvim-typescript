@@ -2,13 +2,13 @@ import os
 import sys
 import json
 import subprocess
-
+from threading import Thread
 from logging import getLogger
 logger = getLogger('deoplete')
 
 
 class Client(object):
-    __server_handle = None
+    server_handle = None
     __server_seq = 1
     __project_directory = os.getcwd()
     __environ = os.environ.copy()
@@ -16,7 +16,7 @@ class Client(object):
     def __init__(self, log_fn=None, debug_fn=None):
         self.log_fn = log_fn
         self.debug_fn = debug_fn
-        # self._poll = select.poll()
+        Thread.__init__(self)
 
     @classmethod
     def __get_next_seq(cls):
@@ -54,29 +54,31 @@ class Client(object):
         send a stop request
         """
         self.send_request("exit")
-        Client.__server_handle = None
+        # Client.server_handle.kill()
+        Client.server_handle = None
 
     def start(self):
         """
         start proc
         """
-        if Client.__server_handle:
+        if Client.server_handle:
             return
         # Client.__environ['TSS_LOG'] = "-logToFile true -file ./server.log"
 
-        # Client.__server_handle = run([sys.executable,self.serverPath], input=Client.__feeder, async=True, stdout=Capture())
-        # Client.__server_handle = pexpect.spawnu(self.serverPath)
+        # Client.server_handle = run([sys.executable,self.serverPath], input=Client.__feeder, async=True, stdout=Capture())
+        # Client.server_handle = pexpect.spawnu(self.serverPath)
 
-        Client.__server_handle = subprocess.Popen(
-            self.serverPath,
+        Client.server_handle = subprocess.Popen(
+            [self.serverPath, "--disableAutomaticTypingAcquisition"],
             env=Client.__environ,
             cwd=Client.__project_directory,
             stdin=subprocess.PIPE,
-            stderr=None,
             stdout=subprocess.PIPE,
+            stderr=None,
             universal_newlines=True,
             shell=True,
-            bufsize=-1
+            bufsize=-1,
+            close_fds=True
         )
         return True
 
@@ -90,11 +92,8 @@ class Client(object):
 
     def __send_data_to_server(self, data):
         serialized_request = json.dumps(data) + "\n"
-
-        # Client.__feeder.feed(serialized_request)
-        # Client.__server_handle.sendline(serialized_request)
-        Client.__server_handle.stdin.write(serialized_request)
-        Client.__server_handle.stdin.flush()
+        Client.server_handle.stdin.write(serialized_request)
+        Client.server_handle.stdin.flush()
 
     def send_request(self, command, arguments=None):
         """
@@ -109,8 +108,8 @@ class Client(object):
         linecount = 0
         headers = {}
         while True:
-            headerline = Client.__server_handle.stdout.readline().strip()
-            Client.__server_handle.stdin.flush()
+            headerline = Client.server_handle.stdout.readline().strip()
+            Client.server_handle.stdin.flush()
             logger.debug(headerline)
             linecount += 1
 
@@ -122,7 +121,7 @@ class Client(object):
                     raise RuntimeError("Missing 'Content-Length' header")
 
                 contentlength = int(headers["Content-Length"])
-                returned_string = Client.__server_handle.stdout.read(
+                returned_string = Client.server_handle.stdout.read(
                     contentlength)
                 ret = json.loads(returned_string)
 
@@ -207,6 +206,18 @@ class Client(object):
     def getErr(self, files):
         args = {"files": files}
         response = self.send_request("geterr", args)
+        return response
+
+    def getDocumentSymbols(self, file):
+        args = {"file": file}
+        response = self.send_request("navtree", args)
+        return response
+
+
+    def getWorkplaceSymbols(self, file, term):
+        args = {"file": file, "searchValue": term}
+        # self.__log(args)
+        response = self.send_request("navto", args)
         return response
 
     def getDoc(self, file, line, offset):
@@ -297,7 +308,6 @@ class Client(object):
         }
         response = self.send_request("completionEntryDetails", args)
         return get_response_body(response)
-
 
 def get_response_body(response, default=[]):
     success = bool(response) and "success" in response and response[
