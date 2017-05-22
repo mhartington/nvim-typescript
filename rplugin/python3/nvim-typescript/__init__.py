@@ -264,8 +264,8 @@ class TypescriptHost(object):
                             'col': error['start']['offset'],
                             'text': error['text']
                         })
-                    self.vim.call('setqflist', errorLoc, 'r', 'Errors')
-                    self.vim.command('cwindow')
+                    self.vim.call('setloclist', 0, errorLoc, 'r', 'Errors')
+                    self.vim.command('lwindow')
         else:
             self.printError('Server is not Running')
 
