@@ -52,7 +52,6 @@ class TypescriptHost(object):
         """
         filename = self.relative_file()
         contents = self.vim.eval("join(getline(1,'$'), \"\n\")")
-
         tmpfile = NamedTemporaryFile(delete=False)
         tmpfile.write(contents.encode("utf-8"))
         tmpfile.close()
@@ -96,7 +95,6 @@ class TypescriptHost(object):
         """
         if self._client.server_handle is not None:
             self._client.stop()
-            self.vim.command('redraws!')
             self.vim.out_write('TS: Server Stopped \n')
 
     @neovim.command("TSStart")
@@ -108,6 +106,7 @@ class TypescriptHost(object):
             self._client.serverPath = self.vim.vars[
                 "nvim_typescript#server_path"]
             if self._client.start():
+                self._client.open(self.relative_file())
                 self.vim.out_write('TS: Server Started \n')
 
     @neovim.command("TSRestart")
@@ -115,8 +114,14 @@ class TypescriptHost(object):
         """
             Restart the Client
         """
-        self._client.restart()
-        self._client.open(self.relative_file())
+        self.tsstop()
+        self.tsstart()
+
+        # self._client.open(self.relative_file())
+
+    @neovim.command("TSReloadProject")
+    def reloadProject(self):
+        self._client.refresh()
 
     @neovim.command("TSDoc")
     def tsdoc(self):
@@ -304,7 +309,6 @@ class TypescriptHost(object):
         else:
             self.printError('Server is not running')
 
-
     # REQUEST NAVTo/Workplace symbols
     # @neovim.function("TSGetWorkplaceSymbolsFunc", sync=True)
     # def getWorkplaceSymbolsFunc(self, args=None):
@@ -344,7 +348,6 @@ class TypescriptHost(object):
     #                 self.vim.command('lwindow')
     #     else:
     #         self.printError('Server is not running')
-
 
     @neovim.command("TSSig")
     def tssig(self):
@@ -420,7 +423,6 @@ class TypescriptHost(object):
         if self.findconfig(None):
             if self._client.server_handle is None:
                 self.tsstart()
-                self._client.open(self.relative_file())
             else:
                 self._client.open(self.relative_file())
         else:

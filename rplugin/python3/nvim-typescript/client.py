@@ -53,34 +53,29 @@ class Client(object):
         """
         send a stop request
         """
-        self.send_request("exit")
-        # Client.server_handle.kill()
+        Client.server_handle.kill()
         Client.server_handle = None
 
     def start(self):
         """
         start proc
         """
-        if Client.server_handle:
+        if Client.server_handle is None:
+            # Client.__environ['TSS_LOG'] = "-logToFile true -file ./server.log"
+            Client.server_handle = subprocess.Popen(
+                [self.serverPath, "--disableAutomaticTypingAcquisition"],
+                env=Client.__environ,
+                cwd=Client.__project_directory,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=None,
+                universal_newlines=True,
+                shell=True,
+                bufsize=-1,
+            )
+            return True
+        else:
             return
-        # Client.__environ['TSS_LOG'] = "-logToFile true -file ./server.log"
-
-        # Client.server_handle = run([sys.executable,self.serverPath], input=Client.__feeder, async=True, stdout=Capture())
-        # Client.server_handle = pexpect.spawnu(self.serverPath)
-
-        Client.server_handle = subprocess.Popen(
-            [self.serverPath, "--disableAutomaticTypingAcquisition"],
-            env=Client.__environ,
-            cwd=Client.__project_directory,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=None,
-            universal_newlines=True,
-            shell=True,
-            bufsize=-1,
-            close_fds=True
-        )
-        return True
 
     def restart(self):
         """
@@ -181,6 +176,9 @@ class Client(object):
         args = {"file": file}
         self.send_command("close", args)
 
+    def refresh(self):
+        self.send_command("reloadProjects")
+
     def saveto(self, file, tmpfile):
         """
             Sends a "saveto" request
@@ -213,10 +211,8 @@ class Client(object):
         response = self.send_request("navtree", args)
         return response
 
-
-    def getWorkplaceSymbols(self, file, term):
+    def getWorkplaceSymbols(self, file, term=None):
         args = {"file": file, "searchValue": term}
-        # self.__log(args)
         response = self.send_request("navto", args)
         return response
 
