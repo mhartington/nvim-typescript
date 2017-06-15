@@ -250,11 +250,11 @@ class TypescriptHost(object):
         buf.clear_highlight(self.src)
         for e in errors:
             if e['filename'] == bufname:
-                end = e['end']['offset'] if e['end']['line'] == e['lnum'] else -1 # highlight to end of line if the error goes past the line
+                end = e['end']['offset']-1 if e['end']['line'] == e['lnum'] else -1 # highlight to end of line if the error goes past the line
                 buf.add_highlight(
                         'ERROR', # highlight group
-                        e['lnum']-1,
-                        e['col'],
+                        e['lnum']-1, # annoyingly this command is 0-indexed unlike the location list
+                        e['col']-1, # annoyingly this command is 0-indexed unlike the location list
                         end,
                         src_id=self.src
                     )
