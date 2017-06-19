@@ -390,15 +390,21 @@ class TypescriptHost(object):
             if (not refs) or (refs['success'] is False):
                 pass
             else:
+                truncateAfter = self.vim.eval('g:nvim_typescript#loc_list_item_truncate_after')
                 location_list = []
                 refList = refs["body"]["refs"]
                 if len(refList) > -1:
                     for ref in refList:
+                        lineText = re.sub('^\s+', '', ref['lineText'])
+                        if (truncateAfter == -1) or (len(lineText) <= truncateAfter):
+                            lineText
+                        else :
+                            lineText = (lineText[:truncateAfter] + '...')
                         location_list.append({
                             'filename': re.sub(self.cwd + '/', '', ref['file']),
                             'lnum': ref['start']['line'],
                             'col': ref['start']['offset'],
-                            'text': (ref['lineText'][:20] + '...') if len(ref['lineText']) > 20 else ref['lineText']
+                            'text': lineText
                         })
                     self.vim.call('setloclist', 0, location_list,
                                   'r', 'References')
