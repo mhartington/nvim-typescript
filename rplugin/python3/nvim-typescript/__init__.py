@@ -42,8 +42,19 @@ class TypescriptHost(object):
     def relative_file(self):
         """
             Return the current file
+            If the currently focused buffer is not a proper buffer
+            (eg. location list window or quickfix window) `self.vim.current.buffer.name`
+            returns a None value.
+            In this case, do a best effort and return any buffer name.
+            This is obviously not optimal, but for lack of a better solution...
         """
-        return self.vim.current.buffer.name
+
+        if not self.vim.current.buffer.name:
+            if len(self.vim.buffers) > 0:
+                # Vim buffer numbers are 1-indexed
+                return self.vim.buffers[1].name
+        else:
+            return self.vim.current.buffer.name
 
     def reload(self):
         """
