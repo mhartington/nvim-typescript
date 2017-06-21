@@ -6,7 +6,7 @@ class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
 
-        self.name = 'TSWorkplaceSymbol'
+        self.name = 'TSWorkspaceSymbol'
         self.kind = 'file'
 
     def convertToCandidate(self, symbols):
@@ -31,7 +31,7 @@ class Source(Base):
 
     def gather_candidates(self, context):
         # self.vim.out_write(str(context["input"]) + '\n')
-        symbols = self.vim.call('TSGetWorkplaceSymbolsFunc', context['input'])
+        symbols = self.vim.call('TSGetWorkspaceSymbolsFunc', context['input'])
         # if symbols is None:
         #     return []
 
