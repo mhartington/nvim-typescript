@@ -167,6 +167,15 @@ g:nvim_typescript#ts_version
     The current version typescript that is supported by this plugin. Version
     past this may include breaking changes.
 
+
+                               *g:nvim_typescript#loc_list_item_truncate_after*
+g:nvim_typescript#loc_list_item_truncate_after
+Values: Any positive natural number or -1
+Default: 20
+
+    Defines the length of items displayed in the location window after a call
+    to |:TSRefs|.
+
 ===============================================================================
 MAPPINGS                                                  *typescript-mappings*
 
