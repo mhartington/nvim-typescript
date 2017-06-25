@@ -16,6 +16,9 @@ let g:nvim_typescript#type_info_on_hold =
 let g:nvim_typescript#signature_complete =
       \ get(g:, 'nvim_typescript#signature_complete', 0)
 
+let g:nvim_typescript#loc_list_item_truncate_after =
+      \ get(g:, 'nvim_typescript#loc_list_item_truncate_after', 20)
+
 
 let s:kind_symbols = {
     \ 'keyword': 'keyword',
