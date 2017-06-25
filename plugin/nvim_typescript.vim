@@ -56,11 +56,12 @@ let g:nvim_typescript#kind_symbols =
 augroup nvim-typescript "{{{
   autocmd!
 
-  function! TSSearch(query)
+  function! s:TSSearch(query)
       let symbols = TSGetWorkspaceSymbolsFunc(a:query)
       call setloclist(0, symbols, 'r', 'Symbols')
       lopen
   endfunction
+  command! -nargs=1 TSSearch call s:TSSearch(<q-args>)
 
   if get(g:, 'nvim_typescript#type_info_on_hold', 1)
     if get(g:, 'nvim_typescript#javascript_support', 1)
