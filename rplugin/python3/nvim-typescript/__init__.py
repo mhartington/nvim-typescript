@@ -9,6 +9,7 @@ sys.path.insert(1, os.path.dirname(__file__))
 from client import Client
 from dir import Dir
 RELOAD_INTERVAL = 1
+import tsimport
 
 """
 These default args are arbitrary
@@ -440,6 +441,36 @@ class TypescriptHost(object):
            On save, reload to detect changes
         """
         self.reload()
+
+    @neovim.command("TSImport")
+    def tsimport(self):
+        symbol = self.vim.call('expand', '<cword>')
+        currentlyImportedItems, lastImportLine = tsimport.getCurrentImports(self._client, self.relative_file())
+        if symbol in currentlyImportedItems:
+            self.vim.out_write("nvim-ts: %s is already imported\n" % symbol)
+            return
+
+        results = tsimport.getImportCandidates(self._client, self.relative_file(), symbol)
+        if len(results) == 0:
+            self.vim.out_write('nvim-ts: No import candidates were found.\n')
+            return
+
+        if len(results) == 1:
+            importBlock = tsimport.createImportBlock(symbol,
+                    tsimport.getRelativeImportPath(self.relative_file(),
+                        results[0]),
+                    self.vim.vars["nvim_typescript#tsimport#template"]
+                    )
+        else:
+            candidates = "\n".join(["[%s]: %s" % (ix, result) for ix, result in enumerate(results)])
+            input = self.vim.call(
+                'input', 'nvim-ts: More than 1 candidate found, Select from the following options:\n%s\n please choose one: ' % candidates, '',)
+            importBlock = tsimport.createImportBlock(symbol,
+                    tsimport.getRelativeImportPath(self.relative_file(), results[int(input)])
+                    )
+
+        self.vim.current.buffer.append(importBlock, lastImportLine)
+
 
     # @neovim.function('TSComplete', sync=True)
     # def tsomnifunc(self, args):

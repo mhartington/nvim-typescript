@@ -19,6 +19,8 @@ let g:nvim_typescript#signature_complete =
 let g:nvim_typescript#loc_list_item_truncate_after =
       \ get(g:, 'nvim_typescript#loc_list_item_truncate_after', 20)
 
+let g:nvim_typescript#tsimport#template =
+      \ get(g:, 'nvim_typescript#tsimport#template', 'import { %s } from ''%s'';')
 
 let s:kind_symbols = {
     \ 'keyword': 'keyword',

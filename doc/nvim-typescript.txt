@@ -102,10 +102,18 @@ COMMANDS                                                  *typescript-commands*
     Restarts the client. This is useful if changes to the `tsconfig.json` are
     made during the current nvim session.
 
+
                                                                       *:TSType*
 :TSType
 
     Prints the type signature for the symbol under the cursor.
+
+
+                                                                    *:TSImport*
+:TSImport
+
+    Tries to import the module in which the symbol under the cursor
+    is defined.
 
 ===============================================================================
 VARIABLES                                                *typescript-variables*
@@ -175,6 +183,15 @@ Default: 20
 
     Defines the length of items displayed in the location window after a call
     to |:TSRefs|.
+
+
+                                          *g:nvim_typescript#tsimport#template*
+g:nvim_typescript#tsimport#template
+Values: String
+Default: 'import { %s } from ''%s'';'
+
+    Defines the template for import statements. The first '%s' will be replaced 
+    with the symbol and the second with the symbol module path.
 
 ===============================================================================
 MAPPINGS                                                  *typescript-mappings*
