@@ -262,7 +262,7 @@ class Client(object):
 
     def renameSymbol(self, file, line, offset):
         args = {"file": file, "line": line, "offset": offset,
-                'findInComments': True, 'findInStrings': True}
+                'findInComments': False, 'findInStrings': False}
         response = self.send_request("rename", args)
         return response
 

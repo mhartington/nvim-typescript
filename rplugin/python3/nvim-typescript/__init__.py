@@ -171,6 +171,44 @@ class TypescriptHost(object):
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
 
+    @neovim.command("TSRename", nargs=1)
+    def tsrename(self, args):
+        """
+            Rename the current symbol
+        """
+        if self._client.server_handle is not None:
+            self.reload()
+            file = self.vim.current.buffer.name
+            originalLine = self.vim.current.window.cursor[0]
+            offset = self.vim.current.window.cursor[1] + 2
+            info = self._client.renameSymbol(file, originalLine, offset)
+
+            if (not info) or (not info['success']) or (not info['body']['info']['canRename']):
+                displayName = info['body']['info']['displayName']
+                self.vim.command(
+                        'echohl WarningMsg | echo "TS: Cannot rename symbol: "'+ displayName + '" | echohl None')
+            else:
+                locs = info['body']['locs']
+
+                changeCount = 0
+                for loc in locs:
+                    defFile = loc['file']
+                    self.vim.command('e ' + defFile)
+
+                    for rename in loc['locs']:
+                        line = rename['start']['line']
+                        col = rename['start']['offset']
+
+                        self.vim.command('cal cursor({}, {})'.format(line, col))
+                        self.vim.command('normal cw{}'.format(args[0]))
+                        self.vim.command('write')
+                        changeCount += 1
+
+                self.vim.command('e ' + file)
+                self.vim.command('cal cursor({}, {})'.format(originalLine, offset))
+                self.vim.command('echo "Replaced {} occurences in {} files"'.format(len(locs), changeCount))
+
+
     @neovim.command("TSDef")
     def tsdef(self):
         """
