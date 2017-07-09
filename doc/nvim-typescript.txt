@@ -107,6 +107,11 @@ COMMANDS                                                  *typescript-commands*
 
     Prints the type signature for the symbol under the cursor.
 
+                                                                      *:TSRename*
+:TSRename [word]
+
+  Renames the symbol currently under the cursor
+
 ===============================================================================
 VARIABLES                                                *typescript-variables*
                                                 *g:nvim_typescript#server_path*
