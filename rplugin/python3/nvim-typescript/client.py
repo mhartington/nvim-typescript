@@ -197,8 +197,8 @@ class Client(object):
         response = self.send_request("navtree", args)
         return response
 
-    def getWorkplaceSymbols(self, file, term=None):
-        args = {"file": file, "searchValue": term}
+    def getWorkspaceSymbols(self, file, term=None):
+        args = {"file": file, "searchValue": term, "maxResultCount": 100}
         response = self.send_request("navto", args)
         return response
 
