@@ -126,9 +126,6 @@ class Client(object):
                 return None
             if ret["request_seq"] == request['seq']:
                 return ret
-            #     # except:
-            #     #     e = sys.exc_info()[0]
-            #     #     logger.debug(e)
 
     def send_command(self, command, arguments=None):
         request = self.build_request(command, arguments)
@@ -195,12 +192,12 @@ class Client(object):
     def getDocumentSymbols(self, file):
         args = {"file": file}
         response = self.send_request("navtree", args)
-        return response
+        return get_response_body(response)
 
-    def getWorkplaceSymbols(self, file, term=None):
-        args = {"file": file, "searchValue": term}
+    def getWorkspaceSymbols(self, file, term=''):
+        args = {"file": file, "searchValue": term, "maxResultCount": 50}
         response = self.send_request("navto", args)
-        return response
+        return get_response_body(response)
 
     def getDoc(self, file, line, offset):
         """
@@ -248,7 +245,7 @@ class Client(object):
 
     def renameSymbol(self, file, line, offset):
         args = {"file": file, "line": line, "offset": offset,
-                'findInComments': True, 'findInStrings': True}
+                'findInComments': False, 'findInStrings': False}
         response = self.send_request("rename", args)
         return response
 
