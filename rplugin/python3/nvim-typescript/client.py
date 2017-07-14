@@ -85,7 +85,7 @@ class Client(object):
         self.stop()
         self.start()
 
-    def __send_data_to_server(self, data):
+    def __write_to_server(self, data):
         serialized_request = json.dumps(data) + "\n"
         Client.server_handle.stdin.write(serialized_request)
         Client.server_handle.stdin.flush()
@@ -98,55 +98,38 @@ class Client(object):
             :type wait_for_response: boolean
         """
         request = self.build_request(command, arguments)
-        self.__send_data_to_server(request)
+        self.__write_to_server(request)
 
         linecount = 0
         headers = {}
         while True:
             headerline = Client.server_handle.stdout.readline().strip()
-            Client.server_handle.stdin.flush()
-            logger.debug(headerline)
-            linecount += 1
-
-            if len(headerline):
-                key, value = headerline.split(":", 2)
-                headers[key.strip()] = value.strip()
-
-                if "Content-Length" not in headers:
-                    raise RuntimeError("Missing 'Content-Length' header")
-
-                contentlength = int(headers["Content-Length"])
-                returned_string = Client.server_handle.stdout.read(
-                    contentlength)
-                ret = json.loads(returned_string)
-
-                # try:
-                # TS 1.9.x returns two reload finished responses
-                if ('body', {'reloadFinished': True}) in ret.items():
+            newline = Client.server_handle.stdout.readline().strip()
+            content = Client.server_handle.stdout.readline().strip()
+            ret = json.loads(content)
+            # TS 1.9.x returns two reload finished responses
+            if ('body', {'reloadFinished': True}) in ret.items():
+                continue
+            # TS 2.0.6 introduces configFileDiag event, ignore
+            if ("event", "requestCompleted") in ret.items():
+                continue
+            if ("event", "configFileDiag") in ret.items():
+                continue
+            if "request_seq" not in ret:
+                if ("event", "syntaxDiag") in ret.items():
                     continue
-                # TS 2.0.6 introduces configFileDiag event, ignore
-                if ("event", "requestCompleted") in ret.items():
-                    continue
-                if ("event", "configFileDiag") in ret.items():
-                    continue
-                if "request_seq" not in ret:
-                    if ("event", "syntaxDiag") in ret.items():
-                        continue
-                    if ("event", "semanticDiag") in ret.items():
-                        return ret
-                    else:
-                        continue
-                if ret["request_seq"] > request['seq']:
-                    return None
-                if ret["request_seq"] == request['seq']:
+                if ("event", "semanticDiag") in ret.items():
                     return ret
-                # except:
-                #     e = sys.exc_info()[0]
-                #     logger.debug(e)
+                else:
+                    continue
+            if ret["request_seq"] > request['seq']:
+                return None
+            if ret["request_seq"] == request['seq']:
+                return ret
 
     def send_command(self, command, arguments=None):
         request = self.build_request(command, arguments)
-        self.__send_data_to_server(request)
+        self.__write_to_server(request)
 
     def build_request(self, command, arguments=None):
         request = {
@@ -209,12 +192,12 @@ class Client(object):
     def getDocumentSymbols(self, file):
         args = {"file": file}
         response = self.send_request("navtree", args)
-        return response
+        return get_response_body(response)
 
-    def getWorkplaceSymbols(self, file, term=None):
-        args = {"file": file, "searchValue": term}
+    def getWorkspaceSymbols(self, file, term=''):
+        args = {"file": file, "searchValue": term, "maxResultCount": 50}
         response = self.send_request("navto", args)
-        return response
+        return get_response_body(response)
 
     def getDoc(self, file, line, offset):
         """
@@ -262,7 +245,7 @@ class Client(object):
 
     def renameSymbol(self, file, line, offset):
         args = {"file": file, "line": line, "offset": offset,
-                'findInComments': True, 'findInStrings': True}
+                'findInComments': False, 'findInStrings': False}
         response = self.send_request("rename", args)
         return response
 
@@ -304,6 +287,7 @@ class Client(object):
         }
         response = self.send_request("completionEntryDetails", args)
         return get_response_body(response)
+
 
 def get_response_body(response, default=[]):
     success = bool(response) and "success" in response and response[
