@@ -4,7 +4,7 @@ import re
 def getImportCandidates(client, cfile, symbol):
     matchingSymbols = client.getWorkplaceSymbols(cfile, symbol)
     return [*map(lambda x: x["file"], [x for x in matchingSymbols["body"]
-        if x['matchKind'] == "exact" and ('kindModifiers' in x) and x['kindModifiers'] == 'export'])]
+        if x['matchKind'] == "exact" and ('kindModifiers' in x) and 'export' in x['kindModifiers'].split(',')])]
 
 def shaveNodeModulesPath(candidate):
     return re.sub('^.*node_modules/', '', candidate)
