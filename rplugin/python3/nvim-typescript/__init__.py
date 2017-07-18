@@ -484,8 +484,7 @@ class TypescriptHost(object):
 
         if len(results) == 1:
             importBlock = tsimport.createImportBlock(symbol,
-                    tsimport.getRelativeImportPath(self.relative_file(),
-                        results[0]),
+                    tsimport.getRelativeImportPath(self.relative_file(), results[0]),
                     self.vim.vars["nvim_typescript#tsimport#template"]
                     )
         else:
@@ -493,7 +492,8 @@ class TypescriptHost(object):
             input = self.vim.call(
                 'input', 'nvim-ts: More than 1 candidate found, Select from the following options:\n%s\n please choose one: ' % candidates, '',)
             importBlock = tsimport.createImportBlock(symbol,
-                    tsimport.getRelativeImportPath(self.relative_file(), results[int(input)])
+                    tsimport.getRelativeImportPath(self.relative_file(), results[int(input)]),
+                    self.vim.vars["nvim_typescript#tsimport#template"]
                     )
 
         self.vim.current.buffer.append(importBlock, lastImportLine)
