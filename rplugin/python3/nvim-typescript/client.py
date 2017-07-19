@@ -10,7 +10,6 @@ logger = getLogger('deoplete')
 class Client(object):
     server_handle = None
     __server_seq = 1
-    __project_directory = os.getcwd()
     __environ = os.environ.copy()
 
     def __init__(self, log_fn=None, debug_fn=None):
@@ -41,6 +40,24 @@ class Client(object):
         else:
             self._serverPath = 'tsserver'
 
+    def project_cwd(self):
+        mydir = os.getcwd()
+        if mydir:
+            projectdir = mydir
+            while True:
+                parent = os.path.dirname(mydir[:-1])
+                if not parent:
+                    break
+                if os.path.isfile(os.path.join(mydir, "tsconfig.json")) or os.path.isfile(os.path.join(mydir, "jsconfig.json")):
+                    projectdir = mydir
+                    break
+                mydir = parent
+
+        if projectdir == os.getcwd():
+            return False
+        else:
+            return projectdir
+
     def __log(self, message):
         if self.log_fn:
             self.log_fn(str(message))
@@ -65,7 +82,7 @@ class Client(object):
             Client.server_handle = subprocess.Popen(
                 [self.serverPath, "--disableAutomaticTypingAcquisition"],
                 env=Client.__environ,
-                cwd=Client.__project_directory,
+                cwd=self.project_cwd(),
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=None,
@@ -285,9 +302,11 @@ class Client(object):
         response = self.send_request("completionEntryDetails", args)
         return get_response_body(response)
 
+
 def get_error_res_body(response, default=[]):
     # Should we raise an error if success == False ?
     return response["body"]
+
 
 def get_response_body(response, default=[]):
     success = bool(response) and "success" in response and response["success"]
