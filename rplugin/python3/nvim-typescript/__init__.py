@@ -95,7 +95,7 @@ class TypescriptHost(object):
                     self.tsstart()
             else:
                 self.vim.command('redraws')
-                self.vim.out_write('TSServer not started.')
+                self.printError('Server not started')
 
     @neovim.command("TSStop")
     def tsstop(self):
@@ -143,11 +143,9 @@ class TypescriptHost(object):
             offset = self.vim.current.window.cursor[1] + 2
             info = self._client.getDoc(file, line, offset)
 
-            if (not info) or (not info['success']):
-                self.printError('No doc at cursor')
-            else:
-                displayString = '{0}'.format(info['body']['displayString'])
-                documentation = '{0}'.format(info['body']['documentation'])
+            if info:
+                displayString = '{0}'.format(info['displayString'])
+                documentation = '{0}'.format(info['documentation'])
                 documentation = documentation.split('\n')
                 displayString = displayString.split('\n')
                 message = displayString + documentation
@@ -188,12 +186,12 @@ class TypescriptHost(object):
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1] + 2
             info = self._client.goToDefinition(file, line, offset)
-            if (not info) or (not info['success']):
-                self.printError('No definition')
-            else:
-                defFile = info['body'][0]['file']
-                defLine = '{0}'.format(info['body'][0]['start']['line'])
+            if info:
+                defFile = info[0]['file']
+                defLine = '{0}'.format(info[0]['start']['line'])
                 self.vim.command('e +' + defLine + ' ' + defFile)
+            else:
+                self.printError('No definition')
         else:
             self.printError('Server is not running')
 
@@ -208,14 +206,12 @@ class TypescriptHost(object):
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1] + 2
             info = self._client.goToDefinition(file, line, offset)
-            if (not info) or (not info['success']):
-                self.vim.command(
-                    'echohl WarningMsg | echo "TS: No definition" | echohl None')
-            else:
-                defFile = info['body'][0]['file']
-                defLine = '{0}'.format(info['body'][0]['start']['line'])
-
+            if info:
+                defFile = info[0]['file']
+                defLine = '{0}'.format(info[0]['start']['line'])
                 self.vim.command('split! +' + defLine + ' ' + defFile)
+            else:
+                self.printError('No definition')
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
@@ -230,14 +226,12 @@ class TypescriptHost(object):
             file = self.vim.current.buffer.name
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1] + 2
-
             info = self._client.getDoc(file, line, offset)
-            if (not info) or (not info['success']):
-                pass
-            else:
-                message = '{0}'.format(info['body']['displayString'])
+
+            if info:
+                message = '{0}'.format(info['displayString'])
                 message = re.sub("\s+", " ", message)
-                self.printMsg(message)
+                self.vim.out_write("{} \n".format(message))
         else:
             self.printError('Server is not running')
 
@@ -250,21 +244,16 @@ class TypescriptHost(object):
             self.reload()
             files = [self.relative_file()]
             getErrRes = self._client.getErr(files)
-            if not getErrRes:
-                pass
-            else:
-                errorLoc = []
-                filename = getErrRes['body']['file']
-                errorList = getErrRes['body']['diagnostics']
-
+            if getErrRes:
+                filename = getErrRes['file']
+                errorList = getErrRes['diagnostics']
                 if len(errorList) > -1:
-                    for error in errorList:
-                        errorLoc.append({
-                            'filename': re.sub(self.cwd + '/', '', filename),
-                            'lnum': error['start']['line'],
-                            'col': error['start']['offset'],
-                            'text': error['text']
-                        })
+                    errorLoc = list(map(lambda error: {
+                        'filename': re.sub(self.cwd + '/', '', filename),
+                        'lnum': error['start']['line'],
+                        'col': error['start']['offset'],
+                        'text': error['text']
+                    }, errorList))
                     self.vim.call('setloclist', 0, errorLoc, 'r', 'Errors')
                     self.vim.command('lwindow')
         else:
@@ -287,17 +276,14 @@ class TypescriptHost(object):
             file = self.vim.current.buffer.name
             originalLine = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1] + 2
-            info = self._client.renameSymbol(file, originalLine, offset)
+            renameRes = self._client.renameSymbol(file, originalLine, offset)
 
-            if (not info) or (not info['success']) or (not info['body']['info']['canRename']):
-                displayName = info['body']['info']['displayName']
-                self.vim.command(
-                    'echohl WarningMsg | echo "TS: Cannot rename symbol: "' + displayName + '" | echohl None')
-            else:
-                locs = info['body']['locs']
+            if (renameRes) and (renameRes['info']['canRename']):
+                locs = renameRes['locs']
                 changeCount = 0
                 for loc in locs:
                     defFile = loc['file']
+
                     self.vim.command('e ' + defFile)
 
                     for rename in loc['locs']:
@@ -312,8 +298,10 @@ class TypescriptHost(object):
                 self.vim.command('e ' + file)
                 self.vim.command(
                     'cal cursor({}, {})'.format(originalLine, offset))
-                self.vim.command('echo "Replaced {} occurences in {} files"'.format(
-                    len(locs), changeCount))
+                self.vim.out_write(
+                    'Replaced {} occurences in {} files \n'.format(len(locs), changeCount))
+            else:
+                self.printError(renameRes['info']['localizedErrorMessage'])
 
     # REQUEST NAVTREE/DOC SYMBOLS
     @neovim.function("TSGetDocSymbolsFunc", sync=True)
@@ -386,16 +374,12 @@ class TypescriptHost(object):
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1]
             info = self._client.getDoc(file, line, offset)
-            if (not info) or (info['success'] is False):
-                pass
-            else:
-                message = '{0}'.format(info['body']['displayString'])
+            if info:
+                message = '{0}'.format(info['displayString'])
                 message = re.sub("\s+", " ", message)
-                if 'method' in info['body']['kind']:
+                if 'method' in info['kind']:
                     self.vim.command(
                         'redraws! | echom "nvim-ts: " | echohl Function | echon \"' + message + '\" | echohl None')
-                else:
-                    pass
         else:
             self.printError('Server is not running')
 
@@ -413,13 +397,11 @@ class TypescriptHost(object):
 
             refs = self._client.getRef(file, line, offset)
 
-            if (not refs) or (refs['success'] is False):
-                pass
-            else:
+            if refs:
                 truncateAfter = self.vim.eval(
                     'g:nvim_typescript#loc_list_item_truncate_after')
                 location_list = []
-                refList = refs["body"]["refs"]
+                refList = refs["refs"]
                 if len(refList) > -1:
                     for ref in refList:
                         lineText = re.sub('^\s+', '', ref['lineText'])
@@ -479,6 +461,4 @@ class TypescriptHost(object):
         """
         Log message to vim echo
         """
-        val = "{}".format(message)
-        # self.vim.command('redraws!')
-        self.vim.out_write(val + '\n')
+        self.vim.out_write('{} \n'.format(message))

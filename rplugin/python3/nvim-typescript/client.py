@@ -187,7 +187,7 @@ class Client(object):
     def getErr(self, files):
         args = {"files": files}
         response = self.send_request("geterr", args)
-        return response
+        return get_error_res_body(response)
 
     def getDocumentSymbols(self, file):
         args = {"file": file}
@@ -209,8 +209,7 @@ class Client(object):
         """
         args = {"file": file, "line": line, "offset": offset}
         response = self.send_request("quickinfo", args)
-
-        return response
+        return get_response_body(response)
 
     def getSignature(self, file, line, offset):
         """
@@ -222,14 +221,12 @@ class Client(object):
         """
         args = {"file": file, "line": line, "offset": offset}
         response = self.send_request("signatureHelp", args)
-
-        return response
+        return get_response_body(response)
 
     def getRef(self, file, line, offset):
         args = {"file": file, "line": line, "offset": offset}
         response = self.send_request("references", args)
-
-        return response
+        return get_response_body(response)
 
     def goToDefinition(self, file, line, offset):
         """
@@ -241,13 +238,13 @@ class Client(object):
         """
         args = {"file": file, "line": line, "offset": offset}
         response = self.send_request("definition", args)
-        return response
+        return get_response_body(response)
 
     def renameSymbol(self, file, line, offset):
         args = {"file": file, "line": line, "offset": offset,
                 'findInComments': False, 'findInStrings': False}
         response = self.send_request("rename", args)
-        return response
+        return get_response_body(response)
 
     def completions(self, file, line, offset, prefix=""):
         """
@@ -288,9 +285,11 @@ class Client(object):
         response = self.send_request("completionEntryDetails", args)
         return get_response_body(response)
 
+def get_error_res_body(response, default=[]):
+    # Should we raise an error if success == False ?
+    return response["body"]
 
 def get_response_body(response, default=[]):
-    success = bool(response) and "success" in response and response[
-        "success"]
+    success = bool(response) and "success" in response and response["success"]
     # Should we raise an error if success == False ?
     return response["body"] if success and "body" in response else default
