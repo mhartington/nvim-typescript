@@ -9,6 +9,7 @@ logger = getLogger('deoplete')
 
 class Client(object):
     server_handle = None
+    __project_root = None
     __server_seq = 1
     __environ = os.environ.copy()
 
@@ -35,8 +36,9 @@ class Client(object):
         """
         Set the server Path
         """
-        if os.path.isfile(value):
-            self._serverPath = value
+        relPath = os.path.join(Client.__project_root, value)
+        if os.path.isfile(relPath):
+            self._serverPath = relPath
         else:
             self._serverPath = 'tsserver'
 
@@ -56,6 +58,7 @@ class Client(object):
         if projectdir == os.getcwd():
             return False
         else:
+            Client.__project_root = projectdir
             return projectdir
 
     def __log(self, message):
