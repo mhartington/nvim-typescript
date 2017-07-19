@@ -102,6 +102,7 @@ COMMANDS                                                  *typescript-commands*
     Restarts the client. This is useful if changes to the `tsconfig.json` are
     made during the current nvim session.
 
+
                                                                       *:TSType*
 :TSType
 
@@ -111,6 +112,13 @@ TSRename [word]
 
     Renames the symbol currently under the cursor. Pass a new name as an arg,
     if no arg is passed, user will be prompted.
+
+
+                                                                    *:TSImport*
+:TSImport
+
+    Tries to import the module in which the symbol under the cursor
+    is defined.
 
 ===============================================================================
 VARIABLES                                                *typescript-variables*
@@ -180,6 +188,15 @@ Default: 20
 
     Defines the length of items displayed in the location window after a call
     to |:TSRefs|.
+
+
+                                          *g:nvim_typescript#tsimport#template*
+g:nvim_typescript#tsimport#template
+Values: String
+Default: 'import { %s } from ''%s'';'
+
+    Defines the template for import statements. The first '%s' will be replaced 
+    with the symbol and the second with the symbol module path.
 
 ===============================================================================
 MAPPINGS                                                  *typescript-mappings*
