@@ -91,8 +91,6 @@ class TypescriptHost(object):
             else:
                 self.vim.command('redraws')
                 self.printError('Server not started')
-        else:
-            self.printError('No tsconfig, server not started')
 
     @neovim.command("TSStop")
     def tsstop(self):
@@ -108,8 +106,7 @@ class TypescriptHost(object):
         Stat the client
         """
         if self._client.server_handle is None:
-            self._client.serverPath = self.vim.vars[
-                "nvim_typescript#server_path"]
+            self._client.serverPath = self.vim.vars["nvim_typescript#server_path"]
             if self._client.start():
                 self._client.open(self.relative_file())
                 self.printMsg('Server Started')
@@ -461,7 +458,8 @@ class TypescriptHost(object):
         """
        Send open event when a ts file is open
         """
-        if self._client.project_cwd():
+        fileDir = self.vim.eval("expand('%:p:h')")
+        if self._client.project_cwd(fileDir):
             if self._client.server_handle is None:
                 self.tsstart()
             else:

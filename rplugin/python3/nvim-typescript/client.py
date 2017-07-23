@@ -42,8 +42,8 @@ class Client(object):
         else:
             self._serverPath = 'tsserver'
 
-    def project_cwd(self):
-        mydir = os.getcwd()
+    def project_cwd(self, root):
+        mydir = root
         if mydir:
             projectdir = mydir
             while True:
@@ -56,7 +56,11 @@ class Client(object):
                 mydir = parent
 
         if projectdir == os.getcwd():
-            return False
+            if os.path.isfile('tsconfig.json') or os.path.isfile('jsconfig.json'):
+                Client.__project_root = projectdir
+                return projectdir
+            else:
+                return False
         else:
             Client.__project_root = projectdir
             return projectdir
@@ -85,7 +89,7 @@ class Client(object):
             Client.server_handle = subprocess.Popen(
                 [self.serverPath, "--disableAutomaticTypingAcquisition"],
                 env=Client.__environ,
-                cwd=self.project_cwd(),
+                cwd=Client.__project_root,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=None,
@@ -303,6 +307,14 @@ class Client(object):
             "entryNames": entry_names
         }
         response = self.send_request("completionEntryDetails", args)
+        return get_response_body(response)
+
+    def projectInfo(self, file):
+        args = {
+            'file': file,
+            'needFileNameList': 'false'
+        }
+        response = self.send_request("projectInfo", args)
         return get_response_body(response)
 
 
