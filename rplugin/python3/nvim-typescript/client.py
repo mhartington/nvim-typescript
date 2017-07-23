@@ -43,23 +43,33 @@ class Client(object):
             self._serverPath = 'tsserver'
 
     def project_cwd(self):
-        mydir = os.getcwd()
-        if mydir:
-            projectdir = mydir
-            while True:
-                parent = os.path.dirname(mydir[:-1])
-                if not parent:
-                    break
-                if os.path.isfile(os.path.join(mydir, "tsconfig.json")) or os.path.isfile(os.path.join(mydir, "jsconfig.json")):
-                    projectdir = mydir
-                    break
-                mydir = parent
+        """
+        Find the folder in which `tsconfig.json` or `jsconfig.json` is defined.
+        Going up recursively from the current working directory.
 
-        if projectdir == os.getcwd():
-            return False
+        :returns: The folder in which a config file is found or `False` otherwise
+        """
+
+        def project_cwd_rec(current, previous):
+
+            def currentDirectoryHasConfig(current):
+                return os.path.isfile(os.path.join(current, "tsconfig.json")) or \
+                        os.path.isfile(os.path.join(current, "jsconfig.json"))
+
+            if currentDirectoryHasConfig(current):
+                return current
+            else:
+                if current == previous:
+                    return False
+                else:
+                    return project_cwd_rec(os.path.abspath(os.path.join(current, os.pardir)), current)
+
+        foundProjectDir = project_cwd_rec(os.getcwd(), None)
+        if foundProjectDir:
+            Client.__project_root = foundProjectDir
+            return foundProjectDir
         else:
-            Client.__project_root = projectdir
-            return projectdir
+            return False
 
     def __log(self, message):
         if self.log_fn:
