@@ -39,5 +39,5 @@ augroup nvim-typescript "{{{
       endtry
     endfunction
 
-    command! -nargs=* TSSearchFZF call s:SearchForSymbolsWithPattern(<q-args>)
+    command! -nargs=1 TSSearchFZF call s:SearchForSymbolsWithPattern(<q-args>)
 augroup end "}}}

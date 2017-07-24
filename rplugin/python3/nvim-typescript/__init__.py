@@ -378,6 +378,7 @@ class TypescriptHost(object):
     @neovim.function("TSGetWorkspaceSymbolsFunc", sync=True)
     def getWorkspaceSymbolsFunc(self, args=None):
         if self._client.server_handle is not None:
+            self.reload()
             searchSymbols = self._client.getWorkspaceSymbols(
                 self.relative_file(), args[0])
             if not searchSymbols:
