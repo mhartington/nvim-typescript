@@ -8,6 +8,7 @@ from tempfile import NamedTemporaryFile
 sys.path.insert(1, os.path.dirname(__file__))
 from client import Client
 from dir import Dir
+import utils
 RELOAD_INTERVAL = 1
 
 """
@@ -41,14 +42,13 @@ class TypescriptHost(object):
 
     def relative_file(self):
         """
-            Return the current file
-            If the currently focused buffer is not a proper buffer
-            (eg. location list window or quickfix window) `self.vim.current.buffer.name`
-            returns a None value.
-            In this case, do a best effort and return any buffer name.
-            This is obviously not optimal, but for lack of a better solution...
+        Return the current file
+        If the currently focused buffer is not a proper buffer
+        (eg. location list window or quickfix window) `self.vim.current.buffer.name`
+        returns a None value.
+        In this case, do a best effort and return any buffer name.
+        This is obviously not optimal, but for lack of a better solution...""
         """
-
         if not self.vim.current.buffer.name:
             if len(self.vim.buffers) > 0:
                 # Vim buffer numbers are 1-indexed
@@ -58,8 +58,7 @@ class TypescriptHost(object):
 
     def reload(self):
         """
-            Call tsserver.reload()
-
+        Call tsserver.reload()
         """
         filename = self.relative_file()
         contents = self.vim.eval("join(getline(1,'$'), \"\n\")")
@@ -97,28 +96,27 @@ class TypescriptHost(object):
                     self.tsstart()
             else:
                 self.vim.command('redraws')
-                self.vim.out_write('TSServer not started.')
+                self.printError('Server not started')
 
     @neovim.command("TSStop")
     def tsstop(self):
         """
-            Stop the client
+        Stop the client
         """
         if self._client.server_handle is not None:
-            self._client.stop()
-            self.vim.out_write('TS: Server Stopped \n')
+            self.printMsg('Server Stopped')
 
     @neovim.command("TSStart")
     def tsstart(self):
         """
-            Stat the client
+        Stat the client
         """
         if self._client.server_handle is None:
             self._client.serverPath = self.vim.vars[
                 "nvim_typescript#server_path"]
             if self._client.start():
                 self._client.open(self.relative_file())
-                self.vim.out_write('TS: Server Started \n')
+                self.printMsg('Server Started')
 
     @neovim.command("TSRestart")
     def tsrestart(self):
@@ -137,7 +135,7 @@ class TypescriptHost(object):
     @neovim.command("TSDoc")
     def tsdoc(self):
         """
-            Get the doc strings and type info
+        Get the doc strings and type info
         """
         if self._client.server_handle is not None:
             self.reload()
@@ -146,12 +144,9 @@ class TypescriptHost(object):
             offset = self.vim.current.window.cursor[1] + 2
             info = self._client.getDoc(file, line, offset)
 
-            if (not info) or (not info['success']):
-                self.vim.command(
-                    'echohl WarningMsg | echo "TS: No doc at cursor" | echohl None')
-            else:
-                displayString = '{0}'.format(info['body']['displayString'])
-                documentation = '{0}'.format(info['body']['documentation'])
+            if info:
+                displayString = '{0}'.format(info['displayString'])
+                documentation = '{0}'.format(info['documentation'])
                 documentation = documentation.split('\n')
                 displayString = displayString.split('\n')
                 message = displayString + documentation
@@ -179,13 +174,12 @@ class TypescriptHost(object):
                 self.vim.command("setlocal nomodifiable")
                 self.vim.command('sil normal! gg')
         else:
-            self.vim.command(
-                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+            self.printError('Server is not running')
 
     @neovim.command("TSDef")
     def tsdef(self):
         """
-            Get the definition
+        Get the definition
         """
         if self._client.server_handle is not None:
             self.reload()
@@ -193,17 +187,14 @@ class TypescriptHost(object):
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1] + 2
             info = self._client.goToDefinition(file, line, offset)
-            if (not info) or (not info['success']):
-                self.vim.command(
-                    'echohl WarningMsg | echo "TS: No definition" | echohl None')
-            else:
-                defFile = info['body'][0]['file']
-                defLine = '{0}'.format(info['body'][0]['start']['line'])
-
+            if info:
+                defFile = info[0]['file']
+                defLine = '{0}'.format(info[0]['start']['line'])
                 self.vim.command('e +' + defLine + ' ' + defFile)
+            else:
+                self.printError('No definition')
         else:
-            self.vim.command(
-                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+            self.printError('Server is not running')
 
     @neovim.command("TSDefPreview")
     def tsdefpreview(self):
@@ -216,14 +207,12 @@ class TypescriptHost(object):
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1] + 2
             info = self._client.goToDefinition(file, line, offset)
-            if (not info) or (not info['success']):
-                self.vim.command(
-                    'echohl WarningMsg | echo "TS: No definition" | echohl None')
-            else:
-                defFile = info['body'][0]['file']
-                defLine = '{0}'.format(info['body'][0]['start']['line'])
-
+            if info:
+                defFile = info[0]['file']
+                defLine = '{0}'.format(info[0]['start']['line'])
                 self.vim.command('split! +' + defLine + ' ' + defFile)
+            else:
+                self.printError('No definition')
         else:
             self.vim.command(
                 'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
@@ -231,54 +220,120 @@ class TypescriptHost(object):
     @neovim.command("TSType")
     def tstype(self):
         """
-            Get the type info
+        Get the type info
         """
         if self._client.server_handle is not None:
             self.reload()
             file = self.vim.current.buffer.name
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1] + 2
-
             info = self._client.getDoc(file, line, offset)
-            if (not info) or (not info['success']):
-                pass
-            else:
-                message = '{0}'.format(info['body']['displayString'])
+
+            if info:
+                message = '{0}'.format(info['displayString'])
                 message = re.sub("\s+", " ", message)
-                self.vim.command('redraws!')
-                self.vim.out_write(message + '\n')
+                self.vim.out_write("{} \n".format(message))
         else:
-            self.vim.command(
-                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+            self.printError('Server is not running')
 
     @neovim.command("TSGetErr")
     def tsgeterr(self):
         """
-            Get the type info
+        Get the type info
         """
         if self._client.server_handle is not None:
             self.reload()
             files = [self.relative_file()]
             getErrRes = self._client.getErr(files)
-            if not getErrRes:
-                pass
-            else:
-                errorLoc = []
-                filename = getErrRes['body']['file']
-                errorList = getErrRes['body']['diagnostics']
-
+            if getErrRes:
+                filename = getErrRes['file']
+                errorList = getErrRes['diagnostics']
                 if len(errorList) > -1:
-                    for error in errorList:
-                        errorLoc.append({
-                            'filename': re.sub(self.cwd + '/', '', filename),
-                            'lnum': error['start']['line'],
-                            'col': error['start']['offset'],
-                            'text': error['text']
-                        })
+                    errorLoc = list(map(lambda error: {
+                        'filename': re.sub(self.cwd + '/', '', filename),
+                        'lnum': error['start']['line'],
+                        'col': error['start']['offset'],
+                        'text': error['text']
+                    }, errorList))
                     self.vim.call('setloclist', 0, errorLoc, 'r', 'Errors')
                     self.vim.command('lwindow')
         else:
             self.printError('Server is not Running')
+
+    @neovim.command("TSRename", nargs="*")
+    def tsrename(self, args=""):
+        """
+        Rename the current symbol
+        """
+        symbol = self.vim.eval('expand("<cword>")')
+        if not args:
+            newName = self.vim.call(
+                'input', 'nvim-ts: rename {0} to '.format(symbol))
+        else:
+            newName = args[0]
+
+        if self._client.server_handle is not None:
+            self.reload()
+            file = self.vim.current.buffer.name
+            originalLine = self.vim.current.window.cursor[0]
+            offset = self.vim.current.window.cursor[1] + 2
+            renameRes = self._client.renameSymbol(file, originalLine, offset)
+
+            if (renameRes) and (renameRes['info']['canRename']):
+                locs = renameRes['locs']
+                changeCount = 0
+                for loc in locs:
+                    defFile = loc['file']
+
+                    self.vim.command('e ' + defFile)
+
+                    for rename in loc['locs']:
+                        line = rename['start']['line']
+                        col = rename['start']['offset']
+                        self.vim.command(
+                            'cal cursor({}, {})'.format(line, col))
+                        self.vim.command('normal cw{}'.format(newName))
+                        self.vim.command('write')
+                        changeCount += 1
+
+                self.vim.command('e ' + file)
+                self.vim.command(
+                    'cal cursor({}, {})'.format(originalLine, offset))
+                self.vim.out_write(
+                    'Replaced {} occurences in {} files \n'.format(len(locs), changeCount))
+            else:
+                self.printError(renameRes['info']['localizedErrorMessage'])
+
+    @neovim.command("TSImport")
+    def tsimport(self):
+        symbol = self.vim.call('expand', '<cword>')
+        currentlyImportedItems, lastImportLine = utils.getCurrentImports(self._client, self.relative_file())
+        if symbol in currentlyImportedItems:
+            self.vim.out_write("nvim-ts: %s is already imported\n" % symbol)
+            return
+
+        results = utils.getImportCandidates(self._client, self.relative_file(), symbol)
+        if len(results) == 0:
+            self.vim.out_write('nvim-ts: No import candidates were found.\n')
+            return
+
+        if len(results) == 1:
+            importBlock = utils.createImportBlock(symbol,
+                    utils.getRelativeImportPath(self.relative_file(), results[0]),
+                    self.vim.vars["nvim_typescript#tsimport#template"]
+                    )
+        else:
+            candidates = "\n".join(["[%s]: %s" % (ix, result) for ix, result in enumerate(results)])
+            input = self.vim.call(
+                'input', 'nvim-ts: More than 1 candidate found, Select from the following options:\n%s\n please choose one: ' % candidates, '',)
+            importBlock = utils.createImportBlock(symbol,
+                    utils.getRelativeImportPath(self.relative_file(), results[int(input)]),
+                    self.vim.vars["nvim_typescript#tsimport#template"]
+                    )
+
+        self.vim.current.buffer.append(importBlock, lastImportLine)
+
+
 
     # REQUEST NAVTREE/DOC SYMBOLS
     @neovim.function("TSGetDocSymbolsFunc", sync=True)
@@ -290,12 +345,12 @@ class TypescriptHost(object):
     def tsgetdocsymbols(self):
         if self._client.server_handle is not None:
             self.reload()
-            docSysmbols = self.getDocSymbolsFunc()
+            docSysmbols = self._client.getDocumentSymbols(self.relative_file())
             if not docSysmbols:
                 pass
             else:
                 docSysmbolsLoc = []
-                symbolList = docSysmbols['body']['childItems']
+                symbolList = docSysmbols['childItems']
                 filename = re.sub(self.cwd + '/', '', self.relative_file())
                 if len(symbolList) > -1:
                     for symbol in symbolList:
@@ -320,33 +375,30 @@ class TypescriptHost(object):
         else:
             self.printError('Server is not running')
 
-
     @neovim.function("TSGetWorkspaceSymbolsFunc", sync=True)
     def getWorkspaceSymbolsFunc(self, args=None):
         if self._client.server_handle is not None:
-            searchSymbols = self._client.getWorkspaceSymbols(self.relative_file(), args[0])
+            searchSymbols = self._client.getWorkspaceSymbols(
+                self.relative_file(), args[0])
             if not searchSymbols:
                 return []
             else:
-                docSysmbolsLoc = []
-                symbolList = searchSymbols['body']
+                symbolList = searchSymbols
                 filename = re.sub(self.cwd + '/', '', self.relative_file())
                 if len(symbolList) > -1:
-                    for symbol in symbolList:
-                        docSysmbolsLoc.append({
-                            'filename': re.sub(self.cwd + '/', '', symbol['file']),
-                            'lnum': symbol['start']['line'],
-                            'col': symbol['start']['offset'],
-                            'text': '(' + symbol['kind'] + '): ' + symbol['name']
-                        })
-                    return docSysmbolsLoc
+                    return list(map(lambda symbol: {
+                                'filename': re.sub(self.cwd + '/', '', symbol['file']),
+                                'lnum': symbol['start']['line'],
+                                'col': symbol['start']['offset'],
+                                'text': '(' + symbol['kind'] + '): ' + symbol['name']
+                                }, symbolList))
         else:
             self.printError('Server is not running')
 
     @neovim.command("TSSig")
     def tssig(self):
         """
-            Get the type info
+        Get the type info
         """
         if self._client.server_handle is not None:
             self.reload()
@@ -354,23 +406,19 @@ class TypescriptHost(object):
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1]
             info = self._client.getDoc(file, line, offset)
-            if (not info) or (info['success'] is False):
-                pass
-            else:
-                message = '{0}'.format(info['body']['displayString'])
+            if info:
+                message = '{0}'.format(info['displayString'])
                 message = re.sub("\s+", " ", message)
-                if 'method' in info['body']['kind']:
+                if 'method' in info['kind']:
                     self.vim.command(
                         'redraws! | echom "nvim-ts: " | echohl Function | echon \"' + message + '\" | echohl None')
-                else:
-                    pass
         else:
             self.printError('Server is not running')
 
     @neovim.command("TSRefs")
     def tsrefs(self):
         """
-            Get the type info
+        Get the type info
         """
 
         if self._client.server_handle is not None:
@@ -381,18 +429,17 @@ class TypescriptHost(object):
 
             refs = self._client.getRef(file, line, offset)
 
-            if (not refs) or (refs['success'] is False):
-                pass
-            else:
-                truncateAfter = self.vim.eval('g:nvim_typescript#loc_list_item_truncate_after')
+            if refs:
+                truncateAfter = self.vim.eval(
+                    'g:nvim_typescript#loc_list_item_truncate_after')
                 location_list = []
-                refList = refs["body"]["refs"]
+                refList = refs["refs"]
                 if len(refList) > -1:
                     for ref in refList:
                         lineText = re.sub('^\s+', '', ref['lineText'])
                         if (truncateAfter == -1) or (len(lineText) <= truncateAfter):
                             lineText
-                        else :
+                        else:
                             lineText = (lineText[:truncateAfter] + '...')
                         location_list.append({
                             'filename': re.sub(self.cwd + '/', '', ref['file']),
@@ -418,7 +465,7 @@ class TypescriptHost(object):
     @neovim.function('TSOnBufEnter')
     def on_bufenter(self, args=None):
         """
-           Send open event when a ts file is open
+       Send open event when a ts file is open
         """
         if self.findconfig(None):
             if self._client.server_handle is None:
@@ -431,88 +478,19 @@ class TypescriptHost(object):
     @neovim.function('TSOnBufSave')
     def on_bufwritepost(self, args=None):
         """
-           On save, reload to detect changes
+       On save, reload to detect changes
         """
         self.reload()
 
-    # @neovim.function('TSComplete', sync=True)
-    # def tsomnifunc(self, args):
-    #     line_str = self.vim.current.line
-    #     line = self.vim.current.window.cursor[0]
-    #     offset = self.vim.current.window.cursor[1]
-    #     if args[0]:
-    #         while offset > 0 and re.match(r"([a-zA-Z])", line_str[offset - 1]):
-    #             offset -= 1
-    #         return offset
-    #     else:
-    #         if self._client.server_handle is not None:
-    #             if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", args[1]):
-    #                 self._last_input_reload = time()
-    #                 self.reload()
-    #             data = self._client.completions(
-    #                 self.relative_file(), line, offset + 1, args[1])
-    #
-    #             if len(data) == 0:
-    #                 return []
-    #
-    #             if len(data) > self.vim.vars["nvim_typescript#max_completion_detail"]:
-    #                 filtered = []
-    #                 for entry in data:
-    #                     if entry["kind"] != "warning":
-    #                         filtered.append(entry)
-    #                 return [self._convert_completion_data(e) for e in filtered]
-    #
-    #             names = []
-    #             maxNameLength = 0
-    #
-    #             for entry in data:
-    #                 if (entry["kind"] != "warning"):
-    #                     names.append(entry["name"])
-    #                     maxNameLength = max(maxNameLength, len(entry["name"]))
-    #             detailed_data = self._client.completion_entry_details(
-    #                 self.relative_file(), line, offset + 1, names)
-    #             if len(detailed_data) == 0:
-    #                 return []
-    #
-    #             return [self._convert_detailed_completion_data(e, padding=maxNameLength) for e in detailed_data]
-    # def _convert_completion_data(self, entry):
-    #     return {
-    #         "word": entry["name"],
-    #         "kind": entry["kind"]
-    #     }
-    # def _convert_detailed_completion_data(self, entry, padding=80):
-    #     name = entry["name"]
-    #     display_parts = entry["displayParts"]
-    #     signature = "".join([p["text"] for p in display_parts])
-    #
-    #     # needed to strip new lines and indentation from the signature
-    #     signature = re.sub("\s+", " ", signature)
-    #     menu_text = re.sub(
-    #         "^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+", "", signature)
-    #     documentation = menu_text
-    #
-    #     if "documentation" in entry and entry["documentation"]:
-    #         documentation += "\n" + \
-    #             "".join([d["text"] for d in entry["documentation"]])
-    #
-    #     kind = entry["kind"][0].title()
-    #
-    #     return ({
-    #         "word": name,
-    #         "kind": kind,
-    #         "menu": 'TS ' + menu_text,
-    #         "info": documentation
-    #     })
-
     def printError(self, message):
-        self.vim.err_write(message + '\n')
-        # self.vim.command(
-        #     'echohl WarningMsg | echo "TS: ' + messagee + '" | echohl None')
+        self.vim.err_write('nvim-ts: {0}\n'.format(message))
+
+    def printMsg(self, message):
+        self.vim.command('redraws!')
+        self.vim.out_write('nvim-ts: {0}\n'.format(message))
 
     def log(self, message):
         """
         Log message to vim echo
         """
-        val = "{}".format(message)
-        # self.vim.command('redraws!')
-        self.vim.out_write(val + '\n')
+        self.vim.out_write('{} \n'.format(message))
