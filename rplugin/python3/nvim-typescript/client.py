@@ -9,8 +9,8 @@ logger = getLogger('deoplete')
 
 class Client(object):
     server_handle = None
+    project_root = None
     __server_seq = 1
-    __project_directory = os.getcwd()
     __environ = os.environ.copy()
 
     def __init__(self, log_fn=None, debug_fn=None):
@@ -36,10 +36,32 @@ class Client(object):
         """
         Set the server Path
         """
-        if os.path.isfile(value):
-            self._serverPath = value
+        relPath = os.path.join(Client.project_root, value)
+        if os.path.isfile(relPath):
+            self._serverPath = relPath
         else:
             self._serverPath = 'tsserver'
+
+    def project_cwd(self, root):
+        mydir = root
+        if mydir:
+            projectdir = mydir
+            while True:
+                parent = os.path.dirname(mydir[:-1])
+                if not parent:
+                    break
+                if os.path.isfile(os.path.join(mydir, "tsconfig.json")) or \
+                        os.path.isfile(os.path.join(mydir, "jsconfig.json")):
+                    projectdir = mydir
+                    break
+                mydir = parent
+        # I know, checking again?
+        # This function needs to either return the path, or Flase, so it's needed
+        if os.path.isfile(os.path.join(projectdir, 'tsconfig.json')) or os.path.isfile(os.path.join(projectdir, 'jsconfig.json')):
+            Client.project_root = projectdir
+            return projectdir
+        else:
+            return False
 
     def __log(self, message):
         if self.log_fn:
@@ -60,12 +82,14 @@ class Client(object):
         """
         start proc
         """
+        # TODO: think of how to hanlde inffired projects
+        # https://github.com/Microsoft/TypeScript/blob/master/lib/protocol.d.ts#L854
         if Client.server_handle is None:
             # Client.__environ['TSS_LOG'] = "-logToFile true -file ./server.log"
             Client.server_handle = subprocess.Popen(
                 [self.serverPath, "--disableAutomaticTypingAcquisition"],
                 env=Client.__environ,
-                cwd=Client.__project_directory,
+                cwd=Client.project_root,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=None,
@@ -285,9 +309,19 @@ class Client(object):
         response = self.send_request("completionEntryDetails", args)
         return get_response_body(response)
 
+    def projectInfo(self, file):
+        args = {
+            'file': file,
+            'needFileNameList': 'false'
+        }
+        response = self.send_request("projectInfo", args)
+        return get_response_body(response)
+
+
 def get_error_res_body(response, default=[]):
     # Should we raise an error if success == False ?
     return response["body"]
+
 
 def get_response_body(response, default=[]):
     success = bool(response) and "success" in response and response["success"]

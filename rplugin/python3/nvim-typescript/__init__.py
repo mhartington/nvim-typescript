@@ -7,7 +7,6 @@ from time import time
 from tempfile import NamedTemporaryFile
 sys.path.insert(1, os.path.dirname(__file__))
 from client import Client
-from dir import Dir
 import utils
 RELOAD_INTERVAL = 1
 
@@ -36,7 +35,6 @@ class TypescriptHost(object):
     def __init__(self, vim):
         self.vim = vim
         self._client = Client(debug_fn=self.log, log_fn=self.log)
-        self.files = Dir()
         self._last_input_reload = time()
         self.cwd = os.getcwd()
 
@@ -73,12 +71,8 @@ class TypescriptHost(object):
         os.unlink(tmpfile.name)
 
     @neovim.function("TSFindConfig", sync=True)
-    def findconfig(self, args):
-        files = self.files.files()
-        m = re.compile(r'(ts|js)config.json$')
-        for file in files:
-            if m.search(file):
-                return True
+    def findconfig(self, args=None):
+        return self._client.project_root
 
     def writeFile(self):
         jsSupport = self.vim.eval('g:nvim_typescript#javascript_support')
@@ -112,8 +106,7 @@ class TypescriptHost(object):
         Stat the client
         """
         if self._client.server_handle is None:
-            self._client.serverPath = self.vim.vars[
-                "nvim_typescript#server_path"]
+            self._client.serverPath = self.vim.vars["nvim_typescript#server_path"]
             if self._client.start():
                 self._client.open(self.relative_file())
                 self.printMsg('Server Started')
@@ -333,8 +326,6 @@ class TypescriptHost(object):
 
         self.vim.current.buffer.append(importBlock, lastImportLine)
 
-
-
     # REQUEST NAVTREE/DOC SYMBOLS
     @neovim.function("TSGetDocSymbolsFunc", sync=True)
     def getDocSymbolsFunc(self, args=None):
@@ -456,19 +447,20 @@ class TypescriptHost(object):
         else:
             self.printError('Server is not Running')
 
-    @neovim.function('TSGetServerPath')
+    @neovim.function('TSGetServerPath', sync=True)
     def tstest(self, args):
         """
         Get the path of the tsserver
         """
-        self.vim.out_write(self._client.serverPath + '\n')
+        return self._client.serverPath
 
     @neovim.function('TSOnBufEnter')
     def on_bufenter(self, args=None):
         """
        Send open event when a ts file is open
         """
-        if self.findconfig(None):
+        fileDir = self.vim.eval("expand('%:p:h')")
+        if self._client.project_cwd(fileDir):
             if self._client.server_handle is None:
                 self.tsstart()
             else:
