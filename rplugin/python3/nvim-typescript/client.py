@@ -9,7 +9,7 @@ logger = getLogger('deoplete')
 
 class Client(object):
     server_handle = None
-    __project_root = None
+    project_root = None
     __server_seq = 1
     __environ = os.environ.copy()
 
@@ -36,7 +36,7 @@ class Client(object):
         """
         Set the server Path
         """
-        relPath = os.path.join(Client.__project_root, value)
+        relPath = os.path.join(Client.project_root, value)
         if os.path.isfile(relPath):
             self._serverPath = relPath
         else:
@@ -50,20 +50,18 @@ class Client(object):
                 parent = os.path.dirname(mydir[:-1])
                 if not parent:
                     break
-                if os.path.isfile(os.path.join(mydir, "tsconfig.json")) or os.path.isfile(os.path.join(mydir, "jsconfig.json")):
+                if os.path.isfile(os.path.join(mydir, "tsconfig.json")) or \
+                        os.path.isfile(os.path.join(mydir, "jsconfig.json")):
                     projectdir = mydir
                     break
                 mydir = parent
-
-        if projectdir == os.getcwd():
-            if os.path.isfile('tsconfig.json') or os.path.isfile('jsconfig.json'):
-                Client.__project_root = projectdir
-                return projectdir
-            else:
-                return False
-        else:
-            Client.__project_root = projectdir
+        # I know, checking again?
+        # This function needs to either return the path, or Flase, so it's needed
+        if os.path.isfile(os.path.join(projectdir, 'tsconfig.json')) or os.path.isfile(os.path.join(projectdir, 'jsconfig.json')):
+            Client.project_root = projectdir
             return projectdir
+        else:
+            return False
 
     def __log(self, message):
         if self.log_fn:
@@ -84,12 +82,14 @@ class Client(object):
         """
         start proc
         """
+        # TODO: think of how to hanlde inffired projects
+        # https://github.com/Microsoft/TypeScript/blob/master/lib/protocol.d.ts#L854
         if Client.server_handle is None:
             # Client.__environ['TSS_LOG'] = "-logToFile true -file ./server.log"
             Client.server_handle = subprocess.Popen(
                 [self.serverPath, "--disableAutomaticTypingAcquisition"],
                 env=Client.__environ,
-                cwd=Client.__project_root,
+                cwd=Client.project_root,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=None,
