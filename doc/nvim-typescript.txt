@@ -106,6 +106,20 @@ COMMANDS                                                  *typescript-commands*
 :TSType
 
     Prints the type signature for the symbol under the cursor.
+                                                                    *:TSRename*
+TSRename [word]
+
+    Renames the symbol currently under the cursor. Pass a new name as an arg,
+    if no arg is passed, user will be prompted.
+
+
+                                                                    *:TSImport*
+:TSImport
+
+    Tries to import the module in which the symbol under the cursor
+    is defined.
+
+
 
 ===============================================================================
 VARIABLES                                                *typescript-variables*
@@ -166,6 +180,25 @@ g:nvim_typescript#ts_version
 
     The current version typescript that is supported by this plugin. Version
     past this may include breaking changes.
+
+
+                               *g:nvim_typescript#loc_list_item_truncate_after*
+g:nvim_typescript#loc_list_item_truncate_after
+Values: Any positive natural number or -1
+Default: 20
+
+    Defines the length of items displayed in the location window after a call
+    to |:TSRefs|.
+
+
+                                          *g:nvim_typescript#tsimport#template*
+g:nvim_typescript#tsimport#template
+Values: String
+Default: 'import { %s } from ''%s'';'
+
+    Defines the template for import statements. The first '%s' will be replaced
+    with the symbol and the second with the symbol module path.
+
 
 ===============================================================================
 MAPPINGS                                                  *typescript-mappings*
