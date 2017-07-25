@@ -15,9 +15,14 @@ augroup nvim-typescript "{{{
         let symbols = TSGetWorkspaceSymbolsFunc(a:query)
         let formattedResults = []
         for item in (l:symbols)
+            if exists('g:loaded_webdevicons')
+                let icon = WebDevIconsGetFileTypeSymbol(item['filename'], isdirectory(item['filename']))
+            else
+                let icon = ''
+            endif
             call add(
                         \ l:formattedResults,
-                        \ '[1;32m' . item['filename'] . '[0m[K:[1;33m' . item['lnum'] . '[0m:[K' . item['col'] . ':' . item['text']
+                        \ icon . ' [1;32m' . item['filename'] . '[0m[K:[1;33m' . item['lnum'] . '[0m:[K:' . item['text']
                     \)
         endfor
         return l:formattedResults
