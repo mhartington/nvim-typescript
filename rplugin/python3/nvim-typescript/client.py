@@ -216,12 +216,12 @@ class Client(object):
     def syntacticDiagnosticsSync(self, file):
         args = {"file": file}
         response = self.send_request("syntacticDiagnosticsSync", args)
-        return response
+        return get_response_body(response)
 
     def semanticDiagnosticsSync(self, file):
         args = {"file": file}
         response = self.send_request("semanticDiagnosticsSync", args)
-        return response
+        return get_response_body(response)
 
     def getDocumentSymbols(self, file):
         args = {"file": file}

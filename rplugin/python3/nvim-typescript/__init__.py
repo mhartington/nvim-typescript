@@ -37,7 +37,7 @@ class TypescriptHost(object):
         self._client = Client(debug_fn=self.log, log_fn=self.log)
         self._last_input_reload = time()
         self.cwd = os.getcwd()
-        self.src = 0
+        self.highlight_source = 0
 
     def relative_file(self):
         """
@@ -234,9 +234,9 @@ class TypescriptHost(object):
         self.vim.call('setloclist', 0, errors, 'r', 'Errors')
         buf = self.vim.current.buffer
         bufname = buf.name
-        if (self.src == 0):
-            self.src = self.vim.new_highlight_source()
-        buf.clear_highlight(self.src)
+        if (self.highlight_source == 0):
+            self.highlight_source = self.vim.new_highlight_source()
+        buf.clear_highlight(self.highlight_source)
         for e in errors:
             if e['filename'] == bufname:
                 end = e['end']['offset']-1 if e['end']['line'] == e['lnum'] else -1 # highlight to end of line if the error goes past the line
@@ -245,7 +245,7 @@ class TypescriptHost(object):
                         e['lnum']-1, # annoyingly this command is 0-indexed unlike the location list
                         e['col']-1, # annoyingly this command is 0-indexed unlike the location list
                         end,
-                        src_id=self.src
+                        src_id=self.highlight_source
                     )
 
     @neovim.command("TSGetErr")
@@ -283,7 +283,7 @@ class TypescriptHost(object):
             f = self.relative_file()
             syntacticRes = self._client.syntacticDiagnosticsSync(f)
             semanticRes = self._client.semanticDiagnosticsSync(f)
-            if not (syntacticRes and semanticRes):
+            if syntacticRes == None or semanticRes == None:
                 pass
             else:
                 self.reportErrors([{
@@ -292,7 +292,7 @@ class TypescriptHost(object):
                         'col': d['start']['offset'],
                         'end': d['end'],
                         'filename': f
-                    } for d in syntacticRes['body'] + semanticRes['body']])
+                    } for d in syntacticRes + semanticRes])
 
         else:
             self.printError('Server is not Running')
