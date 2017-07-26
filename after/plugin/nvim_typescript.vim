@@ -5,7 +5,7 @@ endif
 
 augroup nvim-typescript "{{{
     function! s:OpenResult(line)
-      let lineWithoutAnsiCodes = substitute(a:line, '\e\[[0-9;]\+[mK]', '', 'g')
+      let lineWithoutAnsiCodes = substitute(substitute(a:line, '\e\[[0-9;]\+[mK]', '', 'g'), '^\A\+', '', '')
       let fileAndLine = split(l:lineWithoutAnsiCodes, ':')
       execute 'edit' l:fileAndLine[0]
       execute l:fileAndLine[1]
@@ -22,7 +22,7 @@ augroup nvim-typescript "{{{
             endif
             call add(
                         \ l:formattedResults,
-                        \ icon . ' [1;32m' . item['filename'] . '[0m[K:[1;33m' . item['lnum'] . '[0m:[K:' . item['text']
+                        \ icon . '[1;32m' . item['filename'] . '[0m[K:[1;33m' . item['lnum'] . '[0m:[K' . item['text']
                     \)
         endfor
         return l:formattedResults
