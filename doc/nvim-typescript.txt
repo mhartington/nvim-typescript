@@ -146,7 +146,7 @@ Default: 0
 
 
                                       *g:nvim_typescript#max_completion_detail*
-g:nvim_typescript#javascript_support
+g:nvim_typescript#max_completion_detail
 Values: Any natural number
 Default: 25
 
