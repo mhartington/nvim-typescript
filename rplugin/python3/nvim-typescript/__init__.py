@@ -109,7 +109,8 @@ class TypescriptHost(object):
         Stat the client
         """
         if self._client.server_handle is None:
-            self._client.serverPath = self.vim.vars["nvim_typescript#server_path"]
+            self._client.serverPath = self.vim.vars[
+                "nvim_typescript#server_path"]
             if self._client.start():
                 self._client.open(self.relative_file())
                 self.printMsg('Server Started')
@@ -232,6 +233,22 @@ class TypescriptHost(object):
         else:
             self.printError('Server is not running')
 
+    @neovim.command("TSTypeDef")
+    def tstypedef(self):
+        if self._client.server_handle is not None:
+            self.reload()
+            file = self.vim.current.buffer.name
+            line = self.vim.current.window.cursor[0]
+            offset = self.vim.current.window.cursor[1] + 2
+            typeDefRes = self._client.getTypeDefinition(file, line, offset)
+
+            if typeDefRes:
+                defFile = typeDefRes[0]['file']
+                defLine = '{0}'.format(typeDefRes[0]['start']['line'])
+                self.vim.command('e +' + defLine + ' ' + defFile)
+        else:
+            self.printError('Server is not running')
+
     def reportErrors(self, errors):
         self.vim.call('setloclist', 0, errors, 'r', 'Errors')
         buf = self.vim.current.buffer
@@ -241,14 +258,20 @@ class TypescriptHost(object):
         buf.clear_highlight(self.highlight_source)
         for e in errors:
             if e['filename'] == bufname:
-                end = e['end']['offset']-1 if e['end']['line'] == e['lnum'] else -1 # highlight to end of line if the error goes past the line
+                # highlight to end of line if the error goes past the line
+                end = e['end']['offset'] - \
+                    1 if e['end']['line'] == e['lnum'] else -1
                 buf.add_highlight(
-                        'ERROR', # highlight group
-                        e['lnum']-1, # annoyingly this command is 0-indexed unlike the location list
-                        e['col']-1, # annoyingly this command is 0-indexed unlike the location list
-                        end,
-                        src_id=self.highlight_source
-                    )
+                    'ERROR',  # highlight group
+                    # annoyingly this command is 0-indexed unlike the location
+                    # list
+                    e['lnum'] - 1,
+                    # annoyingly this command is 0-indexed unlike the location
+                    # list
+                    e['col'] - 1,
+                    end,
+                    src_id=self.highlight_source
+                )
 
     @neovim.command("TSGetErr")
     def tsgeterr(self):
@@ -265,12 +288,12 @@ class TypescriptHost(object):
                 filename = getErrRes['file']
 
                 self.reportErrors([{
-                        'filename': re.sub(self.cwd + '/', '', filename),
-                        'lnum': e['start']['line'],
-                        'col': e['start']['offset'],
-                        'end': e['end'],
-                        'text': e['text']
-                    } for e in getErrRes['diagnostics']])
+                    'filename': re.sub(self.cwd + '/', '', filename),
+                    'lnum': e['start']['line'],
+                    'col': e['start']['offset'],
+                    'end': e['end'],
+                    'text': e['text']
+                } for e in getErrRes['diagnostics']])
         else:
             self.printError('Server is not Running')
 
@@ -289,12 +312,12 @@ class TypescriptHost(object):
                 pass
             else:
                 self.reportErrors([{
-                        'text': d['text'],
-                        'lnum': d['start']['line'],
-                        'col': d['start']['offset'],
-                        'end': d['end'],
-                        'filename': f
-                    } for d in syntacticRes + semanticRes])
+                    'text': d['text'],
+                    'lnum': d['start']['line'],
+                    'col': d['start']['offset'],
+                    'end': d['end'],
+                    'filename': f
+                } for d in syntacticRes + semanticRes])
 
         else:
             self.printError('Server is not Running')
@@ -346,29 +369,36 @@ class TypescriptHost(object):
     @neovim.command("TSImport")
     def tsimport(self):
         symbol = self.vim.call('expand', '<cword>')
-        currentlyImportedItems, lastImportLine = utils.getCurrentImports(self._client, self.relative_file())
+        currentlyImportedItems, lastImportLine = utils.getCurrentImports(
+            self._client, self.relative_file())
         if symbol in currentlyImportedItems:
             self.vim.out_write("nvim-ts: %s is already imported\n" % symbol)
             return
 
-        results = utils.getImportCandidates(self._client, self.relative_file(), symbol)
+        results = utils.getImportCandidates(
+            self._client, self.relative_file(), symbol)
         if len(results) == 0:
             self.vim.out_write('nvim-ts: No import candidates were found.\n')
             return
 
         if len(results) == 1:
             importBlock = utils.createImportBlock(symbol,
-                    utils.getRelativeImportPath(self.relative_file(), results[0]),
-                    self.vim.vars["nvim_typescript#tsimport#template"]
-                    )
+                                                  utils.getRelativeImportPath(
+                                                      self.relative_file(), results[0]),
+                                                  self.vim.vars[
+                                                      "nvim_typescript#tsimport#template"]
+                                                  )
         else:
-            candidates = "\n".join(["[%s]: %s" % (ix, result) for ix, result in enumerate(results)])
+            candidates = "\n".join(["[%s]: %s" % (ix, result)
+                                    for ix, result in enumerate(results)])
             input = self.vim.call(
                 'input', 'nvim-ts: More than 1 candidate found, Select from the following options:\n%s\n please choose one: ' % candidates, '',)
             importBlock = utils.createImportBlock(symbol,
-                    utils.getRelativeImportPath(self.relative_file(), results[int(input)]),
-                    self.vim.vars["nvim_typescript#tsimport#template"]
-                    )
+                                                  utils.getRelativeImportPath(
+                                                      self.relative_file(), results[int(input)]),
+                                                  self.vim.vars[
+                                                      "nvim_typescript#tsimport#template"]
+                                                  )
 
         self.vim.current.buffer.append(importBlock, lastImportLine)
 

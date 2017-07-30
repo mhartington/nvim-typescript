@@ -257,6 +257,18 @@ class Client(object):
         response = self.send_request("signatureHelp", args)
         return get_response_body(response)
 
+    def getTypeDefinition(self, file, line, offset):
+        """
+            Sends a "signatureHelp" request
+
+            :type file: string
+            :type line: number
+            :type offset: number
+        """
+        args = {"file": file, "line": line, "offset": offset}
+        response = self.send_request("typeDefinition", args)
+        return get_response_body(response)
+
     def getRef(self, file, line, offset):
         args = {"file": file, "line": line, "offset": offset}
         response = self.send_request("references", args)
