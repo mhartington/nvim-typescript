@@ -39,10 +39,12 @@ endfunction "}}}
 
 function! s:check_config_file() abort "{{{
   call health#report_start('Find tsconfg.json or jsconfig.json')
-  if TSFindConfig()
+  let l:config = TSFindConfig()
+  if l:config !=? 'v:null'
     call health#report_ok('config is found!')
   else
-    call health#report_error('no config file is found', [
+    call health#report_warn('no config file is found', [
+          \'No config found in CWD, but it may be in a subdirectory'
           \'See docs for info: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html',
           \'Is the file named correctly?'
           \])
