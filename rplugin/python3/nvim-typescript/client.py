@@ -213,6 +213,16 @@ class Client(object):
         response = self.send_request("geterr", args)
         return get_error_res_body(response)
 
+    def syntacticDiagnosticsSync(self, file):
+        args = {"file": file}
+        response = self.send_request("syntacticDiagnosticsSync", args)
+        return response
+
+    def semanticDiagnosticsSync(self, file):
+        args = {"file": file}
+        response = self.send_request("semanticDiagnosticsSync", args)
+        return response
+
     def getDocumentSymbols(self, file):
         args = {"file": file}
         response = self.send_request("navtree", args)
