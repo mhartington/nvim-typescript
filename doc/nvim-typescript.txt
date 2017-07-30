@@ -46,9 +46,6 @@ to Neovim. >
 pip3 install neovim
 
 
-
-
-
 Then run `UpdateRemotePlugins`.
 
 
@@ -120,6 +117,15 @@ TSRename [word]
     is defined.
 
 
+                                                                   *:TSTypeDef*
+:TSTypeDef
+
+    Goes to the file where the type for the symbol is defined.
+
+                                                                *:TSEditConfig*
+:TSEditConfig
+
+    Opens the config file for the current file.
 
 ===============================================================================
 VARIABLES                                                *typescript-variables*
@@ -257,8 +263,9 @@ Q: Why better than tsuquyomi? Why is this better than other plugins?
 
 A: This plugin does not claim to be better than any other plugin, and is more
    for my own needs. Maybe you would like it too?
-   The plugin is all asynchronous and is lag free. Other plugins do not offer
-   this, mostly because they rely on Vim, or other synchronous methods.
+   The plugin is all asynchronous and is lag free. Other plugins are not always
+   async or require additional plugins that need to be built. If you are using
+   regular Vim, I highly suggest Tsuquyomi, especially with Vim 8.
 
 
 Q: This breaks with specific version of Typescript.

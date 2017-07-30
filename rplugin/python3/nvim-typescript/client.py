@@ -2,9 +2,6 @@ import os
 import sys
 import json
 import subprocess
-from threading import Thread
-from logging import getLogger
-logger = getLogger('deoplete')
 
 
 class Client(object):
@@ -16,7 +13,6 @@ class Client(object):
     def __init__(self, log_fn=None, debug_fn=None):
         self.log_fn = log_fn
         self.debug_fn = debug_fn
-        Thread.__init__(self)
 
     @classmethod
     def __get_next_seq(cls):
@@ -36,9 +32,8 @@ class Client(object):
         """
         Set the server Path
         """
-        relPath = os.path.join(Client.project_root, value)
-        if os.path.isfile(relPath):
-            self._serverPath = relPath
+        if os.path.isfile(value):
+            self._serverPath = value
         else:
             self._serverPath = 'tsserver'
 
@@ -56,7 +51,8 @@ class Client(object):
                     break
                 mydir = parent
         # I know, checking again?
-        # This function needs to either return the path, or Flase, so it's needed
+        # This function needs to either return the path, or Flase, so it's
+        # needed
         if os.path.isfile(os.path.join(projectdir, 'tsconfig.json')) or os.path.isfile(os.path.join(projectdir, 'jsconfig.json')):
             Client.project_root = projectdir
             return projectdir
@@ -82,14 +78,13 @@ class Client(object):
         """
         start proc
         """
-        # TODO: think of how to hanlde inffired projects
         # https://github.com/Microsoft/TypeScript/blob/master/lib/protocol.d.ts#L854
         if Client.server_handle is None:
             # Client.__environ['TSS_LOG'] = "-logToFile true -file ./server.log"
             Client.server_handle = subprocess.Popen(
                 [self.serverPath, "--disableAutomaticTypingAcquisition"],
                 env=Client.__environ,
-                cwd=Client.project_root,
+                cwd=os.getcwd(),
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=None,

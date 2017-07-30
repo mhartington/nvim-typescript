@@ -71,12 +71,6 @@ class TypescriptHost(object):
             pass
         os.unlink(tmpfile.name)
 
-    @neovim.function("TSFindConfig", sync=True)
-    def findconfig(self, args=None):
-        fileDir = self.vim.eval("expand('%:p:h')")
-        if self._client.project_cwd(fileDir):
-            return self._client.project_root
-
     def writeFile(self):
         jsSupport = self.vim.eval('g:nvim_typescript#javascript_support')
         if bool(jsSupport):
@@ -523,6 +517,20 @@ class TypescriptHost(object):
         else:
             self.printError('Server is not Running')
 
+    @neovim.command("TSEditConfig")
+    def tseditconfig(self):
+        if self._client.server_handle is not None:
+            self.reload()
+            file = self.vim.current.buffer.name
+            projectInfo = self._client.projectInfo(file)
+            if projectInfo:
+                if os.path.isfile(projectInfo['configFileName']):
+                    self.vim.command('e {}'.format(projectInfo['configFileName']))
+                else:
+                    self.printError('Can\'t edit config, in an inferred project')
+        else:
+            self.printError('Server is not running')
+
     @neovim.function('TSGetServerPath', sync=True)
     def tstest(self, args):
         """
@@ -535,14 +543,10 @@ class TypescriptHost(object):
         """
        Send open event when a ts file is open
         """
-        fileDir = self.vim.eval("expand('%:p:h')")
-        if self._client.project_cwd(fileDir):
-            if self._client.server_handle is None:
-                self.tsstart()
-            else:
-                self._client.open(self.relative_file())
+        if self._client.server_handle is None:
+            self.tsstart()
         else:
-            self.writeFile()
+            self._client.open(self.relative_file())
 
     @neovim.function('TSOnBufSave')
     def on_bufwritepost(self, args=None):

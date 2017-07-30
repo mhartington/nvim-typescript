@@ -26,6 +26,7 @@ class Source(Base):
         self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] if self.vim.vars[
             "nvim_typescript#javascript_support"] else ["typescript", "tsx", "typescript.tsx"]
         self.rank = 1000
+        self.min_pattern_length = 1
         self.input_pattern = r"\.\w*"
         self._last_input_reload = time()
         self._max_completion_detail = self.vim.vars[

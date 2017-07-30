@@ -37,20 +37,6 @@ function! s:check_global_tsserver() abort "{{{
   endif
 endfunction "}}}
 
-function! s:check_config_file() abort "{{{
-  call health#report_start('Find tsconfg.json or jsconfig.json')
-  let l:config = TSFindConfig()
-  if l:config !=? 'v:null'
-    call health#report_ok('config is found!')
-  else
-    call health#report_warn('no config file is found', [
-          \'No config found in CWD, but it may be in a subdirectory'
-          \'See docs for info: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html',
-          \'Is the file named correctly?'
-          \])
-  endif
-endfunction "}}}
-
 function! s:check_deoplete() abort "{{{
   call health#report_start('Check for deoplete')
   if exists('g:loaded_deoplete')
@@ -77,13 +63,12 @@ function! s:check_required_python_for_nvim_typescript() abort "{{{
   endif
 endfunction "}}}
 
-function! health#nvim_typescript#check() abort
+function! health#nvim_typescript#check() abort "{{{
   call s:check_node()
   call s:check_local_tsserver()
   call s:check_global_tsserver()
-  call s:check_config_file()
   call s:check_deoplete()
   call s:check_required_python_for_nvim_typescript()
-endfunction
+endfunction "}}}
 
 
