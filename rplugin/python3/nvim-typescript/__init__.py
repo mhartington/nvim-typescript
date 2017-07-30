@@ -72,7 +72,7 @@ class TypescriptHost(object):
 
     @neovim.function("TSFindConfig", sync=True)
     def findconfig(self, args=None):
-        return self._client.project_root
+        return self._client.project_root is not None
 
     def writeFile(self):
         jsSupport = self.vim.eval('g:nvim_typescript#javascript_support')
