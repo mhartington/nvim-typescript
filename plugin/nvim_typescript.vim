@@ -7,6 +7,8 @@ let g:nvim_typescript#version = '1.4.0'
 
 let g:nvim_typescript#javascript_support =
       \ get(g:, 'nvim_typescript#javascript_support', 0)
+let g:nvim_typescript#vue_support =
+      \ get(g:, 'nvim_typescript#vue_support', 0)
 let g:nvim_typescript#server_path =
       \ get(g:, 'nvim_typescript#_server_path', 'node_modules/.bin/tsserver')
 let g:nvim_typescript#max_completion_detail =
@@ -67,7 +69,10 @@ augroup nvim-typescript "{{{
     if get(g:, 'nvim_typescript#javascript_support', 1)
        autocmd CursorHold *.ts,*.tsx,*.js,*.jsx TSType
     endif
-     autocmd CursorHold *.ts,*.tsx TSType
+    if get(g:, 'nvim_typescript#vue_support', 1)
+       autocmd CursorHold *.vue TSType
+    endif
+    autocmd CursorHold *.ts,*.tsx TSType
   endif
 
   if get(g:, 'nvim_typescript#signature_complete', 1)
@@ -77,9 +82,12 @@ augroup nvim-typescript "{{{
   if get(g:, 'nvim_typescript#javascript_support', 1)
     autocmd BufEnter *.ts,*.tsx,*.js,*.jsx call TSOnBufEnter()
     autocmd BufWritePost *.ts,*.tsx,*.js,*.jsx call TSOnBufSave()
-  else
-    autocmd BufEnter *.ts,*.tsx call TSOnBufEnter()
-    autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   endif
+  if get(g:, 'nvim_typescript#vue_support', 1)
+    autocmd BufEnter *.vue call TSOnBufEnter()
+    autocmd BufWritePost *.vue call TSOnBufSave()
+  endif
+  autocmd BufEnter *.ts,*.tsx call TSOnBufEnter()
+  autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
 
 augroup end "}}}
