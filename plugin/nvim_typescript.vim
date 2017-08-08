@@ -67,7 +67,7 @@ augroup nvim-typescript "{{{
 
   if get(g:, 'nvim_typescript#type_info_on_hold', 1)
     if get(g:, 'nvim_typescript#javascript_support', 1)
-       autocmd CursorHold *.ts,*.tsx,*.js,*.jsx TSType
+       autocmd CursorHold *.js,*.jsx TSType
     endif
     if get(g:, 'nvim_typescript#vue_support', 1)
        autocmd CursorHold *.vue TSType
@@ -80,8 +80,8 @@ augroup nvim-typescript "{{{
   endif
 
   if get(g:, 'nvim_typescript#javascript_support', 1)
-    autocmd BufEnter *.ts,*.tsx,*.js,*.jsx call TSOnBufEnter()
-    autocmd BufWritePost *.ts,*.tsx,*.js,*.jsx call TSOnBufSave()
+    autocmd BufEnter *.js,*.jsx call TSOnBufEnter()
+    autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
   endif
   if get(g:, 'nvim_typescript#vue_support', 1)
     autocmd BufEnter *.vue call TSOnBufEnter()
