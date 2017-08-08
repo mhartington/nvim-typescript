@@ -42,9 +42,6 @@ class Source(Base):
         else:
             candidates = self.convertToCandidate(res)
             if candidates:
-                icon_padding = max(range(len(candidates)),
-                                   key=lambda i: candidates[i]['kindIcon'])
-                self.vim.out_write(str(icon_padding) + '\n')
                 values = list(map(lambda symbol: {
                     'abbr': " {0}\t{1}\t{2}".format(symbol['kindIcon'], symbol['text'], symbol['file']),
                     'word': symbol['text'],

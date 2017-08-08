@@ -46,11 +46,8 @@ class Source(Base):
             return []
 
         candidates = self.convertToCandidate(responce)
-        padding = max(range(len(candidates)),
-                      key=lambda index: candidates[index]['kindIcon']) + 1
-
         values = list(map(lambda symbol: {
-            'abbr': " {0}\t{1}".format(symbol['kindIcon'].ljust(padding), symbol['text']),
+            'abbr': " {0}\t{1}".format(symbol['kindIcon'], symbol['text']),
             'word': symbol['text'],
             'action__line': symbol['lnum'],
             "action__path": bufname,

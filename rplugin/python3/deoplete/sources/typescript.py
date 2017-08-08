@@ -10,6 +10,7 @@ from deoplete.source.base import Base
 from deoplete.util import error
 sys.path.insert(1, os.path.dirname(__file__) + '/../../nvim-typescript')
 
+from utils import getKind
 from client import Client
 
 RELOAD_INTERVAL = 1
@@ -33,8 +34,8 @@ class Source(Base):
             "nvim_typescript#max_completion_detail"]
 
         # TSServer client
-        self._client = Client(debug_fn=self.debug, log_fn=self.log)
-        # self._client = Client()
+        # self._client = Client(debug_fn=self.debug, log_fn=self.log)
+        self._client = Client()
 
     # def get_complete_position(self, context):
     #     return self.vim.call('TSComplete', 1, '')
@@ -154,7 +155,7 @@ class Source(Base):
             documentation += "\n" + \
                 "".join([d["text"] for d in entry["documentation"]])
 
-        kind = entry["kind"][0].title()
+        kind = getKind(self.vim, entry['kind'])[0].title()
 
         return ({
             "word": name,
