@@ -151,6 +151,15 @@ Default: 0
     be created in your current working directory.
 
 
+                                      	 *g:nvim_typescript#vue_support*
+g:nvim_typescript#vue_support
+Values: 0 or 1
+Default: 0
+
+    Enables vue support. If set to 1, the completion will be enabled
+    in single-file components with a .vue extention.
+
+
                                       *g:nvim_typescript#max_completion_detail*
 g:nvim_typescript#max_completion_detail
 Values: Any natural number

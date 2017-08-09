@@ -24,8 +24,11 @@ class Source(Base):
         Base.__init__(self, vim)
         self.name = "typescript"
         self.mark = "TS"
-        self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] if self.vim.vars[
-            "nvim_typescript#javascript_support"] else ["typescript", "tsx", "typescript.tsx"]
+        self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] \
+            if self.vim.vars["nvim_typescript#javascript_support"] \
+            else ["typescript", "tsx", "typescript.tsx", "vue"] \
+            if self.vim.vars["nvim_typescript#vue_support"] \
+            else ["typescript", "tsx", "typescript.tsx"]
         self.rank = 1000
         self.min_pattern_length = 1
         self.input_pattern = r"\.\w*"
