@@ -219,7 +219,6 @@ class TypescriptHost(object):
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1] + 2
             info = self._client.getDoc(file, line, offset)
-
             if info:
                 message = '{0}'.format(info['displayString'])
                 message = re.sub("\s+", " ", message)
@@ -466,14 +465,21 @@ class TypescriptHost(object):
             self.reload()
             file = self.vim.current.buffer.name
             line = self.vim.current.window.cursor[0]
-            offset = self.vim.current.window.cursor[1]
-            info = self._client.getDoc(file, line, offset)
+            offset = self.vim.current.window.cursor[1] + 1
+            info = self._client.getSignature(file, line, offset)
             if info:
-                message = '{0}'.format(info['displayString'])
-                message = re.sub("\s+", " ", message)
-                if 'method' in info['kind']:
-                    self.vim.command(
-                        'redraws! | echom "nvim-ts: " | echohl Function | echon \"' + message + '\" | echohl None')
+                signatureHelpItems = list(map(lambda item: {
+                    'variableArguments': item['isVariadic'],
+                    'prefix': utils.convertToDisplayString(item['prefixDisplayParts']),
+                    'suffix': utils.convertToDisplayString(item['suffixDisplayParts']),
+                    'separator': utils.convertToDisplayString(item['separatorDisplayParts']),
+                    'parameters': list(map(lambda p: {
+                        'text': utils.convertToDisplayString(p['displayParts']),
+                        'documentation': utils.convertToDisplayString(p['documentation']),
+                    }, item['parameters']))
+                }, info['items']))
+                params = utils.getParams(signatureHelpItems[0]['parameters'], signatureHelpItems[0]['separator'])
+                self.printHighlight(params)
         else:
             self.printError('Server is not running')
 
@@ -525,9 +531,11 @@ class TypescriptHost(object):
             projectInfo = self._client.projectInfo(file)
             if projectInfo:
                 if os.path.isfile(projectInfo['configFileName']):
-                    self.vim.command('e {}'.format(projectInfo['configFileName']))
+                    self.vim.command('e {}'.format(
+                        projectInfo['configFileName']))
                 else:
-                    self.printError('Can\'t edit config, in an inferred project')
+                    self.printError(
+                        'Can\'t edit config, in an inferred project')
         else:
             self.printError('Server is not running')
 
@@ -557,6 +565,10 @@ class TypescriptHost(object):
 
     def printError(self, message):
         self.vim.err_write('nvim-ts: {0}\n'.format(message))
+
+    def printHighlight(self, message):
+        self.vim.command(
+            'redraws! | echom "nvim-ts: " | echohl Function | echon "{}" | echohl None'.format(message))
 
     def printMsg(self, message):
         self.vim.command('redraws!')

@@ -31,7 +31,7 @@ class Source(Base):
             else ["typescript", "tsx", "typescript.tsx"]
         self.rank = 1000
         self.min_pattern_length = 1
-        self.input_pattern = r"\.\w*"
+        self.input_pattern = r'(\.|::)\w*'
         self._last_input_reload = time()
         self._max_completion_detail = self.vim.vars[
             "nvim_typescript#max_completion_detail"]
@@ -79,7 +79,8 @@ class Source(Base):
         """
         returns the cursor position
         """
-        m = re.search(r"\w*$", context["input"])
+        m = re.search('(?:' + context['keyword_patterns'] + ')*$',
+                      context['input'])
         return m.start() if m else -1
 
     def gather_candidates(self, context):

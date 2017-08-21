@@ -2,6 +2,8 @@ import os
 import re
 
 # Import function
+
+
 def getImportCandidates(client, currentFile, symbol):
     """
     Used by the :TSImport command to find files where the given symbol
@@ -23,6 +25,7 @@ def getImportCandidates(client, currentFile, symbol):
     filtered = filter(filterSymbols, matchingSymbols)
     files = [*map(lambda x: x["file"], filtered)]
     return files
+
 
 def getRelativeImportPath(destinationFile, importFromFile):
     """
@@ -58,6 +61,7 @@ def getRelativeImportPath(destinationFile, importFromFile):
         symbolFileWithoutExtenion = symbolFile[:-3]  # Remove the .ts part
         return "{}/{}".format(relativePathFromDestinationFile, symbolFileWithoutExtenion)
 
+
 def createImportBlock(symbol, importPath, template):
     """
     Format the import statement to be included in the file
@@ -68,6 +72,7 @@ def createImportBlock(symbol, importPath, template):
     :returns: the import statement as a string
     """
     return template % (symbol, importPath)
+
 
 def getCurrentImports(client, inspectedFile):
     """
@@ -89,8 +94,28 @@ def getCurrentImports(client, inspectedFile):
 
     return ([*map(lambda x: x["text"], imports)], lastImportLine)
 
+
 def _shaveNodeModulesPath(candidate):
     return re.sub(r'^.*node_modules/([^/]+)(?:/.*$)?', r'\1', candidate)
+
+
+def convertToDisplayString(displayParts):
+    ret = ""
+    if not displayParts:
+        return ret
+    for dp in displayParts:
+        ret += dp['text']
+    return ret
+
+
+def getParams(members, separator):
+    ret = ''
+    for idx, member in enumerate(members):
+        if idx == len(member) - 1:
+            ret += member['text']
+        else:
+            ret += member['text'] + separator
+    return ret
 
 
 def getKind(vim, kind):
