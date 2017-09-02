@@ -23,7 +23,7 @@ def getImportCandidates(client, currentFile, symbol):
             x['name'] == symbol  # tsserver `exact` matchKind is not case sensitive
 
     filtered = filter(filterSymbols, matchingSymbols)
-    files = [*map(lambda x: x["file"], filtered)]
+    files = list(map(lambda x: x["file"], filtered))
     return files
 
 
@@ -86,13 +86,14 @@ def getCurrentImports(client, inspectedFile):
     imports = [x for x in client.getDocumentSymbols(inspectedFile)["childItems"]
                if x["kind"] == "alias"]
 
-    importLineLocations = sorted([*map(lambda x: x["spans"][0]["end"]["line"], imports)])
+    importLineLocations = sorted(
+        list(map(lambda x: x["spans"][0]["end"]["line"], imports)))
     lastImportLine = 0
 
     if len(importLineLocations) > 0:
         lastImportLine = importLineLocations[-1]
 
-    return ([*map(lambda x: x["text"], imports)], lastImportLine)
+    return (list(*map(lambda x: x["text"], imports)), lastImportLine)
 
 
 def _shaveNodeModulesPath(candidate):
@@ -125,7 +126,7 @@ def getKind(vim, kind):
         return kind
 
 
-def convert_completion_data(entry,vim):
+def convert_completion_data(entry, vim):
     kind = getKind(vim, entry['kind'])[0].title()
     return {
         "word": entry["name"],
