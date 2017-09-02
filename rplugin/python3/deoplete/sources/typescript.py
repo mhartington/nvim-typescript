@@ -10,7 +10,7 @@ from deoplete.source.base import Base
 from deoplete.util import error
 sys.path.insert(1, os.path.dirname(__file__) + '/../../nvim-typescript')
 
-from utils import getKind
+from utils import getKind, convert_completion_data, convert_detailed_completion_data
 from client import Client
 
 RELOAD_INTERVAL = 1
@@ -23,7 +23,7 @@ class Source(Base):
     def __init__(self, vim):
         Base.__init__(self, vim)
         self.name = "typescript"
-        self.mark = "TS"
+        self.mark = self.vim.vars['nvim_typescript#completion_mark']
         self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] \
             if self.vim.vars["nvim_typescript#javascript_support"] \
             else ["typescript", "tsx", "typescript.tsx", "vue"] \
@@ -39,12 +39,6 @@ class Source(Base):
         # TSServer client
         # self._client = Client(debug_fn=self.debug, log_fn=self.log)
         self._client = Client()
-
-    # def get_complete_position(self, context):
-    #     return self.vim.call('TSComplete', 1, '')
-    #
-    # def gather_candidates(self, context):
-    #     return self.vim.call('TSComplete', 0, context['complete_str'])
 
     def log(self, message):
         """
@@ -112,7 +106,7 @@ class Source(Base):
                 for entry in data:
                     if entry["kind"] != "warning":
                         filtered.append(entry)
-                return [self._convert_completion_data(e) for e in filtered]
+                return [convert_completion_data(e, self.vim) for e in filtered]
 
             names = []
             maxNameLength = 0
@@ -132,38 +126,8 @@ class Source(Base):
             if len(detailed_data) == 0:
                 return []
 
-            return [self._convert_detailed_completion_data(e, padding=maxNameLength) for e in detailed_data]
+            return [convert_detailed_completion_data(e, self.vim, isDeoplete=True) for e in detailed_data]
         except:
             e = sys.exc_info()[0]
             error(self.vim, "<p>Error: %s</p>" % e)
             return []
-
-    def _convert_completion_data(self, entry):
-        return {
-            "word": entry["name"],
-            "kind": entry["kind"]
-        }
-
-    def _convert_detailed_completion_data(self, entry, padding=80):
-        name = entry["name"]
-        display_parts = entry["displayParts"]
-        signature = "".join([p["text"] for p in display_parts])
-
-        # needed to strip new lines and indentation from the signature
-        signature = re.sub("\s+", " ", signature)
-        menu_text = re.sub(
-            "^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+", "", signature)
-        documentation = menu_text
-
-        if "documentation" in entry and entry["documentation"]:
-            documentation += "\n" + \
-                "".join([d["text"] for d in entry["documentation"]])
-
-        kind = getKind(self.vim, entry['kind'])[0].title()
-
-        return ({
-            "word": name,
-            "kind": kind,
-            "menu": menu_text,
-            "info": documentation
-        })

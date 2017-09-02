@@ -123,3 +123,41 @@ def getKind(vim, kind):
         return vim.vars["nvim_typescript#kind_symbols"][kind]
     else:
         return kind
+
+
+def convert_completion_data(entry,vim):
+    kind = getKind(vim, entry['kind'])[0].title()
+    return {
+        "word": entry["name"],
+        "kind": kind
+    }
+
+
+def convert_detailed_completion_data(entry, vim, isDeoplete=False):
+    name = entry["name"]
+    display_parts = entry["displayParts"]
+    signature = "".join([p["text"] for p in display_parts])
+
+    # needed to strip new lines and indentation from the signature
+    signature = re.sub("\s+", " ", signature)
+    menu_text = re.sub(
+        "^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+", "", signature)
+    documentation = menu_text
+
+    if "documentation" in entry and entry["documentation"]:
+        documentation += "\n" + \
+            "".join([d["text"] for d in entry["documentation"]])
+
+    kind = getKind(vim, entry['kind'])[0].title()
+    if isDeoplete:
+        menu = menu_text
+    else:
+        menu = '{0} {1}'.format(
+            vim.vars['nvim_typescript#completion_mark'], menu_text)
+
+    return ({
+        "word": name,
+        "kind": '{} '.format(kind),
+        "menu": menu,
+        "info": documentation
+    })

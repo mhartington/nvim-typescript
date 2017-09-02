@@ -478,7 +478,8 @@ class TypescriptHost(object):
                         'documentation': utils.convertToDisplayString(p['documentation']),
                     }, item['parameters']))
                 }, info['items']))
-                params = utils.getParams(signatureHelpItems[0]['parameters'], signatureHelpItems[0]['separator'])
+                params = utils.getParams(signatureHelpItems[0][
+                                         'parameters'], signatureHelpItems[0]['separator'])
                 self.printHighlight(params)
         else:
             self.printError('Server is not running')
@@ -538,6 +539,39 @@ class TypescriptHost(object):
                         'Can\'t edit config, in an inferred project')
         else:
             self.printError('Server is not running')
+
+    @neovim.function('TSComplete', sync=True)
+    def tsomnifunc(self, args):
+        line_str = self.vim.current.line
+        line, offset = self.vim.current.window.cursor
+        if args[0]:
+            while offset > 0 and re.match('[\w\d]', line_str[offset - 1]):
+                offset -= 1
+            return offset
+        else:
+            if self._client.server_handle is not None:
+                if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", args[1]):
+                    self._last_input_reload = time()
+                    self.reload()
+                data = self._client.completions(
+                    self.relative_file(), line, offset + 1, args[1])
+                if len(data) == 0:
+                    return []
+                if len(data) > self.vim.vars["nvim_typescript#max_completion_detail"]:
+                    filtered = []
+                    for entry in data:
+                        if entry["kind"] != "warning":
+                            filtered.append(entry)
+                    return [utils.convert_completion_data(e, self.vim) for e in filtered]
+                names = []
+                for entry in data:
+                    if (entry["kind"] != "warning"):
+                        names.append(entry["name"])
+                detailed_data = self._client.completion_entry_details(
+                    self.relative_file(), line, offset + 1, names)
+                if len(detailed_data) == 0:
+                    return []
+                return [utils.convert_detailed_completion_data(e, self.vim, isDeoplete=False) for e in detailed_data]
 
     @neovim.function('TSGetServerPath', sync=True)
     def tstest(self, args):

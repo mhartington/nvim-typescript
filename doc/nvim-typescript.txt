@@ -214,12 +214,33 @@ Default: 'import { %s } from ''%s'';'
     Defines the template for import statements. The first '%s' will be replaced
     with the symbol and the second with the symbol module path.
 
+g:nvim_typescript#default_mappings         *g:nvim_typescript#default_mappings*
+Values: 0 or 1
+Default: 0
+
+    Enable default mappings for select functions.
+
+
+g:nvim_typescript#completion_mark           *g:nvim_typescript#completion_mark*
+Values: String
+Default: 'TS'
+
+    Sets the default mark to display during omni-func or deoplete completion.
+    Use this vs setting from deoplete.
+
 
 ===============================================================================
 MAPPINGS                                                  *typescript-mappings*
 
-This plugin comes with no default mappings, as a feature :)
-Feel free the add your mappings that fit your own ergonomics.
+There are some mappings set, but are not enabled by default. Set
+|g:nvim_typescript#default_mappings| to |1| to enable.
+
+Mapping        Action
+-------------  --------------
+K              :TSDoc
+<leader>tdp    :TSDefPreview
+<c-]>          :TSTypeDef
+
 
 ===============================================================================
 FUNCTIONS                                                *typescript-functions*

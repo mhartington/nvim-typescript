@@ -21,6 +21,10 @@ let g:nvim_typescript#loc_list_item_truncate_after =
       \ get(g:, 'nvim_typescript#loc_list_item_truncate_after', 20)
 let g:nvim_typescript#tsimport#template =
       \ get(g:, 'nvim_typescript#tsimport#template', 'import { %s } from ''%s'';')
+let g:nvim_typescript#default_mappings =
+      \ get(g:, 'nvim_typescript#default_mappings', 0)
+let g:nvim_typescript#completion_mark =
+      \ get(g:, 'nvim_typescript#completion_mark', 'TS')
 
 let s:kind_symbols = {
     \ 'keyword': 'keyword',
@@ -57,7 +61,6 @@ let g:nvim_typescript#kind_symbols =
 
 augroup nvim-typescript "{{{
   autocmd!
-
   function! s:TSSearch(query)
       let symbols = TSGetWorkspaceSymbolsFunc(a:query)
       call setloclist(0, symbols, 'r', 'Symbols')
@@ -80,13 +83,16 @@ augroup nvim-typescript "{{{
   endif
 
   if get(g:, 'nvim_typescript#javascript_support', 1)
+    autocmd BufEnter *.js,*.jsx call nvim_typescript#DefaultKeyMap()
     autocmd BufEnter *.js,*.jsx call TSOnBufEnter()
     autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
   endif
   if get(g:, 'nvim_typescript#vue_support', 1)
+    autocmd BufEnter *.vue call nvim_typescript#DefaultKeyMap()
     autocmd BufEnter *.vue call TSOnBufEnter()
     autocmd BufWritePost *.vue call TSOnBufSave()
   endif
+  autocmd BufEnter *.ts,*.tsx call nvim_typescript#DefaultKeyMap()
   autocmd BufEnter *.ts,*.tsx call TSOnBufEnter()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
 
