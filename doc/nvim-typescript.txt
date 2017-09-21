@@ -19,7 +19,7 @@ INTRO                                                        *typescript-intro*
 
 Typescript support for Vim. Nvim-typescript provide standard IDE-like features
 like auto-completion, viewing of documentation, type-signature, go to
-definition, and refernce finder.
+definition, and reference finder.
 
 
 ===============================================================================
@@ -66,13 +66,13 @@ COMMANDS                                                  *typescript-commands*
                                                                 *:TSDefPreview*
 :TSDefPreview
 
-    Open the defintion file for the symbol under the cursor but in a split
+    Open the definition file for the symbol under the cursor but in a split
     below.
 
                                                                       *:TSRefs*
 :TSRefs
 
-    Gathers all reference of the symbol under ther cursor and displays them in
+    Gathers all reference of the symbol under the cursor and displays them in
     a quick-fix window.
 
                                                                        *:TSDoc*
@@ -157,7 +157,7 @@ Values: 0 or 1
 Default: 0
 
     Enables vue support. If set to 1, the completion will be enabled
-    in single-file components with a .vue extention.
+    in single-file components with a .vue extension.
 
 
                                       *g:nvim_typescript#max_completion_detail*
