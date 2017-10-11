@@ -14,7 +14,9 @@ finding.
 ### Prerequisites
 
 * Python3 neovim bindings
-* Deoplete (if you want code completion)
+* [Deoplete](https://github.com/Shougo/deoplete.nvim) or
+  [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager)
+  (if you want code completion)
 * A TypeScript syntax file (to set the filetype), a popular choice is
   [yats.vim](https://github.com/HerringtonDarkholme/yats.vim)
 
