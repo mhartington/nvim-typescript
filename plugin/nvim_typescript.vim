@@ -96,4 +96,6 @@ augroup nvim-typescript "{{{
   autocmd BufEnter *.ts,*.tsx call TSOnBufEnter()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
 
+  autocmd User CmSetup call cm#sources#typescript#register()
+
 augroup end "}}}

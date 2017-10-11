@@ -599,6 +599,71 @@ class TypescriptHost(object):
         """
         self.reload()
 
+    @neovim.function('TSCmRefresh', sync=False)
+    def on_cm_refresh(self, args):
+        info = args[0]
+        ctx = args[1]
+
+        lnum = ctx['lnum']
+        col = ctx['col']
+        base = ctx['base']
+        startcol = ctx['startcol']
+
+        # recheck
+        if self.vim.call('cm#context_changed', ctx):
+            return
+
+        max_detail = self.vim.vars["nvim_typescript#max_completion_detail"]
+
+        self.reload()
+
+        data = self._client.completions(
+            file=self.relative_file(),
+            line=lnum,
+            offset=col,
+            prefix=base
+        )
+
+        if len(data) == 0:
+            return []
+
+        matches = []
+        if len(data) > max_detail:
+            filtered = []
+            for entry in data:
+                if entry["kind"] != "warning":
+                    filtered.append(entry)
+            matches = [
+                    utils.convert_completion_data(e, self.vim)
+                    for e in filtered]
+            self.vim.call('cm#complete', info, ctx, startcol, matches)
+            return
+
+        names = []
+        maxNameLength = 0
+
+        for entry in data:
+            if entry["kind"] != "warning":
+                names.append(entry["name"])
+                maxNameLength = max(maxNameLength, len(entry["name"]))
+
+        detailed_data = self._client.completion_entry_details(
+            file=self.relative_file(),
+            line=lnum,
+            offset=col,
+            entry_names=names
+        )
+
+        if len(detailed_data) == 0:
+            return
+
+        matches = [
+                utils.convert_detailed_completion_data(e,
+                                                       self.vim,
+                                                       isDeoplete=True)
+                for e in detailed_data]
+        self.vim.call('cm#complete', info, ctx, startcol, matches)
+
     def printError(self, message):
         self.vim.err_write('nvim-ts: {0}\n'.format(message))
 
