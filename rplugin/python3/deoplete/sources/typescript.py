@@ -31,7 +31,8 @@ class Source(Base):
             else ["typescript", "tsx", "typescript.tsx"]
         self.rank = 1000
         self.min_pattern_length = 1
-        self.input_pattern = r'(\.|::)\w*'
+        self.input_pattern = r'.'
+        # self.input_pattern = r'(\.|::)\w*'
         self._last_input_reload = time()
         self._max_completion_detail = self.vim.vars[
             "nvim_typescript#max_completion_detail"]
@@ -45,7 +46,7 @@ class Source(Base):
         Log message to vim echo
         """
         self.debug('************')
-        self.vim.out_write(str(message))
+        self.vim.out_write('{} \n'.format(message))
         self.debug('************')
 
     def reload(self):
@@ -73,8 +74,7 @@ class Source(Base):
         """
         returns the cursor position
         """
-        m = re.search('(?:' + context['keyword_patterns'] + ')*$',
-                      context['input'])
+        m = re.search(r"\w*$", context["input"])
         return m.start() if m else -1
 
     def gather_candidates(self, context):
@@ -86,7 +86,6 @@ class Source(Base):
         # pylint: disable=locally-disabled, line-too-long
 
         try:
-
             if time() - self._last_input_reload > RELOAD_INTERVAL or re.search(r"\w*\.", context["input"]):
                 self._last_input_reload = time()
                 self.reload()
@@ -128,6 +127,6 @@ class Source(Base):
 
             return [convert_detailed_completion_data(e, self.vim, isDeoplete=True) for e in detailed_data]
         except:
-            e = sys.exc_info()[0]
-            error(self.vim, "<p>Error: %s</p>" % e)
+        #     e = sys.exc_info()[0]
+        #     error(self.vim, "<p>Error: %s</p>" % e)
             return []
