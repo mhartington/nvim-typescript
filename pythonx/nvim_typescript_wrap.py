@@ -17,7 +17,7 @@ def TSReloadProject(*args):
 def TSDoc(*args):
     return _obj.tsdoc(args)
 def TSDef(*args):
-    return _obj.tsdef(args)
+    return _obj.tsdef()
 def TSDefPreview(*args):
     return _obj.tsdefpreview(args)
 def TSType(*args):
