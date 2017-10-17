@@ -7,41 +7,41 @@ _obj = TypescriptHost(vim)
 
 
 def TSStop(*args):
-    return _obj.tsstop(args)
+    return _obj.tsstop()
 def TSStart(*args):
-    return _obj.tsstart(args)
+    return _obj.tsstart()
 def TSRestart(*args):
-    return _obj.tsrestart(args)
+    return _obj.tsrestart()
 def TSReloadProject(*args):
-    return _obj.reloadProject(args)
+    return _obj.reloadProject()
 def TSDoc(*args):
-    return _obj.tsdoc(args)
+    return _obj.tsdoc()
 def TSDef(*args):
     return _obj.tsdef()
 def TSDefPreview(*args):
-    return _obj.tsdefpreview(args)
+    return _obj.tsdefpreview()
 def TSType(*args):
-    return _obj.tstype(args)
+    return _obj.tstype()
 def TSTypeDef(*args):
-    return _obj.tstypedef(args)
+    return _obj.tstypedef()
 def TSGetErr(*args):
-    return _obj.tsgeterr(args)
+    return _obj.tsgeterr()
 def TSSyncErr(*args):
     return _obj.tssyncerr(args)
 def TSRename(*args):
     return _obj.tsrename(args)
 def TSImport(*args):
-    return _obj.tsimport(args)
+    return _obj.tsimport()
 def TSGetDocSymbols(*args):
-    return _obj.tsgetdocsymbols(args)
+    return _obj.tsgetdocsymbols()
 def TSExtractFunction(*args):
     return _obj.extractFunction(args)
 def TSSig(*args):
-    return _obj.tssig(args)
+    return _obj.tssig()
 def TSRefs(*args):
-    return _obj.tsrefs(args)
+    return _obj.tsrefs()
 def TSEditConfig(*args):
-    return _obj.tseditconfig(args)
+    return _obj.tseditconfig()
 
 def TSGetErrFunc(*args):
     return _obj.getErrFunc(args)
