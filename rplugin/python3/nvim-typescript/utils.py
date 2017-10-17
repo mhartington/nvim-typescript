@@ -93,7 +93,9 @@ def getCurrentImports(client, inspectedFile):
     if len(importLineLocations) > 0:
         lastImportLine = importLineLocations[-1]
 
-    return (list(*map(lambda x: x["text"], imports)), lastImportLine)
+    currentImports = list(map(lambda x: x["text"], imports))
+
+    return [currentImports, lastImportLine]
 
 
 def _shaveNodeModulesPath(candidate):

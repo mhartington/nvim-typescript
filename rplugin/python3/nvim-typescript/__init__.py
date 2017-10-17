@@ -345,29 +345,46 @@ class TypescriptHost(object):
     @neovim.command("TSImport")
     def tsimport(self):
         symbol = self.vim.call('expand', '<cword>')
-        currentlyImportedItems, lastImportLine = utils.getCurrentImports(
-            self._client, self.relative_file())
+        currentlyImportedItems, lastImportLine = utils.getCurrentImports(self._client, self.relative_file())
+
         if symbol in currentlyImportedItems:
             self.vim.out_write("nvim-ts: %s is already imported\n" % symbol)
             return
 
-        results = utils.getImportCandidates(
-            self._client, self.relative_file(), symbol)
+        results = utils.getImportCandidates(self._client, self.relative_file(), symbol)
+
+        # No imports
         if len(results) == 0:
-            self.vim.out_write('nvim-ts: No import candidates were found.\n')
+            self.printMsg('No import candidates were found.')
             return
 
+        # Only one
         if len(results) == 1:
             importBlock = utils.createImportBlock(symbol, utils.getRelativeImportPath(
                 self.relative_file(), results[0]), self.vim.vars["nvim_typescript#tsimport#template"])
+
+        # More than one, need to choose
         else:
             candidates = "\n".join(["[%s]: %s" % (ix, result)
                                     for ix, result in enumerate(results)])
             input = self.vim.call(
-                'input', 'nvim-ts: More than 1 candidate found, Select from the following options:\n%s\n please choose one: ' % candidates, '',)
+                'input', 'nvim-ts: More than 1 candidate found, Select from the following options:\n%s\nplease choose one: ' % candidates, '',)
 
-            importBlock = utils.createImportBlock(symbol, utils.getRelativeImportPath(
-                self.relative_file(), results[int(input)]), self.vim.vars["nvim_typescript#tsimport#template"])
+            self.log(int(input))
+            # Input has been canceled
+            if not input:
+                self.printError('Import canceled')
+                return
+
+            # Input is out of range
+            if int(input) > (len(results)-1):
+                self.printError('Selection not valid')
+                return
+
+            # Value input is present
+            else:
+                importBlock = utils.createImportBlock(symbol, utils.getRelativeImportPath(
+                    self.relative_file(), results[int(input)]), self.vim.vars["nvim_typescript#tsimport#template"])
 
         self.vim.current.buffer.append(importBlock, lastImportLine)
 
