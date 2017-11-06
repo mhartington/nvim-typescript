@@ -9,6 +9,7 @@ class Client(object):
     project_root = None
     __server_seq = 1
     __environ = os.environ.copy()
+    __tsConfig = None
 
     def __init__(self, log_fn=None, debug_fn=None):
         self.log_fn = log_fn
@@ -36,6 +37,27 @@ class Client(object):
             self._serverPath = value
         else:
             self._serverPath = 'tsserver'
+
+    @property
+    def tsConfig(self):
+        return Client.__tsConfig
+
+    @tsConfig.setter
+    def tsConfg(self, val):
+        Client.__tsConfig = val
+
+    def setTsConfig(self):
+        rawOutput = subprocess.check_output(['tsc', '--version'])
+        # formats out to be a list [major, minor, patch]
+        [major, minor, patch] = rawOutput.rstrip().decode(
+            "utf-8").replace('Version ', '').split('.')
+        self.tsConfg = {"major": int(major), "minor": int(
+            minor), "patch": int(patch)}
+
+    def isHigher(self, val):
+        local = self.tsConfg["major"] * 100 + \
+            self.tsConfg["minor"] * 10 + self.tsConfg["patch"]
+        return local > val
 
     def project_cwd(self, root):
         mydir = root
@@ -126,14 +148,26 @@ class Client(object):
             newline = Client.server_handle.stdout.readline().strip()
             content = Client.server_handle.stdout.readline().strip()
             ret = json.loads(content)
+
+            # batch of ignore events.
+            # TODO: refactor for a conditional loop
+
             # TS 1.9.x returns two reload finished responses
-            if ('body', {'reloadFinished': True}) in ret.items():
-                continue
+            if not self.isHigher(260) and self.isHigher(190):
+                if ('body', {'reloadFinished': True}) in ret.items():
+                    continue
+
             # TS 2.0.6 introduces configFileDiag event, ignore
-            if ("event", "requestCompleted") in ret.items():
-                continue
             if ("event", "configFileDiag") in ret.items():
                 continue
+
+            if ("event", "requestCompleted") in ret.items():
+                continue
+
+            # TS 2.6 adds telemetry event, ignore
+            if ("event", "telemetry") in ret.items():
+                continue
+
             if "request_seq" not in ret:
                 if ("event", "syntaxDiag") in ret.items():
                     continue
@@ -141,6 +175,7 @@ class Client(object):
                     return ret
                 else:
                     continue
+
             if ret["request_seq"] > request['seq']:
                 return None
             if ret["request_seq"] == request['seq']:
