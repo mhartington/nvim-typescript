@@ -537,7 +537,6 @@ class TypescriptHost(object):
             file = self.vim.current.buffer.name
             projectInfo = self._client.projectInfo(file)
             if projectInfo:
-                self.log(projectInfo)
                 if os.path.isfile(projectInfo['configFileName']):
                     self.vim.command('e {}'.format(
                         projectInfo['configFileName']))
