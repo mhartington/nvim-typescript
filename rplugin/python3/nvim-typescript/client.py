@@ -50,7 +50,7 @@ class Client(object):
         rawOutput = subprocess.check_output(['tsc', '--version'])
         # formats out to be a list [major, minor, patch]
         [major, minor, patch] = rawOutput.rstrip().decode(
-            "utf-8").replace('Version ', '').split('.')
+                "utf-8").split(' ').pop().split('.')
         self.tsConfg = {"major": int(major), "minor": int(
             minor), "patch": int(patch)}
 
