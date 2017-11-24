@@ -102,9 +102,14 @@ def _shaveNodeModulesPath(candidate):
     pathInNodeModules = candidate.split("node_modules/")[1]
     isScopedModule = pathInNodeModules.startswith("@")
     if isScopedModule:
-        return re.sub(r'^.*node_modules/([^/]+/[^/]+)(?:/.*$)?', r'\1', candidate)
+        scope, module = pathInNodeModules.split("/")[0:2]
+        if scope == "@types":
+            return module
+        else:
+            return "{0}/{1}".format(scope, module)
     else:
-        return re.sub(r'^.*node_modules/([^/]+)(?:/.*$)?', r'\1', candidate)
+        return pathInNodeModules.split("/")[0]
+
 
 
 def convertToDisplayString(displayParts):
