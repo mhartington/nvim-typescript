@@ -99,7 +99,12 @@ def getCurrentImports(client, inspectedFile):
 
 
 def _shaveNodeModulesPath(candidate):
-    return re.sub(r'^.*node_modules/([^/]+)(?:/.*$)?', r'\1', candidate)
+    pathInNodeModules = candidate.split("node_modules/")[1]
+    isScopedModule = pathInNodeModules.startswith("@")
+    if isScopedModule:
+        return re.sub(r'^.*node_modules/([^/]+/[^/]+)(?:/.*$)?', r'\1', candidate)
+    else:
+        return re.sub(r'^.*node_modules/([^/]+)(?:/.*$)?', r'\1', candidate)
 
 
 def convertToDisplayString(displayParts):
