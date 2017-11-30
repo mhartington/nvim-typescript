@@ -594,11 +594,15 @@ class TypescriptHost(object):
                 return [utils.convert_detailed_completion_data(e, self.vim, isDeoplete=False) for e in detailed_data]
 
     @neovim.function('TSGetServerPath', sync=True)
-    def tstest(self, args):
+    def ts_get_server_path(self, args):
         """
         Get the path of the tsserver
         """
         return self._client.serverPath
+
+    @neovim.function('TSGetVersion', sync=True)
+    def ts_get_version(self, args):
+        return self._client.tsConfig
 
     @neovim.function('TSOnBufEnter')
     def on_bufenter(self, args=None):
