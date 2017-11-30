@@ -1,13 +1,16 @@
 " nvim-completion-manager source
 
 func! cm#sources#typescript#register()
-    let scopes = ['typescript']
+    let scopes = ['typescript', 'tsx', 'typescript.tsx']
     if g:nvim_typescript#javascript_support
-        call insert(scopes, 'javascript')
+        call insert(scopes, 'javascript', 'jsx', 'javascript.jsx')
+      endif
+    if g:nvim_typescript#vue_support
+        call insert(scopes, 'vue')
     endif
     " the omnifunc pattern is PCRE
     call cm#register_source({'name' : 'typescript',
-            \ 'priority': 9, 
+            \ 'priority': 9,
             \ 'scopes': scopes,
             \ 'abbreviation': 'ts',
             \ 'cm_refresh_patterns':['\.', '::'],
