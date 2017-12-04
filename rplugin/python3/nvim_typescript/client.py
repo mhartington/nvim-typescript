@@ -237,6 +237,20 @@ class Client(object):
 
         return response["success"] if response and "success" in response else False
 
+    def getCodeFixesAtCursor(self, file, cursorPosition, errorCodes):
+        line = cursorPosition["line"]
+        col = cursorPosition["col"]
+        args = {
+            "file": file,
+            "startLine": line,
+            "endLine": line,
+            "startOffset": col,
+            "endOffset": col,
+            "errorCodes": errorCodes
+        }
+        response = self.send_request("getCodeFixes", args)
+        return response
+
     def getErr(self, files):
         args = {"files": files}
         response = self.send_request("geterr", args)
