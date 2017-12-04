@@ -346,13 +346,16 @@ class TypescriptHost(object):
     @neovim.command("TSImport")
     def tsimport(self):
         symbol = self.vim.call('expand', '<cword>')
-        currentlyImportedItems, lastImportLine = utils.getCurrentImports(self._client, self.relative_file())
+        cursor = self.vim.current.window.cursor
+        cursorPosition = { "line": cursor[0], "col": cursor[1] }
+
+        currentlyImportedItems = utils.getCurrentImports(self._client, self.relative_file())
 
         if symbol in currentlyImportedItems:
             self.vim.out_write("nvim-ts: %s is already imported\n" % symbol)
             return
 
-        results = utils.getImportCandidates(self._client, self.relative_file(), symbol)
+        results = utils.getImportCandidates(self._client, self.relative_file(), cursorPosition)
 
         # No imports
         if len(results) == 0:
@@ -361,17 +364,16 @@ class TypescriptHost(object):
 
         # Only one
         if len(results) == 1:
-            importBlock = utils.createImportBlock(symbol, utils.getRelativeImportPath(
-                self.relative_file(), results[0]), self.vim.vars["nvim_typescript#tsimport#template"])
+            fixes = list(map(lambda changes: changes["textChanges"], results[0]["changes"]))
 
         # More than one, need to choose
         else:
-            candidates = "\n".join(["[%s]: %s" % (ix, result)
-                                    for ix, result in enumerate(results)])
+            changeDescriptions = map(lambda x: x["description"], results)
+            candidates = "\n".join(["[%s]: %s" % (ix, change)
+                                    for ix, change in enumerate(changeDescriptions)])
             input = self.vim.call(
                 'input', 'nvim-ts: More than 1 candidate found, Select from the following options:\n%s\nplease choose one: ' % candidates, '',)
 
-            self.log(int(input))
             # Input has been canceled
             if not input:
                 self.printError('Import canceled')
@@ -384,10 +386,20 @@ class TypescriptHost(object):
 
             # Value input is present
             else:
-                importBlock = utils.createImportBlock(symbol, utils.getRelativeImportPath(
-                    self.relative_file(), results[int(input)]), self.vim.vars["nvim_typescript#tsimport#template"])
+                fixes = list(map(lambda changes: changes["textChanges"], results[int(input)]["changes"]))
 
-        self.vim.current.buffer.append(importBlock, lastImportLine)
+        # apply fixes
+        for textChanges in fixes:
+            for change in textChanges:
+                changeLine = change['start']['line'] - 1
+                changeOffset = change['start']['offset']
+                newText = change['newText'].strip()
+                if changeOffset == 1:
+                    self.vim.current.buffer.append(newText, changeLine)
+                else:
+                    lineToChange = self.vim.current.buffer[changeLine];
+                    modifiedLine = lineToChange[:changeOffset - 1] + newText + lineToChange[changeOffset - 1:]
+                    self.vim.current.buffer[changeLine] = modifiedLine
 
     # REQUEST NAVTREE/DOC SYMBOLS
     @neovim.function("TSGetDocSymbolsFunc", sync=True)
