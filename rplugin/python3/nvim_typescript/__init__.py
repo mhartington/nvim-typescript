@@ -146,6 +146,7 @@ class TypescriptHost(object):
                 defFile = info[0]['file']
                 defLine = '{0}'.format(info[0]['start']['line'])
                 self.vim.command('e +' + defLine + ' ' + defFile)
+                self.addToQuickfixList(info)
             else:
                 self.printError('No definition')
         else:
@@ -714,3 +715,15 @@ class TypescriptHost(object):
         Log message to vim echo
         """
         self.vim.out_write('{} \n'.format(message))
+
+    def addToQuickfixList(self, info):
+        qflist = []
+        for item in info:
+            qflist.append({
+                'col': item['start']['offset'],
+                'lnum': item['start']['line'],
+                'filename': item['file'],
+            })
+        self.vim.funcs.setqflist(qflist, 'r')
+        if len(qflist) > 1:
+            self.vim.command('cwindow')
