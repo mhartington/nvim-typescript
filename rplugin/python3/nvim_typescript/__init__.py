@@ -468,12 +468,13 @@ class TypescriptHost(object):
         # requestData = {
         #             'file': self.relative_file(),
         #             'startLine': range[0],
-        #             'startOffset': self.vim.eval('col({})'.range[0]),
+        #             'startOffset': self.vim.eval('col("{}")'.format("'<")),
         #             'endLine': range[1],
-        #             'endOffset':
+        #             'endOffset': self.vim.eval('col("{}")'.format("'>"))
         #         }
-        # range = [2,6]
-        pass
+        # self.log(requestData)
+        self.printMsg('Not implemented yet')
+
 
     @neovim.command("TSSig")
     def tssig(self):
