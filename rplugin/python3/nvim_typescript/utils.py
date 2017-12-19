@@ -30,16 +30,9 @@ def getCurrentImports(client, inspectedFile):
     imports = [x for x in client.getDocumentSymbols(inspectedFile)["childItems"]
                if x["kind"] == "alias"]
 
-    importLineLocations = sorted(
-        list(map(lambda x: x["spans"][0]["end"]["line"], imports)))
-    lastImportLine = 0
-
-    if len(importLineLocations) > 0:
-        lastImportLine = importLineLocations[-1]
-
     currentImports = list(map(lambda x: x["text"], imports))
 
-    return [currentImports, lastImportLine]
+    return currentImports
 
 
 def convertToDisplayString(displayParts):

@@ -382,6 +382,10 @@ class Client(object):
         response = self.send_request("projectInfo", args)
         return get_response_body(response)
 
+    def getApplicableRefactors(self, args):
+        response = self.send_request("getApplicableRefactors", args)
+        return get_response_body(response)
+
 
 def get_error_res_body(response, default=[]):
     # Should we raise an error if success == False ?
