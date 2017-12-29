@@ -3,7 +3,7 @@
 func! cm#sources#typescript#register()
     let scopes = ['typescript', 'tsx', 'typescript.tsx']
     if g:nvim_typescript#javascript_support
-        call insert(scopes, 'javascript', 'jsx', 'javascript.jsx')
+        call extend(scopes, ['javascript', 'jsx', 'javascript.jsx'])
       endif
     if g:nvim_typescript#vue_support
         call insert(scopes, 'vue')
