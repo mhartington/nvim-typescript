@@ -48,10 +48,12 @@ class Client(object):
 
     def setTsConfig(self):
         command = self.serverPath.replace('tsserver', 'tsc')
-        rawOutput = subprocess.check_output([command, '--version'])
+        rawOutput = subprocess.check_output(
+            [command + ' --version'], shell=True)
         [major, minor, patch] = rawOutput.rstrip().decode(
-                "utf-8").split(' ').pop().split('.')
-        self.tsConfg = {"major": int(major), "minor": int(minor), "patch": int(patch)}
+            "utf-8").split(' ').pop().split('.')
+        self.tsConfg = {"major": int(major), "minor": int(
+            minor), "patch": int(patch)}
 
     def isHigher(self, val):
         local = self.tsConfg["major"] * 100 + \
