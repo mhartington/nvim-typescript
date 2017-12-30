@@ -4,7 +4,7 @@ import sys
 import os
 from .base import Base
 
-sys.path.insert(1, os.path.dirname(__file__) + '/../../nvim-typescript')
+sys.path.insert(1, os.path.dirname(__file__) + '/../../nvim_typescript')
 
 from client import Client
 from utils import getKind

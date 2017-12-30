@@ -54,13 +54,6 @@ class TypescriptHost(object):
             pass
         os.unlink(tmpfile.name)
 
-    @neovim.command("TSStop")
-    def tsstop(self):
-        """
-        Stop the client
-        """
-        if self._client.server_handle is not None:
-            self.printMsg('Server Stopped')
 
     @neovim.command("TSStart")
     def tsstart(self):
@@ -75,6 +68,14 @@ class TypescriptHost(object):
                 self._client.open(self.relative_file())
                 self.printMsg('Server Started')
 
+    @neovim.command("TSStop")
+    def tsstop(self):
+        """
+        Stop the client
+        """
+        if self._client.server_handle is not None:
+            self.printMsg('Server Stopped')
+
     @neovim.command("TSRestart")
     def tsrestart(self):
         """
@@ -88,6 +89,7 @@ class TypescriptHost(object):
     @neovim.command("TSReloadProject")
     def reloadProject(self):
         self._client.refresh()
+
 
     @neovim.command("TSDoc")
     def tsdoc(self):
@@ -172,8 +174,8 @@ class TypescriptHost(object):
             else:
                 self.printError('No definition')
         else:
-            self.vim.command(
-                'echohl WarningMsg | echo "TS: Server is not Running" | echohl None')
+            self.printError('Server is not Running')
+
 
     @neovim.command("TSType")
     def tstype(self):
@@ -193,6 +195,7 @@ class TypescriptHost(object):
                 self.vim.out_write("{} \n".format(message))
         else:
             self.printError('Server is not running')
+
 
     @neovim.command("TSTypeDef")
     def tstypedef(self):
@@ -306,6 +309,7 @@ class TypescriptHost(object):
         else:
             self.vim.call('neomake#process_remote_maker', errorLoc, args[0])
 
+
     @neovim.command("TSRename", nargs="*")
     def tsrename(self, args=""):
         """
@@ -347,6 +351,7 @@ class TypescriptHost(object):
             else:
                 self.printError(renameRes['info']['localizedErrorMessage'])
 
+
     @neovim.command("TSImport")
     def tsimport(self):
         if self._client.server_handle is not None:
@@ -355,7 +360,8 @@ class TypescriptHost(object):
             cursor = self.vim.current.window.cursor
             cursorPosition = {"line": cursor[0], "col": cursor[1]}
 
-            currentlyImportedItems = utils.getCurrentImports(self._client, self.relative_file())
+            currentlyImportedItems = utils.getCurrentImports(
+                self._client, self.relative_file())
 
             if symbol in currentlyImportedItems:
                 self.printMsg("%s is already imported\n" % symbol)
@@ -485,26 +491,6 @@ class TypescriptHost(object):
             'endOffset': self.vim.eval('col("{}")'.format("'>"))
         }
         refactors = self._client.getApplicableRefactors(requestData)
-        """
-         Request comes back in this format
-         [
-           {
-             name: 'Extract Symbol',
-             description: 'Extract function',
-             actions: [
-               {
-                 description: "Extract to inner function in function 'interpret'",
-                 name: 'function_scope_0'
-               },
-               {
-                 description: 'Extract to function in module scope',
-                 name: 'function_scope_1'
-               }
-             ]
-           }
-         ]
-        """
-
         availableRefactors = refactors[0]['actions']
         candidates = "\n".join(["[%s]: %s" % (ix, change['description'])
                                 for ix, change in enumerate(availableRefactors)])
