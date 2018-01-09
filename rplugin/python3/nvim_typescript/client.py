@@ -2,7 +2,7 @@ import os
 import sys
 import json
 import subprocess
-
+import signal
 
 class Client(object):
     server_handle = None
@@ -94,8 +94,18 @@ class Client(object):
         """
         send a stop request
         """
-        Client.server_handle.kill()
+        os.killpg(os.getpgid(Client.server_handle.pid), signal.SIGTERM)
         Client.server_handle = None
+
+    def status(self):
+        if Client.server_handle is not None:
+            poll = Client.server_handle.poll()
+            if poll is None:
+                return 'running'
+            else:
+                return 'stopped'
+        else:
+            return 'stopped'
 
     def start(self):
         """
@@ -114,6 +124,7 @@ class Client(object):
                 universal_newlines=True,
                 shell=True,
                 bufsize=-1,
+                preexec_fn=os.setsid
             )
             return True
         else:

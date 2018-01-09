@@ -54,7 +54,6 @@ class TypescriptHost(object):
             pass
         os.unlink(tmpfile.name)
 
-
     @neovim.command("TSStart")
     def tsstart(self):
         """
@@ -74,6 +73,7 @@ class TypescriptHost(object):
         Stop the client
         """
         if self._client.server_handle is not None:
+            self._client.stop()
             self.printMsg('Server Stopped')
 
     @neovim.command("TSRestart")
@@ -88,6 +88,10 @@ class TypescriptHost(object):
 
     @neovim.command("TSReloadProject")
     def reloadProject(self):
+        """
+        Reload the server/project
+        When tsconfig has changed or a new module is added from npm
+        """
         self._client.refresh()
 
 
@@ -191,11 +195,10 @@ class TypescriptHost(object):
             if info:
                 message = '{0}'.format(info['displayString'])
                 message = re.sub("\s+", " ", message)
-                # self.floatWindow(message)
-                self.vim.out_write("{} \n".format(message))
+                message = message.strip(' \t\n\r')
+                self.printMsg(message)
         else:
             self.printError('Server is not running')
-
 
     @neovim.command("TSTypeDef")
     def tstypedef(self):
@@ -213,29 +216,6 @@ class TypescriptHost(object):
         else:
             self.printError('Server is not running')
 
-    def reportErrors(self, errors):
-        self.vim.call('setloclist', 0, errors, 'r', 'Errors')
-        buf = self.vim.current.buffer
-        bufname = buf.name
-        if (self.highlight_source == 0):
-            self.highlight_source = self.vim.new_highlight_source()
-        buf.clear_highlight(self.highlight_source)
-        for e in errors:
-            if e['filename'] == bufname:
-                # highlight to end of line if the error goes past the line
-                end = e['end']['offset'] - \
-                    1 if e['end']['line'] == e['lnum'] else -1
-                buf.add_highlight(
-                    'ERROR',  # highlight group
-                    # annoyingly this command is 0-indexed unlike the location
-                    # list
-                    e['lnum'] - 1,
-                    # annoyingly this command is 0-indexed unlike the location
-                    # list
-                    e['col'] - 1,
-                    end,
-                    src_id=self.highlight_source
-                )
 
     @neovim.command("TSGetErr")
     def tsgeterr(self):
@@ -309,24 +289,47 @@ class TypescriptHost(object):
         else:
             self.vim.call('neomake#process_remote_maker', errorLoc, args[0])
 
+    def reportErrors(self, errors):
+        self.vim.call('setloclist', 0, errors, 'r', 'Errors')
+        buf = self.vim.current.buffer
+        bufname = buf.name
+        if (self.highlight_source == 0):
+            self.highlight_source = self.vim.new_highlight_source()
+        buf.clear_highlight(self.highlight_source)
+        for e in errors:
+            if e['filename'] == bufname:
+                # highlight to end of line if the error goes past the line
+                end = e['end']['offset'] - \
+                    1 if e['end']['line'] == e['lnum'] else -1
+                buf.add_highlight(
+                    'ERROR',  # highlight group
+                    # annoyingly this command is 0-indexed unlike the location
+                    # list
+                    e['lnum'] - 1,
+                    # annoyingly this command is 0-indexed unlike the location
+                    # list
+                    e['col'] - 1,
+                    end,
+                    src_id=self.highlight_source
+                )
 
     @neovim.command("TSRename", nargs="*")
     def tsrename(self, args=""):
         """
         Rename the current symbol
         """
-        symbol = self.vim.eval('expand("<cword>")')
-        if not args:
-            newName = self.vim.call(
-                'input', 'nvim-ts: rename {0} to '.format(symbol))
-        else:
-            newName = args[0]
-
         if self._client.server_handle is not None:
             self.reload()
+            symbol = self.vim.eval('expand("<cword>")')
+            if not args:
+                newName = self.vim.call(
+                    'input', 'nvim-ts: rename {0} to '.format(symbol))
+            else:
+                newName = args[0]
             file = self.vim.current.buffer.name
             originalLine = self.vim.current.window.cursor[0]
-            offset = self.vim.current.window.cursor[1] + 2
+            offset = self.vim.current.window.cursor[1] + 1
+
             renameRes = self._client.renameSymbol(file, originalLine, offset)
 
             if (renameRes) and (renameRes['info']['canRename']):
@@ -350,7 +353,7 @@ class TypescriptHost(object):
                     'Replaced {} occurences in {} files \n'.format(len(locs), changeCount))
             else:
                 self.printError(renameRes['info']['localizedErrorMessage'])
-
+                # self.printError(renameRes)
 
     @neovim.command("TSImport")
     def tsimport(self):
@@ -358,7 +361,7 @@ class TypescriptHost(object):
             self.reload()
             symbol = self.vim.call('expand', '<cword>')
             cursor = self.vim.current.window.cursor
-            cursorPosition = {"line": cursor[0], "col": cursor[1]}
+            cursorPosition = {"line": cursor[0], "col": cursor[1]+1}
 
             currentlyImportedItems = utils.getCurrentImports(
                 self._client, self.relative_file())
@@ -416,6 +419,7 @@ class TypescriptHost(object):
                             :changeOffset - 1] + newText + lineToChange[changeOffset - 1:]
                         self.vim.current.buffer[changeLine] = modifiedLine
 
+
     # REQUEST NAVTREE/DOC SYMBOLS
     @neovim.function("TSGetDocSymbolsFunc", sync=True)
     def getDocSymbolsFunc(self, args=None):
@@ -456,6 +460,9 @@ class TypescriptHost(object):
         else:
             self.printError('Server is not running')
 
+
+
+
     @neovim.function("TSGetWorkspaceSymbolsFunc", sync=True)
     def getWorkspaceSymbolsFunc(self, args=None):
         if self._client.server_handle is not None:
@@ -476,6 +483,7 @@ class TypescriptHost(object):
                                 }, symbolList))
         else:
             self.printError('Server is not running')
+
 
     @neovim.command("TSExtractFunction", range='')
     def extractFunction(self, range):
@@ -499,10 +507,11 @@ class TypescriptHost(object):
 
         return availableRefactors[int(refactorChoice)]
 
+
     @neovim.command("TSSig")
     def tssig(self):
         """
-        Get the type info
+        Get type signature for symbol at cursor
         """
         if self._client.server_handle is not None:
             self.reload()
@@ -510,6 +519,7 @@ class TypescriptHost(object):
             line = self.vim.current.window.cursor[0]
             offset = self.vim.current.window.cursor[1] + 1
             info = self._client.getSignature(file, line, offset)
+
             if info:
                 signatureHelpItems = list(map(lambda item: {
                     'variableArguments': item['isVariadic'],
@@ -530,7 +540,7 @@ class TypescriptHost(object):
     @neovim.command("TSRefs")
     def tsrefs(self):
         """
-        Get the type info
+        Get all references of a symbol in a file
         """
 
         if self._client.server_handle is not None:
@@ -569,6 +579,9 @@ class TypescriptHost(object):
 
     @neovim.command("TSEditConfig")
     def tseditconfig(self):
+        """
+        Open and edit the root tsconfig file
+        """
         if self._client.server_handle is not None:
             self.reload()
             file = self.vim.current.buffer.name
@@ -585,6 +598,9 @@ class TypescriptHost(object):
 
     @neovim.function('TSComplete', sync=True)
     def tsomnifunc(self, args):
+        """
+        Omni func for completion
+        """
 
         line = self.vim.eval("line('.')")
         col = self.vim.eval("col('.')")
@@ -627,7 +643,18 @@ class TypescriptHost(object):
 
     @neovim.function('TSGetVersion', sync=True)
     def ts_get_version(self, args):
+        """
+        get the ts version
+        """
         return self._client.tsConfig
+
+
+    @neovim.function('TSServerStatus', sync=True)
+    def ts_server_status(self, args):
+        """
+        get the ts version
+        """
+        return self._client.status()
 
     @neovim.function('TSOnBufEnter')
     def on_bufenter(self, args=None):
@@ -648,6 +675,9 @@ class TypescriptHost(object):
 
     @neovim.function('TSCmRefresh', sync=False)
     def on_cm_refresh(self, args):
+        """
+        For ncm
+        """
         info = args[0]
         ctx = args[1]
 
@@ -711,6 +741,9 @@ class TypescriptHost(object):
             for e in detailed_data]
         self.vim.call('cm#complete', info, ctx, startcol, matches)
 
+    """
+    Internal Utils
+    """
     def printError(self, message):
         self.vim.err_write('nvim-ts: {0}\n'.format(message))
 
@@ -719,8 +752,17 @@ class TypescriptHost(object):
             'redraws! | echom "nvim-ts: " | echohl Function | echon "{}" | echohl None'.format(message))
 
     def printMsg(self, message):
-        self.vim.command('redraws!')
-        self.vim.out_write('nvim-ts: {0}\n'.format(message))
+        winWidth = self.vim.current.window.width
+        self.log(winWidth)
+        self.log(len(message))
+        # x = self.vim.eval('&ruler')
+        # y = self.vim.eval('&showcmd')
+        # self.vim.command('set noruler noshowcmd')
+        #
+        # self.vim.command('redraws!')
+
+        formatted = message[:winWidth - 30]
+        self.vim.out_write('nvim-ts: {0}\n'.format(formatted))
 
     def log(self, message):
         """
