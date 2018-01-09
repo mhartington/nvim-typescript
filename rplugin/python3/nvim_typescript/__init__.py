@@ -752,17 +752,17 @@ class TypescriptHost(object):
             'redraws! | echom "nvim-ts: " | echohl Function | echon "{}" | echohl None'.format(message))
 
     def printMsg(self, message):
-        winWidth = self.vim.current.window.width
-        self.log(winWidth)
-        self.log(len(message))
+        # winWidth = self.vim.current.window.width
+        # self.log(winWidth)
+        # self.log(len(message))
         # x = self.vim.eval('&ruler')
         # y = self.vim.eval('&showcmd')
         # self.vim.command('set noruler noshowcmd')
         #
         # self.vim.command('redraws!')
 
-        formatted = message[:winWidth - 30]
-        self.vim.out_write('nvim-ts: {0}\n'.format(formatted))
+        # formatted = message[:winWidth]
+        self.vim.out_write('nvim-ts: {0}\n'.format(message))
 
     def log(self, message):
         """
