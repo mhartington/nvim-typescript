@@ -410,9 +410,13 @@ class TypescriptHost(object):
                 for change in textChanges:
                     changeLine = change['start']['line'] - 1
                     changeOffset = change['start']['offset']
-                    newText = change['newText'].strip()
+                    leadingNewLineRegex = r'^\n'
+                    addingNewLine= re.match(leadingNewLineRegex, change['newText']) is not None
+                    newText = re.sub(leadingNewLineRegex, '', change['newText'])
                     if changeOffset == 1:
                         self.vim.current.buffer.append(newText, changeLine)
+                    elif addingNewLine:
+                        self.vim.current.buffer.append(newText, changeLine + 1)
                     else:
                         lineToChange = self.vim.current.buffer[changeLine]
                         modifiedLine = lineToChange[
