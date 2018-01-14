@@ -410,14 +410,26 @@ class TypescriptHost(object):
                 for change in textChanges:
                     changeLine = change['start']['line'] - 1
                     changeOffset = change['start']['offset']
-                    newText = change['newText'].strip()
+                    leadingNewLineRegex = r'^\n'
+                    addingNewLine= re.match(leadingNewLineRegex, change['newText']) is not None
+                    newText = re.sub(leadingNewLineRegex, '', change['newText'])
                     if changeOffset == 1:
                         self.vim.current.buffer.append(newText, changeLine)
+                    elif addingNewLine:
+                        self.vim.current.buffer.append(newText, changeLine + 1)
                     else:
+                        addingTrailingComma = re.match(r'^,$', newText) is not None
                         lineToChange = self.vim.current.buffer[changeLine]
-                        modifiedLine = lineToChange[
-                            :changeOffset - 1] + newText + lineToChange[changeOffset - 1:]
-                        self.vim.current.buffer[changeLine] = modifiedLine
+                        lineAlreadyHasTrailingComma = re.match(r'^.*,\s*$', lineToChange) is not None
+
+                        # we have to do this check because TSServer doesn't take into account if we already
+                        # have a trailing comma before suggesting one
+                        if addingTrailingComma and lineAlreadyHasTrailingComma:
+                            pass
+                        else:
+                            modifiedLine = lineToChange[
+                                :changeOffset - 1] + newText + lineToChange[changeOffset - 1:]
+                            self.vim.current.buffer[changeLine] = modifiedLine
 
 
     # REQUEST NAVTREE/DOC SYMBOLS
