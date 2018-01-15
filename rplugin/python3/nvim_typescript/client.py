@@ -4,6 +4,7 @@ import json
 import subprocess
 import signal
 
+
 class Client(object):
     server_handle = None
     project_root = None
