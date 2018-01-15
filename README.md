@@ -2,8 +2,7 @@
 
 TypeScript support for neovim.
 
-`nvim-typescript` provides standard IDE-like features such as auto-completion
-(with the aid of [deoplete.nvim](https://github.com/Shougo/deoplete.nvim)),
+`nvim-typescript` provides standard IDE-like features such as auto-completion,
 viewing of documentation and type-signatures, go to definition, and reference
 finding.
 
@@ -14,11 +13,14 @@ finding.
 ### Prerequisites
 
 * Python3 neovim bindings
-* [Deoplete](https://github.com/Shougo/deoplete.nvim) or
-  [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager)
-  (if you want code completion)
+
+```bash
+pip3 install neovim
+```
+
 * A TypeScript syntax file (to set the filetype), a popular choice is
   [yats.vim](https://github.com/HerringtonDarkholme/yats.vim)
+
 
 ### Install nvim-typescript
 
@@ -43,9 +45,21 @@ See the
 (or within nvim `:help nvim-typescript` for a complete list of commands and
 features.
 
-## Debugging
 
-### Deoplete completion
+### Async completion
+
+Although this plugin provides an omnifunc for getting code completion, it can block the UI (vim "feature"). While you may not notice if for smaller projects, you do in larger ones. Instead, I suggest using:
+
+- [Deoplete](https://github.com/Shougo/deoplete.nvim)
+
+or
+
+-  [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager)
+
+As they do not block
+
+
+## Debugging
 
 There are a few things you'll have to modify in your vim config in order to be
 able to effectively work on this plugin:
@@ -71,8 +85,7 @@ to fix the issue should be provided.
 
 If you happened to build something and would love to make a PR, I would be more
 than happy to add contributors. If something you do add happens to get merged
-(most likely it will :grin: ) you'll get a collaborator request. This has
-worked out very well in the Node community and I want it to happen here. This
-is as much my code as it is your code. See [this
-site](http://openopensource.org) and [this
-talk](https://youtu.be/wIUkWpg9FDY?t=5m10s) for more info.
+(most likely it will :grin: ) you'll get a collaborator request. This has worked
+out very well in the Node community and I want it to happen here. This is as
+much my code as it is your code. See [this site](http://openopensource.org) and
+[this talk](https://youtu.be/wIUkWpg9FDY?t=5m10s) for more info.
