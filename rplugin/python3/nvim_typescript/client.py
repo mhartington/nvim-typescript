@@ -51,8 +51,10 @@ class Client(object):
         command = self.serverPath.replace('tsserver', 'tsc')
         rawOutput = subprocess.check_output(
             [command + ' --version'], shell=True)
-        [major, minor, patch] = rawOutput.rstrip().decode(
-            "utf-8").split(' ').pop().split('.')
+        # strip nightly
+        pure_version = rawOutput.rstrip().decode(
+                'utf-8').split(' ').pop().split('-')[0]
+        [major, minor, patch] = pure_version.split('.')[:3]
         self.tsConfg = {"major": int(major), "minor": int(
             minor), "patch": int(patch)}
 
