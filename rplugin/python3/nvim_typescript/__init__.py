@@ -425,7 +425,11 @@ class TypescriptHost(object):
                 leadingNewLineRegex = r'^\n'
                 addingNewLine = re.match(leadingNewLineRegex, change[
                                          'newText']) is not None
-                newText = re.sub(leadingNewLineRegex,
+
+                leadingAndTrailingNewLineRegex = r'^\n|\n$'
+                addingNewLine= re.match(leadingNewLineRegex, change[
+                                        'newText']) is not None
+                newText = re.sub(leadingAndTrailingNewLineRegex,
                                  '', change['newText'])
                 if changeOffset == 1:
                     self.vim.current.buffer.append(newText, changeLine)
