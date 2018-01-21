@@ -58,7 +58,7 @@ class Client(object):
         self.tsConfg = {"major": int(major), "minor": int(
             minor), "patch": int(patch)}
 
-    def isHigher(self, val):
+    def isCurrentVersionHigher(self, val):
         local = self.tsConfg["major"] * 100 + \
             self.tsConfg["minor"] * 10 + self.tsConfg["patch"]
         return local > val
@@ -168,7 +168,7 @@ class Client(object):
             # TODO: refactor for a conditional loop
 
             # TS 1.9.x returns two reload finished responses
-            if not self.isHigher(260) and self.isHigher(190):
+            if not self.isCurrentVersionHigher(260) and self.isCurrentVersionHigher(190):
                 if ('body', {'reloadFinished': True}) in ret.items():
                     continue
 

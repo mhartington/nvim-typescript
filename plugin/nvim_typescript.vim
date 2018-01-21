@@ -1,6 +1,9 @@
 if exists('g:nvim_typescript#loaded')
   finish
 endif
+
+" Some settings {{{
+
 let g:nvim_typescript#loaded = 1
 let g:nvim_typescript#ts_version = 'typescript@2.4.0'
 let g:nvim_typescript#version = '1.4.0'
@@ -58,44 +61,56 @@ let s:kind_symbols = {
 let g:nvim_typescript#kind_symbols =
       \ get(g:, 'nvim_typescript#kind_symbols', s:kind_symbols)
 
-
+"}}}
 augroup nvim-typescript "{{{
   autocmd!
-  function! s:TSSearch(query)
-      let symbols = TSGetWorkspaceSymbolsFunc(a:query)
-      call setloclist(0, symbols, 'r', 'Symbols')
+
+  "FZF stuff
+  function! s:TSSearch(query) "{{{
+      let l:symbols = TSGetWorkspaceSymbolsFunc(a:query)
+      call setloclist(0, l:symbols, 'r', 'Symbols')
       lopen
   endfunction
-  command! -nargs=1 TSSearch call s:TSSearch(<q-args>)
+  command! -nargs=1 TSSearch call s:TSSearch(<q-args>) "}}}
 
-  if get(g:, 'nvim_typescript#type_info_on_hold', 1)
-    if get(g:, 'nvim_typescript#javascript_support', 1)
-       autocmd CursorHold *.js,*.jsx TSType
+  "Regular JS support
+  if get(g:, 'nvim_typescript#javascript_support', 1) "{{{
+    autocmd BufEnter *.js,*.jsx call nvim_typescript#DefaultKeyMap()
+    autocmd BufReadPost *.js,*.jsx call TSOnBufEnter()
+    autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
+    if get(g:, 'nvim_typescript#signature_complete', 1)
+       autocmd CompleteDone *.js,*.jsx TSSig
     endif
-    if get(g:, 'nvim_typescript#vue_support', 1)
-       autocmd CursorHold *.vue TSType
+    if get(g:, 'nvim_typescript#type_info_on_hold', 1)
+      autocmd CursorHold *.js,*.jsx TSType
     endif
-    autocmd CursorHold *.ts,*.tsx TSType
-  endif
+  endif "}}}
 
+  " Vue Support
+  if get(g:, 'nvim_typescript#vue_support', 1) "{{{
+    autocmd BufEnter *.vue call nvim_typescript#DefaultKeyMap()
+    autocmd BufReadPost *.vue call TSOnBufEnter()
+    autocmd BufWritePost *.vue call TSOnBufSave()
+    if get(g:, 'nvim_typescript#signature_complete', 1)
+       autocmd CompleteDone *.vue TSSig
+    endif
+    if get(g:, 'nvim_typescript#type_info_on_hold', 1)
+      autocmd CursorHold *.vue TSType
+    endif
+  endif "}}}
+
+  " Core
+  autocmd BufEnter *.ts,*.tsx call nvim_typescript#DefaultKeyMap() "{{{
+  autocmd BufEnter *.ts,*.tsx call TSOnBufEnter()
+  autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   if get(g:, 'nvim_typescript#signature_complete', 1)
      autocmd CompleteDone *.ts,*.tsx TSSig
   endif
+  if get(g:, 'nvim_typescript#type_info_on_hold', 1)
+    autocmd CursorHold *.ts,*.tsx TSType
+  endif "}}}
 
-  if get(g:, 'nvim_typescript#javascript_support', 1)
-    autocmd BufEnter *.js,*.jsx call nvim_typescript#DefaultKeyMap()
-    autocmd BufEnter *.js,*.jsx call TSOnBufEnter()
-    autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
-  endif
-  if get(g:, 'nvim_typescript#vue_support', 1)
-    autocmd BufEnter *.vue call nvim_typescript#DefaultKeyMap()
-    autocmd BufEnter *.vue call TSOnBufEnter()
-    autocmd BufWritePost *.vue call TSOnBufSave()
-  endif
-  autocmd BufEnter *.ts,*.tsx call nvim_typescript#DefaultKeyMap()
-  autocmd BufEnter *.ts,*.tsx call TSOnBufEnter()
-  autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
+  autocmd BufWritePost tsconfig.json TSReloadProject
 
   autocmd User CmSetup call cm#sources#typescript#register()
-
 augroup end "}}}
