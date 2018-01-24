@@ -97,7 +97,7 @@ class Client(object):
         """
         send a stop request
         """
-        os.killpg(os.getpgid(Client.server_handle.pid), signal.SIGTERM)
+        Client.server_handle.kill()
         Client.server_handle = None
 
     def status(self):
@@ -114,7 +114,7 @@ class Client(object):
         """
         start proc
         """
-        # https://github.com/Microsoft/TypeScript/blob/master/lib/protocol.d.ts#L854
+        # https://github.com/Microsoft/TypeScript/blob/master/lib/protocol.d.ts
         if Client.server_handle is None:
             # Client.__environ['TSS_LOG'] = "-logToFile true -file ./server.log"
             Client.server_handle = subprocess.Popen(
@@ -127,7 +127,6 @@ class Client(object):
                 universal_newlines=True,
                 shell=True,
                 bufsize=-1,
-                preexec_fn=os.setsid
             )
             return True
         else:
