@@ -30,6 +30,8 @@ let g:nvim_typescript#completion_mark =
       \ get(g:, 'nvim_typescript#completion_mark', 'TS')
 let g:nvim_typescript#debug_enabled =
       \ get(g:, 'nvim_typescript#debug_enabled', 0)
+let g:nvim_typescript#debug_settings =
+      \ get(g:, 'nvim_typescript#debug_settings', {'file': 'nvim-typescript-tsserver.log', 'level': 'normal'})
 let s:kind_symbols = {
     \ 'keyword': 'keyword',
     \ 'class': 'class',

@@ -93,8 +93,9 @@ class TypescriptHost(object):
         """
         if self._client.server_handle is None:
             should_debug = self.vim.vars["nvim_typescript#debug_enabled"]
+            debug_options = self.vim.vars["nvim_typescript#debug_settings"]
             self._client.serverPath = self.vim.vars["nvim_typescript#server_path"]
-            if self._client.start(should_debug):
+            if self._client.start(should_debug, debug_options):
                 self._client.setTsConfig()
                 self._client.open(self.relative_file())
                 self.printMsg('Server Started')
