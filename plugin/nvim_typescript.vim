@@ -28,7 +28,8 @@ let g:nvim_typescript#default_mappings =
       \ get(g:, 'nvim_typescript#default_mappings', 0)
 let g:nvim_typescript#completion_mark =
       \ get(g:, 'nvim_typescript#completion_mark', 'TS')
-
+let g:nvim_typescript#debug_enabled =
+      \ get(g:, 'nvim_typescript#debug_enabled', 0)
 let s:kind_symbols = {
     \ 'keyword': 'keyword',
     \ 'class': 'class',

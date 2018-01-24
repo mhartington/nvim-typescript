@@ -110,13 +110,17 @@ class Client(object):
         else:
             return 'stopped'
 
-    def start(self):
+    def start(self, should_debug):
         """
         start proc
         """
         # https://github.com/Microsoft/TypeScript/blob/master/lib/protocol.d.ts
         if Client.server_handle is None:
-            # Client.__environ['TSS_LOG'] = "-logToFile true -file ./server.log"
+            if should_debug is not 0:
+                Client.__environ['TSS_LOG'] = "-logToFile true -file nvim-typescript-tsserver.log"
+            else:
+                self.__log('Debug disabled')
+
             Client.server_handle = subprocess.Popen(
                 [self.serverPath, "--disableAutomaticTypingAcquisition"],
                 env=Client.__environ,

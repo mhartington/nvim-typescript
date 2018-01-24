@@ -92,9 +92,9 @@ class TypescriptHost(object):
         Stat the client
         """
         if self._client.server_handle is None:
-            self._client.serverPath = self.vim.vars[
-                "nvim_typescript#server_path"]
-            if self._client.start():
+            should_debug = self.vim.vars["nvim_typescript#debug_enabled"]
+            self._client.serverPath = self.vim.vars["nvim_typescript#server_path"]
+            if self._client.start(should_debug):
                 self._client.setTsConfig()
                 self._client.open(self.relative_file())
                 self.printMsg('Server Started')
@@ -325,7 +325,7 @@ class TypescriptHost(object):
                     # list
                     e['col'] - 1,
                     end,
-                    src_id=self.highlight_source
+                    src_id = self.highlight_source
                 )
 
     @neovim.command("TSRename", nargs="*")
