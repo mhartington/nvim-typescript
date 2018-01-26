@@ -118,9 +118,6 @@ class Client(object):
         if Client.server_handle is None:
             if should_debug is not 0:
                 Client.__environ['TSS_LOG'] = "-logToFile true -file {0} -level {1}".format(debug_options['file'], debug_options['level'])
-            else:
-                self.__log('Debug disabled')
-
             Client.server_handle = subprocess.Popen(
                 [self.serverPath, "--disableAutomaticTypingAcquisition"],
                 env=Client.__environ,
