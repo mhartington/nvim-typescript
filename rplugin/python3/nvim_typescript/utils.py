@@ -27,10 +27,13 @@ def getCurrentImports(client, inspectedFile):
     :returns: a tuple, car: the import statements,
                        cdr: the last line number of the import statements
     """
-    imports = [x for x in client.getDocumentSymbols(inspectedFile)["childItems"]
-               if x["kind"] == "alias"]
-
-    currentImports = list(map(lambda x: x["text"], imports))
+    documentSymbols = client.getDocumentSymbols(inspectedFile)
+    if 'childItems' in documentSymbols:
+        imports = [x for x in documentSymbols["childItems"]
+                   if x["kind"] == "alias"]
+        currentImports = list(map(lambda x: x["text"], imports))
+    else:
+        currentImports = []
 
     return currentImports
 
