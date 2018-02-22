@@ -1,4 +1,5 @@
 #! /usr/bin/env python3
+
 from operator import itemgetter
 import sys
 import os
@@ -7,7 +8,7 @@ from .base import Base
 
 sys.path.insert(1, os.path.dirname(__file__) + '/../../nvim_typescript')
 
-from client import Client
+import client
 from utils import getKind
 
 
@@ -16,7 +17,7 @@ class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
         self.vim = vim
-        self._client = Client()
+        self._client = client
         self.name = 'TSProjectFiles'
         self.kind = 'file'
 

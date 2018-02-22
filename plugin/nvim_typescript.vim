@@ -76,8 +76,8 @@ augroup nvim-typescript "{{{
   endfunction
   command! -nargs=1 TSSearch call s:TSSearch(<q-args>) "}}}
 
-  "Regular JS support
-  if get(g:, 'nvim_typescript#javascript_support', 1) "{{{
+  "Regular JS supporti {{{
+  if get(g:, 'nvim_typescript#javascript_support', 1)
     autocmd BufEnter *.js,*.jsx call nvim_typescript#DefaultKeyMap()
     autocmd BufEnter *.js,*.jsx call TSOnBufEnter()
     autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
@@ -89,8 +89,8 @@ augroup nvim-typescript "{{{
     endif
   endif "}}}
 
-  " Vue Support
-  if get(g:, 'nvim_typescript#vue_support', 1) "{{{
+  " Vue Support {{{
+  if get(g:, 'nvim_typescript#vue_support', 1)
     autocmd BufEnter *.vue call nvim_typescript#DefaultKeyMap()
     autocmd BufEnter *.vue call TSOnBufEnter()
     autocmd BufWritePost *.vue call TSOnBufSave()
@@ -102,8 +102,8 @@ augroup nvim-typescript "{{{
     endif
   endif "}}}
 
-  " Core
-  autocmd BufEnter *.ts,*.tsx call nvim_typescript#DefaultKeyMap() "{{{
+  " Core {{{
+  autocmd BufEnter *.ts,*.tsx call nvim_typescript#DefaultKeyMap()
   autocmd BufEnter *.ts,*.tsx call TSOnBufEnter()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   if get(g:, 'nvim_typescript#signature_complete', 1)

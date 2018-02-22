@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 import os
 import re
 
@@ -72,7 +74,7 @@ def convert_completion_data(entry, vim):
     }
 
 
-def convert_detailed_completion_data(entry, vim, isDeoplete=False):
+def convert_detailed_completion_data(entry, vim):
     name = entry["name"]
     display_parts = entry["displayParts"]
     signature = "".join([p["text"] for p in display_parts])
@@ -88,15 +90,15 @@ def convert_detailed_completion_data(entry, vim, isDeoplete=False):
             "".join([d["text"] for d in entry["documentation"]])
 
     kind = getKind(vim, entry['kind'])[0].title()
-    if isDeoplete:
-        menu = menu_text
-    else:
-        menu = '{0} {1}'.format(
-            vim.vars['nvim_typescript#completion_mark'], menu_text)
+    # if isDeoplete:
+    #     menu = menu_text
+    # else:
+    #     menu = '{0} {1}'.format(
+    #         vim.vars['nvim_typescript#completion_mark'], menu_text)
 
     return ({
         "word": name,
         "kind": '{} '.format(kind),
-        "menu": menu,
+        "menu": menu_text,
         "info": documentation
     })
