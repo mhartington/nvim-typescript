@@ -32,7 +32,7 @@ def setServerPath(value):
     """
     global serverPath
     if os.path.isfile(value):
-        serverPath = value
+        serverPath = os.path.normpath(value)
     else:
         serverPath = 'tsserver'
 
@@ -41,7 +41,7 @@ def setTsConfigVersion():
     global tsConfigVersion
     global serverPath
     command = serverPath.replace('tsserver', 'tsc')
-    rawOutput = subprocess.check_output([command, '--version'])
+    rawOutput = subprocess.check_output(command + ' --version', shell=True)
     # strip nightly
     pure_version = rawOutput.rstrip().decode(
         'utf-8').split(' ').pop().split('-')[0]
@@ -123,6 +123,7 @@ def start(should_debug, debug_options):
             stderr=None,
             universal_newlines=True,
             bufsize=-1,
+            shell=True,
         )
         return True
     else:
