@@ -21,7 +21,7 @@ class Source(Base):
             else ["typescript", "tsx", "typescript.tsx"]
         self.rank = 1000
         self.min_pattern_length = 1
-        self.input_pattern = r'((?:\.|(?:,|:|->)\s+)\w*|\()'
+        self.input_pattern = r'(\.|::)\w*'
 
     def log(self, message):
         """
