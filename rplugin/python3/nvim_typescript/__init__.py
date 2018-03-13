@@ -7,7 +7,6 @@ import neovim
 from time import time
 from tempfile import NamedTemporaryFile
 from functools import wraps
-# import multiprocessing
 sys.path.insert(1, os.path.dirname(__file__))
 import client
 import utils
@@ -143,7 +142,7 @@ class TypescriptHost(object):
         self.reload()
         file = self.vim.current.buffer.name
         line = self.vim.current.window.cursor[0]
-        offset = self.vim.current.window.cursor[1] + 2
+        offset = self.vim.current.window.cursor[1] + 1
         info = client.getDoc(file, line, offset)
 
         if info:
@@ -185,7 +184,7 @@ class TypescriptHost(object):
         self.reload()
         file = self.vim.current.buffer.name
         line = self.vim.current.window.cursor[0]
-        offset = self.vim.current.window.cursor[1] + 2
+        offset = self.vim.current.window.cursor[1] + 1
         info = client.goToDefinition(file, line, offset)
         if info:
             defFile = info[0]['file']
@@ -204,7 +203,7 @@ class TypescriptHost(object):
         self.reload()
         file = self.vim.current.buffer.name
         line = self.vim.current.window.cursor[0]
-        offset = self.vim.current.window.cursor[1] + 2
+        offset = self.vim.current.window.cursor[1] + 1
         info = client.goToDefinition(file, line, offset)
         if info:
             defFile = info[0]['file']
@@ -222,7 +221,7 @@ class TypescriptHost(object):
         self.reload()
         file = self.vim.current.buffer.name
         line = self.vim.current.window.cursor[0]
-        offset = self.vim.current.window.cursor[1] + 2
+        offset = self.vim.current.window.cursor[1] + 1
         info = client.getDoc(file, line, offset)
         if info:
             message = '{0}'.format(info['displayString'])
@@ -236,7 +235,7 @@ class TypescriptHost(object):
         self.reload()
         file = self.vim.current.buffer.name
         line = self.vim.current.window.cursor[0]
-        offset = self.vim.current.window.cursor[1] + 2
+        offset = self.vim.current.window.cursor[1] + 1
         typeDefRes = client.getTypeDefinition(file, line, offset)
 
         if typeDefRes:
@@ -371,12 +370,6 @@ class TypescriptHost(object):
                             :changeOffset - 1] + newText + lineToChange[changeOffset - 1:]
                         self.vim.current.buffer[changeLine] = modifiedLine
 
-    # REQUEST NAVTREE/DOC SYMBOLS
-    @neovim.function("TSGetDocSymbolsFunc", sync=True)
-    @ts_check_server()
-    def getDocSymbolsFunc(self, args=None):
-        return client.getDocumentSymbols(self.relative_file())
-
     # Display Doc symbols in loclist
     @neovim.command("TSGetDocSymbols")
     @ts_check_server()
@@ -430,7 +423,9 @@ class TypescriptHost(object):
                             }, symbolList))
 
     @neovim.command("TSExtractFunction", range='')
+    @ts_check_server()
     def extractFunction(self, range):
+        self.reload()
         refactorAction = self.getApplicableRefactors(range)
         self.log(refactorAction)
 
@@ -442,6 +437,7 @@ class TypescriptHost(object):
             'endLine': range[1],
             'endOffset': self.vim.eval('col("{}")'.format("'>"))
         }
+
         refactors = client.getApplicableRefactors(requestData)
         availableRefactors = refactors[0]['actions']
         candidates = "\n".join(["[%s]: %s" % (ix, change['description'])
@@ -460,9 +456,8 @@ class TypescriptHost(object):
         self.reload()
         file = self.vim.current.buffer.name
         line = self.vim.current.window.cursor[0]
-        offset = self.vim.current.window.cursor[1] + 1
+        offset = self.vim.current.window.cursor[1]
         info = client.getSignature(file, line, offset)
-
         if info:
             signatureHelpItems = list(map(lambda item: {
                 'variableArguments': item['isVariadic'],

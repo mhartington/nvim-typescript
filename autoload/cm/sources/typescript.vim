@@ -12,7 +12,7 @@ func! cm#sources#typescript#register()
     call cm#register_source({'name' : 'typescript',
             \ 'priority': 9,
             \ 'scopes': scopes,
-            \ 'abbreviation': 'ts',
+            \ 'abbreviation': g:nvim_typescript#completion_mark,
             \ 'cm_refresh_patterns':['\.', '::'],
             \ 'cm_refresh': 'cm#sources#typescript#refresh',
             \ })

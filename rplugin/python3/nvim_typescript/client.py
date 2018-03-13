@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-import queue
 import os
 import json
 import subprocess
@@ -101,7 +100,7 @@ def status():
         return 'stopped'
 
 
-def start(should_debug, debug_options):
+def start(should_debug=False, debug_options=False):
     """
     start proc
     """
@@ -111,9 +110,9 @@ def start(should_debug, debug_options):
 
     # https://github.com/Microsoft/TypeScript/blob/master/lib/protocol.d.ts
     if server_handle is None:
-        if should_debug is not 0:
-            __environ['TSS_LOG'] = "-logToFile true -file {0} -level {1}".format(
-                debug_options['file'], debug_options['level'])
+        # if should_debug is not 0:
+        #     __environ['TSS_LOG'] = "-logToFile true -file {0} -level {1}".format(
+        #         debug_options['file'], debug_options['level'])
         server_handle = subprocess.Popen(
             [serverPath, "--disableAutomaticTypingAcquisition"],
             env=__environ,

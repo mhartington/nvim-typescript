@@ -6,7 +6,7 @@ import os
 import re
 from .base import Base
 
-sys.path.insert(1, os.path.dirname(__file__) + '/../../nvim_typescript')
+sys.path.insert(1, os.path.join(os.path.dirname(__file__), '..','..', 'nvim_typescript'))
 
 import client
 from utils import getKind
@@ -17,7 +17,6 @@ class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
         self.vim = vim
-        self._client = client
         self.name = 'TSProjectFiles'
         self.kind = 'file'
 
@@ -29,7 +28,7 @@ class Source(Base):
     def gather_candidates(self, context):
         cwd = os.getcwd()
         bufname = self.vim.current.buffer.name
-        responce = self._client.projectInfo(bufname)
+        responce = client.projectInfo(bufname)
         if responce is None:
             return []
         candidates = self.convertToCandidate(responce['fileNames'])

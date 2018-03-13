@@ -6,7 +6,7 @@ import re
 import sys
 import os
 
-sys.path.insert(1, os.path.dirname(__file__) + '/../../nvim_typescript')
+sys.path.insert(1, os.path.join(os.path.dirname(__file__), '..','..', 'nvim_typescript'))
 
 import client
 from utils import getKind
@@ -17,7 +17,6 @@ class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
         self.vim = vim
-        self._client = client
         self.name = 'TSWorkspaceSymbol'
         self.kind = 'file'
 
@@ -37,7 +36,7 @@ class Source(Base):
         }, symbols))
 
     def gather_candidates(self, context):
-        res = self._client.getWorkspaceSymbols(
+        res = client.getWorkspaceSymbols(
             context['__bufname'], context['input'])
         if res is None:
             return []
