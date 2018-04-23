@@ -104,7 +104,7 @@ COMMANDS                                                  *typescript-commands*
 
     Prints the type signature for the symbol under the cursor.
                                                                     *:TSRename*
-TSRename [word]
+:TSRename [word]
 
     Renames the symbol currently under the cursor. Pass a new name as an arg,
     if no arg is passed, user will be prompted.
