@@ -1,0 +1,27 @@
+{
+  "name": "neovim-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./lib/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch true"
+  },
+  "keywords": [],
+  "author": "Mike Hartington <mikehartington@gmail.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^7.0.31",
+    "@types/tempfile": "^1.1.5",
+    "@types/tmp": "0.0.33",
+    "better-console": "^1.0.0",
+    "tslint": "^5.4.3",
+    "typescript": "2.3.4"
+  },
+  "dependencies": {
+    "neovim": "^3.5.2",
+    "temp-write": "^3.3.0",
+    "tempfile": "^2.0.0",
+    "tmp": "0.0.31"
+  }
+}
