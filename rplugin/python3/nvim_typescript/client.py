@@ -53,7 +53,7 @@ def isCurrentVersionHigher(val):
     global tsConfigVersion
     local = tsConfigVersion["major"] * 100 + \
         tsConfigVersion["minor"] * 10 + tsConfigVersion["patch"]
-    return local > val
+    return local >= val
 
 
 def project_cwd(root):
@@ -124,6 +124,7 @@ def start(should_debug=False, debug_options=False):
             bufsize=-1,
             shell=True,
         )
+        # log(server_handle)
         return True
     else:
         return
@@ -140,66 +141,89 @@ def restart():
 
 def __write_to_server(data):
     serialized_request = json.dumps(data) + "\n"
-    server_handle.stdin.write(serialized_request)
-    server_handle.stdin.flush()
+    try:
+        server_handle.stdin.write(serialized_request)
+        server_handle.stdin.flush()
+    except BrokenPipeError as e:
+        log(e)
 
 
 def send_request(command, arguments=None):
     global server_handle
-    # log(server_handle)
     request = build_request(command, arguments)
-    if server_handle is None:
-        log('no server_handle')
+    # log(request['seq'])
     if server_handle is not None:
         __write_to_server(request)
 
-        # linecount = 0
-        # headers = {}
         while True:
-            # log('here?')
+            """
+            Instead of reading stdout based on length
+            just read one line at a time
+            other way gets bogged down too much.
+            """
             headerline = server_handle.stdout.readline().strip()
-            # log('loggging {}'.format(serve))
+            # log(headerline)
             newline = server_handle.stdout.readline().strip()
-            # log('loggging {}'.format(request))
+            # log(newline)
             content = server_handle.stdout.readline().strip()
-            # log('loggging {}'.format(content))
+            # log(content)
             ret = json.loads(content)
 
+            # log(ret)
             # batch of ignore events.
             # TODO: refactor for a conditional loop
 
             # TS 1.9.x returns two reload finished responses
+            # log(isCurrentVersionHigher(260))
             if not isCurrentVersionHigher(260) and isCurrentVersionHigher(190):
                 if ('body', {'reloadFinished': True}) in ret.items():
+                    # log('reload body')
                     continue
 
             # TS 2.0.6 introduces configFileDiag event, ignore
             if ("event", "configFileDiag") in ret.items():
+                # log('configFileDiag')
                 continue
 
             if ("event", "requestCompleted") in ret.items():
+                # log('requestCompleted')
+                continue
+
+            if ("event", "projectsUpdatedInBackground") in ret.items():
+                # log('projectsUpdatedInBackground')
                 continue
 
             # TS 2.6 adds telemetry event, ignore
             if ("event", "telemetry") in ret.items():
+                # log('telemetry')
+                continue
+
+            if ("event", "typingsInstallerPid") in ret.items():
+                # log('installing')
                 continue
 
             if "request_seq" not in ret:
-                if ("event", "syntaxDiag") in ret.items():
-                    continue
-                if ("event", "semanticDiag") in ret.items():
-                    return ret
-                else:
-                    continue
+                # log('no seq')
+                continue
+
+                # if ("event", "syntaxDiag") in ret.items():
+                #     continue
+                # if ("event", "semanticDiag") in ret.items():
+                #     return ret
+                # else:
+                #     continue
 
             if ret["request_seq"] > request['seq']:
+                # log('mismatched')
                 return None
             if ret["request_seq"] == request['seq']:
+                # log('match')
                 return ret
 
 
 def send_command(command, arguments=None):
     request = build_request(command, arguments)
+    # log(request)
     __write_to_server(request)
 
 
@@ -417,6 +441,11 @@ def projectInfo(file):
 
 def getApplicableRefactors(args):
     response = send_request("getApplicableRefactors", args)
+    return get_response_body(response)
+
+# Start of new generic command
+def execute(commandType, args):
+    response = send_request(commandType, args)
     return get_response_body(response)
 
 

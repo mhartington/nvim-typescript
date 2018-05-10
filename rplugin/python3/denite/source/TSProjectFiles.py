@@ -26,13 +26,12 @@ class Source(Base):
         }, symbols))
 
     def gather_candidates(self, context):
-        cwd = os.getcwd()
         bufname = self.vim.current.buffer.name
         responce = client.projectInfo(bufname)
         if responce is None:
             return []
         candidates = self.convertToCandidate(responce['fileNames'])
         return list(map(lambda symbol: {
-            'word': re.sub(cwd + '/', '', symbol['text']),
+            'word': symbol['text'],
             'action__path': symbol['text']
         }, candidates))

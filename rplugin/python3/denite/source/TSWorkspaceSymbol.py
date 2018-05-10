@@ -1,15 +1,17 @@
 #! /usr/bin/env python3
 
-from .base import Base
-from operator import itemgetter
+import os
 import re
 import sys
-import os
+from operator import itemgetter
+
+
+from .base import Base
 
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), '..','..', 'nvim_typescript'))
-
 import client
 from utils import getKind
+
 
 
 class Source(Base):
@@ -28,16 +30,15 @@ class Source(Base):
 
     def convertToCandidate(self, symbols, context):
         return list(map(lambda symbol: {
-            't':  symbol['name'],
+            't': symbol['name'],
             'i': getKind(self.vim, symbol['kind']),
-            'l':  symbol['start']['line'],
-            'c':  symbol['start']['offset'],
-            'f': re.sub(context['cwd'] + '/', '', symbol['file'])
+            'l': symbol['start']['line'],
+            'c': symbol['start']['offset'],
+            'f': symbol['file']
         }, symbols))
 
     def gather_candidates(self, context):
-        res = client.getWorkspaceSymbols(
-            context['__bufname'], context['input'])
+        res = client.getWorkspaceSymbols(context['__bufname'], context['input'])
         if res is None:
             return []
         candidates = self.convertToCandidate(res, context)

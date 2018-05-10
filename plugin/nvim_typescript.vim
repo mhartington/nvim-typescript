@@ -3,7 +3,6 @@ if exists('g:nvim_typescript#loaded')
 endif
 
 " Some settings {{{
-
 let g:nvim_typescript#loaded = 1
 let g:nvim_typescript#ts_version = 'typescript@2.4.0'
 let g:nvim_typescript#version = '1.4.0'
@@ -32,6 +31,8 @@ let g:nvim_typescript#debug_enabled =
       \ get(g:, 'nvim_typescript#debug_enabled', 0)
 let g:nvim_typescript#debug_settings =
       \ get(g:, 'nvim_typescript#debug_settings', {'file': 'nvim-typescript-tsserver.log', 'level': 'normal'})
+let g:nvim_typescript#follow_dir_change =
+      \ get(g:, 'nvim_typescript#follow_dir_change', 0)
 let s:kind_symbols = {
     \ 'keyword': 'keyword',
     \ 'class': 'class',
@@ -65,6 +66,7 @@ let g:nvim_typescript#kind_symbols =
       \ get(g:, 'nvim_typescript#kind_symbols', s:kind_symbols)
 
 "}}}
+
 augroup nvim-typescript "{{{
   autocmd!
 
@@ -111,9 +113,13 @@ augroup nvim-typescript "{{{
   endif
   if get(g:, 'nvim_typescript#type_info_on_hold', 1)
     autocmd CursorHold *.ts,*.tsx TSType
-  endif "}}}
+  endif
+  if get(g:, 'nvim_typescript#follow_dir_change', 1)
+    autocmd DirChanged * call TSOnBufSave()
+  endif
+  "}}}
 
   autocmd BufWritePost tsconfig.json TSReloadProject
-
   autocmd User CmSetup call cm#sources#typescript#register()
+
 augroup end "}}}

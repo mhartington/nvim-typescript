@@ -1,15 +1,16 @@
 #! /usr/bin/env python3
 
-import sys
 import os
 import re
-import neovim
-from time import time
-from tempfile import NamedTemporaryFile
+import sys
 from functools import wraps
+from tempfile import NamedTemporaryFile
+from time import time
+
+import neovim
+from .utils import *
 sys.path.insert(1, os.path.dirname(__file__))
 import client
-import utils
 
 RELOAD_INTERVAL = 1
 
@@ -56,7 +57,6 @@ class TypescriptHost(object):
     def __init__(self, vim):
         self.vim = vim
         self._last_input_reload = time()
-        self.cwd = os.getcwd()
         self.highlight_source = 0
         client.logFunc = self.log
 
@@ -76,7 +76,8 @@ class TypescriptHost(object):
         else:
             return self.vim.current.buffer.name
 
-    def reload(self):
+    @neovim.function('TSRefresh')
+    def reload(self, args=None):
         """
         Call tsserver.reload()
         """
@@ -152,9 +153,11 @@ class TypescriptHost(object):
             displayString = displayString.split('\n')
             message = displayString + documentation
             buf = self.vim.eval("bufnr('__doc__')")
+            self.log(buf)
             if buf > 0:
                 wi = self.vim.eval(
                     "index(tabpagebuflist(tabpagenr())," + str(buf) + ")")
+                self.log(wi)
                 if wi >= 0:
                     self.vim.command(str(wi + 1) + 'wincmd w')
                 else:
@@ -243,25 +246,49 @@ class TypescriptHost(object):
             defLine = '{0}'.format(typeDefRes[0]['start']['line'])
             self.vim.command('e +' + defLine + ' ' + defFile)
 
+    @neovim.command('TSSortImports')
+    @ts_check_server()
+    @ts_version_support(280)
+    def sortImports(self):
+        file = self.vim.current.buffer.name
+        args = {
+            "scope": {
+                "type": "file",
+                "args": {
+                    "file": file
+                }
+            }
+        }
+        sortImportsReq = client.execute('organizeImports', args)
+        self.applyImportOrganize(sortImportsReq[0]['textChanges'])
+
+    def applyImportOrganize(self, fixes):
+        delete_range = [fixes[0]['start']['line'], fixes[-1]['start']['line']]
+        self.vim.funcs.cursor(delete_range[0])
+        self.vim.command('normal d{}G'.format(delete_range[-1]))
+        formatted = list(filter(None, fixes[0]['newText'].split("\n")))
+        self.vim.current.buffer.append(formatted, 0)
+
+
+
     @neovim.command("TSRename", nargs="*")
     @ts_check_server()
     def tsrename(self, args):
         """
         Rename the current symbol
         """
-        self.reload()
         symbol = self.vim.eval('expand("<cword>")')
         if not args:
-            newName = self.vim.call(
-                'input', 'nvim-ts: rename {0} to '.format(symbol))
+            newName = self.vim.funcs.input(
+                'nvim-ts: rename {0} to '.format(symbol))
         else:
             newName = args[0]
         file = self.vim.current.buffer.name
         originalLine = self.vim.current.window.cursor[0]
         offset = self.vim.current.window.cursor[1] + 1
+        self.reload()
 
         renameRes = client.renameSymbol(file, originalLine, offset)
-
         if (renameRes) and (renameRes['info']['canRename']):
             locs = renameRes['locs']
             changeCount = 0
@@ -270,14 +297,12 @@ class TypescriptHost(object):
                 for rename in loc['locs']:
                     line = rename['start']['line']
                     col = rename['start']['offset']
-                    self.vim.command(
-                        'cal cursor({}, {})'.format(line, col))
+                    self.vim.funcs.cursor(line, col)
                     self.vim.command('normal cw{}'.format(newName))
                     changeCount += 1
-            self.vim.command(
-                'cal cursor({}, {})'.format(originalLine, offset))
+            self.vim.funcs.cursor(originalLine, offset)
             self.vim.out_write(
-                'Replaced {} occurences in {} files \n'.format(len(locs), changeCount))
+                'Replaced {} occurences in {} files \n'.format(changeCount, len(locs)))
         else:
             self.printError(renameRes['info']['localizedErrorMessage'])
 
@@ -290,14 +315,14 @@ class TypescriptHost(object):
         cursor = self.vim.current.window.cursor
         cursorPosition = {"line": cursor[0], "col": cursor[1] + 1}
 
-        currentlyImportedItems = utils.getCurrentImports(
+        currentlyImportedItems = getCurrentImports(
             client, self.relative_file())
 
         if symbol in currentlyImportedItems:
             self.printMsg("%s is already imported\n" % symbol)
             return
 
-        results = utils.getImportCandidates(
+        results = getImportCandidates(
             client, self.relative_file(), cursorPosition)
 
         # No imports
@@ -381,7 +406,7 @@ class TypescriptHost(object):
         else:
             docSysmbolsLoc = []
             symbolList = docSysmbols['childItems']
-            filename = re.sub(self.cwd + '/', '', self.relative_file())
+            filename = self.relative_file()
             if len(symbolList) > -1:
                 for symbol in symbolList:
                     docSysmbolsLoc.append({
@@ -413,10 +438,10 @@ class TypescriptHost(object):
             return []
         else:
             symbolList = searchSymbols
-            filename = re.sub(self.cwd + '/', '', self.relative_file())
+            filename = self.relative_file()
             if len(symbolList) > -1:
                 return list(map(lambda symbol: {
-                            'filename': re.sub(self.cwd + '/', '', symbol['file']),
+                            'filename': symbol['file'],
                             'lnum': symbol['start']['line'],
                             'col': symbol['start']['offset'],
                             'text': '(' + symbol['kind'] + '): ' + symbol['name']
@@ -461,16 +486,16 @@ class TypescriptHost(object):
         if info:
             signatureHelpItems = list(map(lambda item: {
                 'variableArguments': item['isVariadic'],
-                'prefix': utils.convertToDisplayString(item['prefixDisplayParts']),
-                'suffix': utils.convertToDisplayString(item['suffixDisplayParts']),
-                'separator': utils.convertToDisplayString(item['separatorDisplayParts']),
+                'prefix': convertToDisplayString(item['prefixDisplayParts']),
+                'suffix': convertToDisplayString(item['suffixDisplayParts']),
+                'separator': convertToDisplayString(item['separatorDisplayParts']),
                 'parameters': list(map(lambda p: {
-                    'text': utils.convertToDisplayString(p['displayParts']),
-                    'documentation': utils.convertToDisplayString(p['documentation']),
+                    'text': convertToDisplayString(p['displayParts']),
+                    'documentation': convertToDisplayString(p['documentation']),
                 }, item['parameters']))
             }, info['items']))
-            params = utils.getParams(signatureHelpItems[0][
-                                     'parameters'], signatureHelpItems[0]['separator'])
+            params = getParams(signatureHelpItems[0][
+                'parameters'], signatureHelpItems[0]['separator'])
             self.printHighlight(params)
 
     @neovim.command("TSRefs")
@@ -482,16 +507,14 @@ class TypescriptHost(object):
         self.reload()
         file = self.vim.current.buffer.name
         line = self.vim.current.window.cursor[0]
-        offset = self.vim.current.window.cursor[1] + 2
-
+        offset = self.vim.current.window.cursor[1] + 1
         refs = client.getRef(file, line, offset)
-
         if refs:
             truncateAfter = self.vim.eval(
                 'g:nvim_typescript#loc_list_item_truncate_after')
             location_list = []
             refList = refs["refs"]
-            if len(refList) > -1:
+            if len(refList) > 0:
                 for ref in refList:
                     lineText = re.sub('^\s+', '', ref['lineText'])
                     if (truncateAfter == -1) or (len(lineText) <= truncateAfter):
@@ -499,7 +522,7 @@ class TypescriptHost(object):
                     else:
                         lineText = (lineText[:truncateAfter] + '...')
                     location_list.append({
-                        'filename': re.sub(self.cwd + '/', '', ref['file']),
+                        'filename': ref['file'],
                         'lnum': ref['start']['line'],
                         'col': ref['start']['offset'],
                         'text': lineText
@@ -507,8 +530,8 @@ class TypescriptHost(object):
                 self.vim.call('setloclist', 0, location_list,
                               'r', 'References')
                 self.vim.command('lwindow')
-            else:
-                self.printError('References not found')
+        else:
+            self.printError('References not found')
 
     # Edit your tsconfig
     @neovim.command("TSEditConfig")
@@ -531,6 +554,7 @@ class TypescriptHost(object):
     # Omnifunc for regular neovim
     @neovim.function('TSOmnicFunc', sync=True)
     def tsomnifunc(self, args):
+        self.log(args)
         if args[0]:
             return self.tsfindstart()
         else:
@@ -542,7 +566,6 @@ class TypescriptHost(object):
         line = self.vim.current.window.cursor[0]
         col = self.vim.current.window.cursor[1] + 1
         file = self.relative_file()
-
         if len(args) > 1:
             prefix = args[0]
             col = args[1][0]
@@ -559,7 +582,8 @@ class TypescriptHost(object):
             for entry in data:
                 if entry["kind"] != "warning":
                     filtered.append(entry)
-            return [utils.convert_completion_data(e, self.vim) for e in filtered]
+            # self.vim.funcs.complete(col, [convert_completion_data(e, self.vim) for e in filtered])
+            return [convert_completion_data(e, self.vim) for e in filtered]
         names = []
         for entry in data:
             if (entry["kind"] != "warning"):
@@ -568,13 +592,14 @@ class TypescriptHost(object):
             file, line, col, names)
         if len(detailed_data) == 0:
             return []
-        return [utils.convert_detailed_completion_data(e, self.vim) for e in
-                detailed_data]
+        # self.vim.funcs.complete(col, [convert_detailed_completion_data(e, self.vim) for e in detailed_data])
+        return [convert_detailed_completion_data(e, self.vim) for e in detailed_data]
 
     @neovim.function('TSFindStart', sync=True)
     def tsfindstart(self):
         line_str = self.vim.current.line
         m = re.search(r"\w*$", line_str)
+        # self.log(m.start() if m else -1)
         return m.start() if m else -1
 
     # Server utils, Status, version, path
@@ -655,7 +680,7 @@ class TypescriptHost(object):
                 if entry["kind"] != "warning":
                     filtered.append(entry)
             matches = [
-                utils.convert_completion_data(e, self.vim)
+                convert_completion_data(e, self.vim)
                 for e in filtered]
             self.vim.call('cm#complete', info, ctx, startcol, matches)
             return
@@ -678,10 +703,8 @@ class TypescriptHost(object):
         if len(detailed_data) == 0:
             return
 
-        matches = [
-            utils.convert_detailed_completion_data(e,
-                                                   self.vim)
-            for e in detailed_data]
+        matches = [convert_detailed_completion_data(
+            e, self.vim) for e in detailed_data]
         self.vim.call('cm#complete', info, ctx, startcol, matches)
 
     """

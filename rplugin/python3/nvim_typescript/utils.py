@@ -89,7 +89,7 @@ def convert_detailed_completion_data(entry, vim):
         documentation += "\n" + \
             "".join([d["text"] for d in entry["documentation"]])
 
-    kind = getKind(vim, entry['kind'])[0].title()
+    kind = getKind(vim, entry['kind']).title()
     # if isDeoplete:
     #     menu = menu_text
     # else:
