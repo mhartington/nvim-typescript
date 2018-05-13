@@ -1,14 +1,7 @@
 #! /usr/bin/env python3
 
 from operator import itemgetter
-import sys
-import os
 from .base import Base
-
-# sys.path.insert(1, os.path.join(os.path.dirname(__file__), '..','..', 'nvim_typescript'))
-
-# import client
-# from utils import getKind
 
 
 class Source(Base):
@@ -39,7 +32,6 @@ class Source(Base):
         return candidates
 
     def gather_candidates(self, context):
-        # return []
         bufname = self.vim.current.buffer.name
         responce = self.vim.funcs.TSGetDocSymbolsFunc()
         if responce is None:
@@ -47,7 +39,7 @@ class Source(Base):
 
         candidates = self.convertToCandidate(responce)
         values = list(map(lambda symbol: {
-            'abbr': " {0}\t{1}".format(symbol['kindIcon'], symbol['text']),
+            'abbr': "{0}\t{1}".format(symbol['kindIcon'], symbol['text']),
             'word': symbol['text'],
             'action__line': symbol['lnum'],
             "action__path": bufname,

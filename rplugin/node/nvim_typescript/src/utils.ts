@@ -1,16 +1,16 @@
-import protocol from "typescript/lib/protocol";
+import protocol from 'typescript/lib/protocol';
 
 export function trim(s: string) {
-  return (s || "").replace(/^\s+|\s+$/g, "");
+  return (s || '').replace(/^\s+|\s+$/g, '');
 }
 
 export function convertToDisplayString(displayParts?: any[]) {
-  let ret = "";
+  let ret = '';
   if (!displayParts) {
     return ret;
   }
   for (let dp of displayParts) {
-    ret += dp["text"];
+    ret += dp['text'];
   }
   return ret;
 }
@@ -19,7 +19,7 @@ export function getParams(
   members: Array<{ text: string; documentation: string }>,
   separator: string
 ) {
-  let ret = "";
+  let ret = '';
   members.forEach((member, idx) => {
     if (idx === members.length - 1) {
       ret += member.text;
@@ -38,7 +38,7 @@ export async function getCurrentImports(client: any, inspectedFile: string) {
     });
     if (documentSymbols.childItems) {
       const imports = documentSymbols.childItems.map(items => {
-        if (items.kind === "alias") {
+        if (items.kind === 'alias') {
           currentImports.push(items.text);
         }
       });
@@ -51,7 +51,7 @@ export async function getImportCandidates(
   client: any,
   currentFile: string,
   cursorPosition: { line: number; col: number }
-): Promise<protocol.CodeFixResponse["body"]> {
+): Promise<protocol.CodeFixResponse['body']> {
   const cannotFindNameError = 2304;
   const args = {
     file: currentFile,
@@ -63,6 +63,7 @@ export async function getImportCandidates(
   };
   return await client.getCodeFixesAtCursor(args);
 }
+
 export function convertEntry(
   entry: protocol.CompletionEntry
 ): { word: string; kind: string } {
@@ -71,18 +72,19 @@ export function convertEntry(
     kind: entry.kind
   };
 }
+
 export function convertDetailEntry(
   entry: protocol.CompletionEntryDetails
 ): { word: string; kind: string; menu: string } {
   let displayParts = entry.displayParts;
-  let signature = "";
+  let signature = '';
   for (let p of displayParts) {
     signature += p.text;
   }
-  signature = signature.replace(/\s+/gi, " ");
+  signature = signature.replace(/\s+/gi, ' ');
   let menuText = signature.replace(
     /^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+/gi,
-    ""
+    ''
   );
   let documentation = menuText;
 
@@ -92,3 +94,10 @@ export function convertDetailEntry(
     menu: menuText
   };
 }
+
+export function getLocale(procEnv) {
+  const lang =
+    procEnv.LC_ALL || procEnv.LC_MESSAGES || procEnv.LANG || procEnv.LANGUAGE;
+  return lang && lang.replace(/[.:].*/, '').replace(/[_:].*/, '');
+}
+
