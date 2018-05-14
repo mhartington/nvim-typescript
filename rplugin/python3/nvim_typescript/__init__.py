@@ -269,8 +269,6 @@ class TypescriptHost(object):
         formatted = list(filter(None, fixes[0]['newText'].split("\n")))
         self.vim.current.buffer.append(formatted, 0)
 
-
-
     @neovim.command("TSRename", nargs="*")
     @ts_check_server()
     def tsrename(self, args):
@@ -294,12 +292,16 @@ class TypescriptHost(object):
             changeCount = 0
             for loc in locs:
                 defFile = loc['file']
+                self.vim.command('e! {}'.format(defFile))
+                substitutions = []
                 for rename in loc['locs']:
                     line = rename['start']['line']
                     col = rename['start']['offset']
-                    self.vim.funcs.cursor(line, col)
-                    self.vim.command('normal cw{}'.format(newName))
+                    substitutions.append('{}substitute/\%{}c{}/{}/'.format(line, col, symbol, newName))
                     changeCount += 1
+                self.vim.command(' | '.join(substitutions))
+
+            self.vim.command('e! {}'.format(file))
             self.vim.funcs.cursor(originalLine, offset)
             self.vim.out_write(
                 'Replaced {} occurences in {} files \n'.format(changeCount, len(locs)))
