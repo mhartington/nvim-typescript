@@ -294,12 +294,13 @@ class TypescriptHost(object):
             changeCount = 0
             for loc in locs:
                 defFile = loc['file']
+                substitutions = []
                 for rename in loc['locs']:
                     line = rename['start']['line']
                     col = rename['start']['offset']
-                    self.vim.funcs.cursor(line, col)
-                    self.vim.command('normal cw{}'.format(newName))
+                    substitutions.append('{}s/\%{}c{}/{}/'.format(line, col, symbol, newName))
                     changeCount += 1
+                self.vim.command(' | '.join(substitutions))
             self.vim.funcs.cursor(originalLine, offset)
             self.vim.out_write(
                 'Replaced {} occurences in {} files \n'.format(changeCount, len(locs)))
