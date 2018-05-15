@@ -298,7 +298,7 @@ class TypescriptHost(object):
                 for rename in loc['locs']:
                     line = rename['start']['line']
                     col = rename['start']['offset']
-                    substitutions.append('{}s/\%{}c{}/{}/'.format(line, col, symbol, newName))
+                    substitutions.append('{}substitute/\%{}c{}/{}/'.format(line, col, symbol, newName))
                     changeCount += 1
                 self.vim.command(' | '.join(substitutions))
             self.vim.funcs.cursor(originalLine, offset)
