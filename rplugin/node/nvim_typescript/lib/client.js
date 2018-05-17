@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const child_process_1 = require("child_process");
+const path_1 = require("path");
 const fs_1 = require("fs");
-const readline_1 = require("readline");
 const os_1 = require("os");
+const readline_1 = require("readline");
 const utils_1 = require("./utils");
 var Client;
 (function (Client) {
@@ -13,6 +14,7 @@ var Client;
     Client._cwd = process.cwd();
     Client._env = process.env;
     Client.serverPath = 'tsserver';
+    Client.serverOptions = [];
     Client.logFunc = null;
     Client.tsConfigVersion = null;
     // Get server, set server
@@ -21,8 +23,9 @@ var Client;
     }
     Client.getServerPath = getServerPath;
     function setServerPath(val) {
-        if (fs_1.existsSync(val)) {
-            Client.serverPath = val;
+        const normalizedPath = path_1.normalize(val);
+        if (fs_1.existsSync(normalizedPath)) {
+            Client.serverPath = normalizedPath;
         }
     }
     Client.setServerPath = setServerPath;
@@ -31,7 +34,7 @@ var Client;
         new Promise((resolve, reject) => {
             // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
             Client.serverHandle = child_process_1.spawn(Client.serverPath, [
-                '--disableAutomaticTypingAcquisition',
+                ...Client.serverOptions,
                 `--locale=${utils_1.getLocale(process.env)}`
             ], {
                 stdio: 'pipe',

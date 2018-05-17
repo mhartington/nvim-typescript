@@ -19,19 +19,20 @@ INTRO                                                        *typescript-intro*
 
 Typescript support for Vim. Nvim-typescript provide standard IDE-like features
 like auto-completion, viewing of documentation, type-signature, go to
-definition, and refernce finder.
+definition, and reference finder.
 
 
 ===============================================================================
 INSTALL                                                    *typescript-install*
 
 To install, use your typical plugin manager and add a reference in your
-init.vim. If you'd like completion support, install Deoplete.nvim as well.
+init.vim. If you'd like async-completion support, install Deoplete.nvim or
+nvim-completion-manager.
 
 *  https://github.com/junegunn/vim-plug >
 
-    Plug 'Shougo/deoplete.nvim'
     Plug 'mhartington/nvim-typescript'
+    Plug 'Shougo/deoplete.nvim'
 <
 
 *  https://github.com/Shougo/dein.vim >
@@ -40,22 +41,20 @@ init.vim. If you'd like completion support, install Deoplete.nvim as well.
     call dein#add('mhartington/nvim-typescript')
 <
 
+You also need the node-client for neovim installed globally. >
+
+npm install -g neovim
+
+<
+
 In you install Deoplete as well, make sure you also have the python3 bindings
 to Neovim. >
 
 pip3 install neovim
 
 
-
-
-
 Then run `UpdateRemotePlugins`.
 
-
-Currently, a global install of typescript is required. So make sure your have
-it installed with >
-
-npm install -g typescript
 
 
 ===============================================================================
@@ -109,11 +108,11 @@ COMMANDS                                                  *typescript-commands*
 
 ===============================================================================
 VARIABLES                                                *typescript-variables*
-                                                *g:nvim_typescript#server_path*
 
+                                                *g:nvim_typescript#server_path*
 g:nvim_typescript#server_path
 Values: string
-Default: ''./node_modules/.bin/tsserver'
+Default: './node_modules/.bin/tsserver'
 
     Set the path of the tsserver. By default, this will be your projects local
     copy in node_modules. If you would like to point this elsewhere, set this

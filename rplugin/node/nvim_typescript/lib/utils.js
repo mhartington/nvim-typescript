@@ -14,9 +14,8 @@ function trim(s) {
 exports.trim = trim;
 function convertToDisplayString(displayParts) {
     let ret = '';
-    if (!displayParts) {
+    if (!displayParts)
         return ret;
-    }
     for (let dp of displayParts) {
         ret += dp['text'];
     }
@@ -38,19 +37,18 @@ function getParams(members, separator) {
 exports.getParams = getParams;
 function getCurrentImports(client, inspectedFile) {
     return __awaiter(this, void 0, void 0, function* () {
-        let currentImports = [];
         return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
             const documentSymbols = yield client.getDocumentSymbols({
                 file: inspectedFile
             });
             if (documentSymbols.childItems) {
-                const imports = documentSymbols.childItems.map(items => {
-                    if (items.kind === 'alias') {
-                        currentImports.push(items.text);
-                    }
-                });
+                return resolve(documentSymbols.childItems
+                    .filter(item => item.kind === 'alias')
+                    .map(item => item.text));
             }
-            return resolve(currentImports);
+            else {
+                return reject();
+            }
         }));
     });
 }

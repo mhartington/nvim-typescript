@@ -17,23 +17,24 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const fs = require("fs");
 const neovim_1 = require("neovim");
 const tmp_1 = require("tmp");
 const client_1 = require("./client");
 const utils_1 = require("./utils");
+const fs_1 = require("fs");
 let TSHost = class TSHost {
     constructor(nvim) {
         this.client = client_1.Client;
-        this.last_input_reload = new Date().getTime();
-        this.reloadInterval = 1;
         this.nvim = nvim;
         this.nvim
             .getVar('nvim_typescript#max_completion_detail')
-            .then(res => (this.maxCompletion = parseFloat(res)));
+            .then((res) => (this.maxCompletion = parseFloat(res)));
         this.nvim
             .getVar('nvim_typescript#server_path')
-            .then(val => this.client.setServerPath(val));
+            .then((val) => this.client.setServerPath(val));
+        this.nvim
+            .getVar('nvim_typescript#server_options')
+            .then((val) => this.client.serverOptions = val);
     }
     getType() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -41,8 +42,7 @@ let TSHost = class TSHost {
             const args = yield this.getCommonData();
             const typeInfo = yield this.client.quickInfo(args);
             if (typeInfo) {
-                // await this.printMsg(`${typeInfo.displayString}`);
-                yield this.printMsg(`${typeInfo.displayString.replace(/(\r\n|\n|\r)\s*/gm, "")}`);
+                yield this.printMsg(`${typeInfo.displayString.replace(/(\r\n|\n|\r)/gm, '')}`);
             }
         });
     }
@@ -72,7 +72,8 @@ let TSHost = class TSHost {
             }
             const results = yield utils_1.getImportCandidates(this.client, file, cursorPosition);
             let fixes;
-            // # No imports
+            // No imports
+            console.log(results);
             if (results.length === 0) {
                 this.printMsg('No imports canidates were found.');
             }
@@ -81,10 +82,8 @@ let TSHost = class TSHost {
             }
             else {
                 const changeDescriptions = results.map(change => change.description);
-                const canidates = changeDescriptions.map((change, idx) => {
-                    return `\n[${idx}]: ${change}`;
-                });
-                const input = yield this.nvim.call('input', `nvim-ts: More than 1 candidate found, Select from the following options: ${canidates} \nplease choose one: `);
+                const canidates = changeDescriptions.map((change, idx) => `\n[${idx}]: ${change}`);
+                const input = yield this.nvim.call('input', `nvim-ts: More than 1 candidate found, Select from the following options: \n${canidates} \nplease choose one: `);
                 if (!input) {
                     this.printErr('Inport canceled');
                     return;
@@ -140,23 +139,26 @@ let TSHost = class TSHost {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.reloadFile();
             const args = yield this.getCommonData();
-            this.client
-                .quickInfo(args)
-                .then(sigRes => this.nvim.command(`redraws! | echom "nvim-ts: " | echohl Function | echon \"${sigRes.displayString} \" | echohl None`), err => this.printErr('No signature'));
+            const signature = yield this.client.quickInfo(args);
+            if (signature) {
+                yield this.printHighlight(signature.displayString);
+            }
         });
     }
     getDef() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.getDefFunc().then(defRes => {
-                this.nvim.command(`e +${defRes[0].start.line} ${defRes[0].file}`);
-            }, err => this.printErr('No definition for symbol'));
+            const definition = yield this.getDefFunc();
+            if (definition) {
+                this.nvim.command(`e +${definition[0].start.line} ${definition[0].file}`);
+            }
         });
     }
     getDefPreview() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.getDefFunc().then(defRes => {
-                this.nvim.command(`split! +${defRes[0].start.line} ${defRes[0].file}`);
-            }, err => this.printErr('No definition for symbol'));
+            const definition = yield this.getDefFunc();
+            if (definition) {
+                this.nvim.command(`split! +${definition[0].start.line} ${definition[0].file}`);
+            }
         });
     }
     getDefFunc() {
@@ -291,7 +293,7 @@ let TSHost = class TSHost {
             yield this.reloadFile();
             const projectInfo = yield this.getProjectInfoFunc();
             if (projectInfo) {
-                if (fs.statSync(projectInfo.configFileName).isFile()) {
+                if (fs_1.statSync(projectInfo.configFileName).isFile()) {
                     this.nvim.command(`e ${projectInfo.configFileName}`);
                 }
                 else {
@@ -340,7 +342,9 @@ let TSHost = class TSHost {
                 file,
                 line,
                 offset,
-                prefix
+                prefix,
+                includeInsertTextCompletions: false,
+                includeExternalModuleExports: false
             });
             // console.log("completion: ", completions);
             // K, we got our first set of completion data, now lets sort...
@@ -416,7 +420,6 @@ let TSHost = class TSHost {
     }
     getWorkspaceSymbolsFunc(args) {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log(args);
             const searchValue = args.length > 0 ? args[0] : '';
             const maxResultCount = 50;
             return yield this.client.getWorkspaceSymbols({
@@ -424,7 +427,6 @@ let TSHost = class TSHost {
                 searchValue: searchValue,
                 maxResultCount: 50
             });
-            // console.log(args[0])
         });
     }
     getProjectInfoFunc() {
@@ -514,7 +516,9 @@ let TSHost = class TSHost {
                 file,
                 line,
                 offset,
-                prefix
+                prefix,
+                includeInsertTextCompletions: false,
+                includeExternalModuleExports: false
             });
             if (data.length === 0)
                 return [];
@@ -571,7 +575,7 @@ let TSHost = class TSHost {
                 const contents = (yield this.nvim.buffer.lines).join('\n');
                 console.debug('FILE', file);
                 const temp = tmp_1.fileSync();
-                fs.writeFileSync(temp.name, contents, 'utf8');
+                fs_1.writeFileSync(temp.name, contents, 'utf8');
                 return this.client
                     .updateFile({ file, tmpfile: temp.name })
                     .then(res => resolve(res));
@@ -757,10 +761,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TSHost.prototype, "onCMRefresh", null);
 TSHost = __decorate([
-    neovim_1.Plugin({
-        dev: true,
-        name: 'nvim_typescript'
-    }),
+    neovim_1.Plugin({ dev: true }),
     __metadata("design:paramtypes", [Object])
 ], TSHost);
 exports.default = TSHost;

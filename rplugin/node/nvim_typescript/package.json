@@ -4,24 +4,20 @@
   "description": "",
   "main": "./lib/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "watch": "tsc -p tsconfig.json --watch true"
+    "build": "tsc --pretty -p tsconfig.json",
+    "watch": "tsc --pretty -p tsconfig.json --watch true"
   },
   "keywords": [],
   "author": "Mike Hartington <mikehartington@gmail.com>",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
-    "@types/node": "^7.0.31",
-    "@types/tempfile": "^1.1.5",
+    "@types/node": "^10.0.8",
     "@types/tmp": "0.0.33",
-    "better-console": "^1.0.0",
     "tslint": "^5.4.3",
-    "typescript": "2.3.4"
+    "typescript": "^2.8.3"
   },
   "dependencies": {
-    "neovim": "^3.5.2",
-    "temp-write": "^3.3.0",
-    "tempfile": "^2.0.0",
-    "tmp": "0.0.31"
+    "neovim": "^4.0.1",
+    "tmp": "0.0.33"
   }
 }

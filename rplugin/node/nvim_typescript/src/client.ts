@@ -1,10 +1,14 @@
 import { spawn, ChildProcess, execSync } from 'child_process';
+import { normalize } from 'path';
 import { EventEmitter } from 'events';
 import { existsSync } from 'fs';
-import { createInterface } from 'readline';
 import { EOL } from 'os';
+import { createInterface } from 'readline';
+
 import protocol from 'typescript/lib/protocol';
+
 import { trim, getLocale } from './utils';
+
 export namespace Client {
   export let serverHandle: ChildProcess = null;
   export let _rl: any;
@@ -13,6 +17,7 @@ export namespace Client {
   export let _cwd = process.cwd();
   export let _env = process.env;
   export let serverPath = 'tsserver';
+  export let serverOptions = [];
   export let logFunc: Function = null;
   export let tsConfigVersion: {
     major: number;
@@ -24,8 +29,9 @@ export namespace Client {
     return serverPath;
   }
   export function setServerPath(val: string) {
-    if (existsSync(val)) {
-      serverPath = val;
+    const normalizedPath = normalize(val);
+    if (existsSync(normalizedPath)) {
+      serverPath = normalizedPath;
     }
   }
 
@@ -36,7 +42,7 @@ export namespace Client {
       serverHandle = spawn(
         serverPath,
         [
-          '--disableAutomaticTypingAcquisition',
+          ...serverOptions,
           `--locale=${getLocale(process.env)}`
         ],
         {

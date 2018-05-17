@@ -6,9 +6,7 @@ export function trim(s: string) {
 
 export function convertToDisplayString(displayParts?: any[]) {
   let ret = '';
-  if (!displayParts) {
-    return ret;
-  }
+  if (!displayParts) return ret;
   for (let dp of displayParts) {
     ret += dp['text'];
   }
@@ -31,19 +29,19 @@ export function getParams(
 }
 
 export async function getCurrentImports(client: any, inspectedFile: string) {
-  let currentImports = [];
   return new Promise(async (resolve, reject) => {
     const documentSymbols = await client.getDocumentSymbols({
       file: inspectedFile
     });
     if (documentSymbols.childItems) {
-      const imports = documentSymbols.childItems.map(items => {
-        if (items.kind === 'alias') {
-          currentImports.push(items.text);
-        }
-      });
+      return resolve(
+        documentSymbols.childItems
+          .filter(item => item.kind === 'alias')
+          .map(item => item.text)
+      );
+    } else {
+      return reject();
     }
-    return resolve(currentImports);
   });
 }
 
@@ -100,4 +98,3 @@ export function getLocale(procEnv) {
     procEnv.LC_ALL || procEnv.LC_MESSAGES || procEnv.LANG || procEnv.LANGUAGE;
   return lang && lang.replace(/[.:].*/, '').replace(/[_:].*/, '');
 }
-
