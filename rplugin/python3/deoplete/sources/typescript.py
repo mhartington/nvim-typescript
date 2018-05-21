@@ -38,7 +38,7 @@ class Source(Base):
         self.debug('************')
 
     def get_complete_position(self, context):
-        m = re.search(r"\w$", context['input'])
+        m = re.search(r"\w*$", context["input"], re.IGNORECASE)
         return m.start() if m else -1
 
     def gather_candidates(self, context):
