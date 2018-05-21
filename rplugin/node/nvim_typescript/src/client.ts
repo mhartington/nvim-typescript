@@ -41,10 +41,7 @@ export namespace Client {
       // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
       serverHandle = spawn(
         serverPath,
-        [
-          ...serverOptions,
-          `--locale=${getLocale(process.env)}`
-        ],
+        [...serverOptions, `--locale=${getLocale(process.env)}`],
         {
           stdio: 'pipe',
           cwd: _cwd,

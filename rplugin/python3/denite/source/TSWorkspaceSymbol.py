@@ -17,10 +17,16 @@ class Source(Base):
         context['is_async'] = False
         context['file'] = self.vim.current.buffer.name
 
+    def getKind(self, kind):
+        if kind in self.vim.vars["nvim_typescript#kind_symbols"].keys():
+            return self.vim.vars["nvim_typescript#kind_symbols"][kind]
+        else:
+            return kind
+
     def convertToCandidate(self, symbols, context):
         return list(map(lambda symbol: {
             't': symbol['name'],
-            'i': symbol['kind'],
+            'i': self.getKind(symbol['kind']),
             'l': symbol['start']['line'],
             'c': symbol['start']['offset'],
             'f': symbol['file']

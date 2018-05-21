@@ -68,27 +68,33 @@ function getImportCandidates(client, currentFile, cursorPosition) {
     });
 }
 exports.getImportCandidates = getImportCandidates;
-function convertEntry(entry) {
-    return {
-        word: entry.name,
-        kind: entry.kind
-    };
+function convertEntry(nvim, entry) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let kind = yield getKind(nvim, entry.kind);
+        return {
+            word: entry.name,
+            kind: kind
+        };
+    });
 }
 exports.convertEntry = convertEntry;
-function convertDetailEntry(entry) {
-    let displayParts = entry.displayParts;
-    let signature = '';
-    for (let p of displayParts) {
-        signature += p.text;
-    }
-    signature = signature.replace(/\s+/gi, ' ');
-    let menuText = signature.replace(/^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+/gi, '');
-    let documentation = menuText;
-    return {
-        word: entry.name,
-        kind: entry.kind[0].toUpperCase(),
-        menu: menuText
-    };
+function convertDetailEntry(nvim, entry) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let displayParts = entry.displayParts;
+        let signature = '';
+        for (let p of displayParts) {
+            signature += p.text;
+        }
+        signature = signature.replace(/\s+/gi, ' ');
+        let menuText = signature.replace(/^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+/gi, '');
+        // let documentation = menuText;
+        let kind = yield getKind(nvim, entry.kind);
+        return {
+            word: entry.name,
+            kind: kind,
+            menu: menuText
+        };
+    });
 }
 exports.convertDetailEntry = convertDetailEntry;
 function getLocale(procEnv) {
@@ -96,3 +102,17 @@ function getLocale(procEnv) {
     return lang && lang.replace(/[.:].*/, '').replace(/[_:].*/, '');
 }
 exports.getLocale = getLocale;
+function getKind(nvim, kind) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const icons = yield nvim.getVar('nvim_typescript#kind_symbols');
+        if (kind in icons)
+            return icons[kind];
+        return kind;
+    });
+}
+exports.getKind = getKind;
+function toTitleCase(str) {
+    return str.replace(/\w\S*/g, function (txt) {
+        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+}

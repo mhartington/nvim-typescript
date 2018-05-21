@@ -34,7 +34,7 @@ let TSHost = class TSHost {
             .then((val) => this.client.setServerPath(val));
         this.nvim
             .getVar('nvim_typescript#server_options')
-            .then((val) => this.client.serverOptions = val);
+            .then((val) => (this.client.serverOptions = val));
     }
     getType() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -68,16 +68,15 @@ let TSHost = class TSHost {
             const cursorPosition = { line, col };
             const currentlyImportedItems = yield utils_1.getCurrentImports(this.client, file);
             if (currentlyImportedItems.includes(symbol)) {
-                this.printMsg(`${symbol} is already imported`);
+                yield this.printMsg(`${symbol} is already imported`);
             }
             const results = yield utils_1.getImportCandidates(this.client, file, cursorPosition);
             let fixes;
             // No imports
-            console.log(results);
-            if (results.length === 0) {
-                this.printMsg('No imports canidates were found.');
+            if (!results.length) {
+                return this.printMsg('No imports canidates were found.');
             }
-            if (results.length === 1) {
+            else if (results.length === 1) {
                 fixes = results[0].changes;
             }
             else {
@@ -85,11 +84,11 @@ let TSHost = class TSHost {
                 const canidates = changeDescriptions.map((change, idx) => `\n[${idx}]: ${change}`);
                 const input = yield this.nvim.call('input', `nvim-ts: More than 1 candidate found, Select from the following options: \n${canidates} \nplease choose one: `);
                 if (!input) {
-                    this.printErr('Inport canceled');
+                    yield this.printErr('Inport canceled');
                     return;
                 }
                 if (parseInt(input) > results.length - 1) {
-                    this.printErr('Selection not valid');
+                    yield this.printErr('Selection not valid');
                     return;
                 }
                 else {
@@ -305,7 +304,6 @@ let TSHost = class TSHost {
     //Omni functions
     getCompletions(args) {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('calling omni', args);
             if (!!args[0]) {
                 let currentLine = yield this.nvim.line;
                 let [line, col] = yield this.getCursorPos();
@@ -323,7 +321,6 @@ let TSHost = class TSHost {
     }
     tsComplete(args) {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log(args);
             yield this.reloadFile();
             let file = yield this.getCurrentFile();
             let cursorPos = yield this.nvim.window.cursor;
@@ -337,7 +334,6 @@ let TSHost = class TSHost {
                 prefix = args[0];
                 offset = args[1];
             }
-            // console.log(line, offset, args);
             let completions = yield this.client.getCompletions({
                 file,
                 line,
@@ -346,11 +342,10 @@ let TSHost = class TSHost {
                 includeInsertTextCompletions: false,
                 includeExternalModuleExports: false
             });
-            // console.log("completion: ", completions);
             // K, we got our first set of completion data, now lets sort...
             // console.log(completions.length)
             if (completions.length > this.maxCompletion) {
-                return completions.map(v => utils_1.convertEntry(v));
+                return yield Promise.all(completions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertEntry(this.nvim, entry); })));
             }
             let entryNames = completions.map(v => v.name);
             let detailedCompletions = yield this.client.getCompletionDetails({
@@ -359,7 +354,7 @@ let TSHost = class TSHost {
                 offset,
                 entryNames
             });
-            return detailedCompletions.map(v => utils_1.convertDetailEntry(v));
+            return yield Promise.all(detailedCompletions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertDetailEntry(this.nvim, entry); })));
         });
     }
     //Display Doc symbols in loclist
@@ -523,11 +518,12 @@ let TSHost = class TSHost {
             if (data.length === 0)
                 return [];
             if (data.length > this.maxCompletion) {
+                const completions = yield Promise.all(data.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertEntry(this.nvim, entry); })));
                 yield this.nvim.call('cm#complete', [
                     info,
                     ctx,
                     startcol,
-                    data.map(v => utils_1.convertEntry(v))
+                    completions
                 ]);
                 return;
             }
@@ -538,11 +534,12 @@ let TSHost = class TSHost {
                 offset,
                 entryNames
             });
+            const detailedEntries = yield Promise.all(detailedCompletions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertDetailEntry(this.nvim, entry); })));
             yield this.nvim.call('cm#complete', [
                 info,
                 ctx,
                 startcol,
-                detailedCompletions.map(v => utils_1.convertDetailEntry(v))
+                detailedEntries
             ]);
         });
     }

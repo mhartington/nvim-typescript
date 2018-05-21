@@ -62,18 +62,21 @@ export async function getImportCandidates(
   return await client.getCodeFixesAtCursor(args);
 }
 
-export function convertEntry(
+export async function convertEntry(
+  nvim,
   entry: protocol.CompletionEntry
-): { word: string; kind: string } {
+): Promise<any> {
+  let kind = await getKind(nvim, entry.kind);
   return {
     word: entry.name,
-    kind: entry.kind
+    kind: kind
   };
 }
 
-export function convertDetailEntry(
+export async function convertDetailEntry(
+  nvim: any,
   entry: protocol.CompletionEntryDetails
-): { word: string; kind: string; menu: string } {
+): Promise<any> {
   let displayParts = entry.displayParts;
   let signature = '';
   for (let p of displayParts) {
@@ -84,11 +87,11 @@ export function convertDetailEntry(
     /^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+/gi,
     ''
   );
-  let documentation = menuText;
-
+  // let documentation = menuText;
+  let kind = await getKind(nvim, entry.kind);
   return {
     word: entry.name,
-    kind: entry.kind[0].toUpperCase(),
+    kind: kind,
     menu: menuText
   };
 }
@@ -97,4 +100,16 @@ export function getLocale(procEnv) {
   const lang =
     procEnv.LC_ALL || procEnv.LC_MESSAGES || procEnv.LANG || procEnv.LANGUAGE;
   return lang && lang.replace(/[.:].*/, '').replace(/[_:].*/, '');
+}
+
+export async function getKind(nvim: any, kind: string): Promise<any> {
+  const icons = await nvim.getVar('nvim_typescript#kind_symbols');
+  if (kind in icons) return icons[kind];
+  return kind;
+}
+
+function toTitleCase(str) {
+  return str.replace(/\w\S*/g, function(txt) {
+    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+  });
 }

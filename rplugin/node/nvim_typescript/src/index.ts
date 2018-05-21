@@ -30,7 +30,7 @@ export default class TSHost {
       .then((val: string) => this.client.setServerPath(val));
     this.nvim
       .getVar('nvim_typescript#server_options')
-      .then((val: any) => this.client.serverOptions = val);
+      .then((val: any) => (this.client.serverOptions = val));
   }
 
   @Command('TSType')
@@ -69,7 +69,7 @@ export default class TSHost {
 
     const currentlyImportedItems = await getCurrentImports(this.client, file);
     if ((currentlyImportedItems as Array<string>).includes(symbol)) {
-      this.printMsg(`${symbol} is already imported`);
+      await this.printMsg(`${symbol} is already imported`);
     }
     const results = await getImportCandidates(
       this.client,
@@ -78,11 +78,9 @@ export default class TSHost {
     );
     let fixes;
     // No imports
-    console.log(results)
-    if (results.length === 0) {
-      this.printMsg('No imports canidates were found.');
-    }
-    if (results.length === 1) {
+    if (!results.length) {
+      return this.printMsg('No imports canidates were found.');
+    } else if (results.length === 1) {
       fixes = results[0].changes;
     } else {
       const changeDescriptions = results.map(change => change.description);
@@ -95,11 +93,11 @@ export default class TSHost {
       );
 
       if (!input) {
-        this.printErr('Inport canceled');
+        await this.printErr('Inport canceled');
         return;
       }
       if (parseInt(input) > results.length - 1) {
-        this.printErr('Selection not valid');
+        await this.printErr('Selection not valid');
         return;
       } else {
         fixes = results[parseInt(input)].changes;
@@ -337,7 +335,6 @@ export default class TSHost {
   //Omni functions
   @Function('TSOmnicFunc', { sync: true })
   async getCompletions(args) {
-    console.log('calling omni', args);
     if (!!args[0]) {
       let currentLine = await this.nvim.line;
       let [line, col] = await this.getCursorPos();
@@ -354,7 +351,6 @@ export default class TSHost {
 
   @Function('TSComplete', { sync: true })
   async tsComplete(args: string | [string, number]) {
-    console.log(args);
     await this.reloadFile();
     let file = await this.getCurrentFile();
     let cursorPos = await this.nvim.window.cursor;
@@ -368,7 +364,6 @@ export default class TSHost {
       offset = args[1];
     }
 
-    // console.log(line, offset, args);
     let completions = await this.client.getCompletions({
       file,
       line,
@@ -377,11 +372,10 @@ export default class TSHost {
       includeInsertTextCompletions: false,
       includeExternalModuleExports: false
     });
-    // console.log("completion: ", completions);
     // K, we got our first set of completion data, now lets sort...
     // console.log(completions.length)
     if (completions.length > this.maxCompletion) {
-      return completions.map(v => convertEntry(v));
+      return await Promise.all(completions.map(async entry => await convertEntry(this.nvim, entry)));
     }
     let entryNames = completions.map(v => v.name);
     let detailedCompletions = await this.client.getCompletionDetails({
@@ -390,7 +384,7 @@ export default class TSHost {
       offset,
       entryNames
     });
-    return detailedCompletions.map(v => convertDetailEntry(v));
+    return await Promise.all(detailedCompletions.map(async entry => await convertDetailEntry(this.nvim, entry)));
   }
 
   //Display Doc symbols in loclist
@@ -559,11 +553,12 @@ export default class TSHost {
     if (data.length === 0) return [];
 
     if (data.length > this.maxCompletion) {
+      const completions =  await Promise.all(data.map(async entry => await convertEntry(this.nvim, entry)));
       await this.nvim.call('cm#complete', [
         info,
         ctx,
         startcol,
-        data.map(v => convertEntry(v))
+        completions
       ]);
       return;
     }
@@ -575,11 +570,12 @@ export default class TSHost {
       offset,
       entryNames
     });
+    const detailedEntries = await Promise.all(detailedCompletions.map(async entry => await convertDetailEntry(this.nvim, entry)));
     await this.nvim.call('cm#complete', [
       info,
       ctx,
       startcol,
-      detailedCompletions.map(v => convertDetailEntry(v))
+      detailedEntries
     ]);
   }
 

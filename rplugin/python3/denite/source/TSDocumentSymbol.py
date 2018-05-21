@@ -12,12 +12,18 @@ class Source(Base):
         self.name = 'TSDocumentSymbol'
         self.kind = 'file'
 
+    def getKind(self,kind):
+        if kind in self.vim.vars["nvim_typescript#kind_symbols"].keys():
+            return self.vim.vars["nvim_typescript#kind_symbols"][kind]
+        else:
+            return kind
+
     def convertToCandidate(self, symbols):
         candidates = []
         for symbol in symbols['childItems']:
             candidates.append({
                 'text':  symbol['text'],
-                'kindIcon': symbol['kind'],
+                'kindIcon': self.getKind(symbol['kind']),
                 'lnum':  symbol['spans'][0]['start']['line'],
                 'col':  symbol['spans'][0]['start']['offset']
             })
@@ -25,7 +31,7 @@ class Source(Base):
                 for childSymbol in symbol['childItems']:
                     candidates.append({
                         'text': childSymbol['text'] + ' - ' + symbol['text'],
-                        'kindIcon': childSymbol['kind'],
+                        'kindIcon': self.getKind(childSymbol['kind']),
                         'lnum': childSymbol['spans'][0]['start']['line'],
                         'col': childSymbol['spans'][0]['start']['offset']
                     })

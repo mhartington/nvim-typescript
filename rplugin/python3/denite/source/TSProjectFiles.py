@@ -1,9 +1,5 @@
 #! /usr/bin/env python3
 
-from operator import itemgetter
-import sys
-import os
-import re
 from .base import Base
 
 
@@ -21,7 +17,6 @@ class Source(Base):
         }, symbols))
 
     def gather_candidates(self, context):
-        bufname = self.vim.current.buffer.name
         responce = self.vim.funcs.TSGetProjectInfoFunc()
         if responce is None:
             return []

@@ -33,10 +33,7 @@ var Client;
     function startServer() {
         new Promise((resolve, reject) => {
             // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
-            Client.serverHandle = child_process_1.spawn(Client.serverPath, [
-                ...Client.serverOptions,
-                `--locale=${utils_1.getLocale(process.env)}`
-            ], {
+            Client.serverHandle = child_process_1.spawn(Client.serverPath, [...Client.serverOptions, `--locale=${utils_1.getLocale(process.env)}`], {
                 stdio: 'pipe',
                 cwd: Client._cwd,
                 env: Client._env,
