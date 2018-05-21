@@ -20,15 +20,14 @@ class Source(Base):
         Base.__init__(self, vim)
         self.name = "typescript"
         self.mark = self.vim.vars['nvim_typescript#completion_mark']
-        self.filetypes = ["typescript", "tsx", "typescript.tsx", "javascript", "jsx", "javascript.jsx"] \
-            if self.vim.vars["nvim_typescript#javascript_support"] \
-            else ["typescript", "tsx", "typescript.tsx", "vue"] \
-            if self.vim.vars["nvim_typescript#vue_support"] \
-            else ["typescript", "tsx", "typescript.tsx"]
-
         self.rank = 1000
         self.min_pattern_length = 1
         self.input_pattern = r'(\.|::)\w*'
+        self.filetypes = ["typescript", "tsx","typescript.tsx", "typescriptreact"]
+        if self.vim.vars["nvim_typescript#javascript_support"]:
+            self.filetypes.extend(["javascript", "jsx", "javascript.jsx"])
+        if self.vim.vars["nvim_typescript#vue_support"]:
+            self.filetypes.extend(["vue"])
 
     def log(self, message):
         """
