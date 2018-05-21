@@ -55,7 +55,7 @@ export default class TSHost {
     if (typeDefRes && typeDefRes.length > 0) {
       const defFile = typeDefRes[0].file;
       const defLine = typeDefRes[0].start.line;
-      this.nvim.command(`e +${defLine} ${defFile}`);
+      await this.openBufferOrWindow(defFile, defLine);
     }
   }
 
@@ -163,7 +163,9 @@ export default class TSHost {
   async getDef() {
     const definition = await this.getDefFunc();
     if (definition) {
-      this.nvim.command(`e +${definition[0].start.line} ${definition[0].file}`);
+      const defFile = definition[0].file
+      const defLine = definition[0].start.line;
+      await this.openBufferOrWindow(defFile, defLine);
     }
   }
   @Command('TSDefPreview')
@@ -476,6 +478,17 @@ export default class TSHost {
       await this.nvim.command('lwindow');
       resolve();
     });
+  }
+
+
+  async openBufferOrWindow(file: string, lineNumber: number){
+    const windowNumber = await this.nvim.call('bufwinnr', file);
+    if(windowNumber != -1){
+      await this.nvim.command(`${windowNumber}wincmd w`)
+      await this.nvim.command(`${lineNumber}`)
+    } else {
+      await this.nvim.command(`e! +${lineNumber} ${file}`);
+    }
   }
 
   //SERVER Utils
