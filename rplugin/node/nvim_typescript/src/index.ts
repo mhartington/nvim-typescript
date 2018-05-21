@@ -243,16 +243,17 @@ export default class TSHost {
       if (renameResults.info.canRename) {
         let changeCount = 0;
         for (let loc of renameResults.locs) {
+          let defFile = loc.file;
+          let substitutions: string;
+          await this.nvim.command(`e! ${defFile}`);
           for (let rename of loc.locs) {
-            console.log(rename);
-            await this.nvim.callFunction('cursor', [
-              rename.start.line,
-              rename.start.offset
-            ]);
-            await this.nvim.command(`normal cw${newName}`);
+            let { line, offset } = rename.start;
+            substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
             changeCount += 1;
           }
+          await this.nvim.command(substitutions);
         }
+        await this.nvim.command(`e! ${renameArgs.file}`);
         await this.nvim.callFunction('cursor', [
           renameArgs.line,
           renameArgs.offset
@@ -375,7 +376,9 @@ export default class TSHost {
     // K, we got our first set of completion data, now lets sort...
     // console.log(completions.length)
     if (completions.length > this.maxCompletion) {
-      return await Promise.all(completions.map(async entry => await convertEntry(this.nvim, entry)));
+      return await Promise.all(
+        completions.map(async entry => await convertEntry(this.nvim, entry))
+      );
     }
     let entryNames = completions.map(v => v.name);
     let detailedCompletions = await this.client.getCompletionDetails({
@@ -384,7 +387,11 @@ export default class TSHost {
       offset,
       entryNames
     });
-    return await Promise.all(detailedCompletions.map(async entry => await convertDetailEntry(this.nvim, entry)));
+    return await Promise.all(
+      detailedCompletions.map(
+        async entry => await convertDetailEntry(this.nvim, entry)
+      )
+    );
   }
 
   //Display Doc symbols in loclist
@@ -553,13 +560,10 @@ export default class TSHost {
     if (data.length === 0) return [];
 
     if (data.length > this.maxCompletion) {
-      const completions =  await Promise.all(data.map(async entry => await convertEntry(this.nvim, entry)));
-      await this.nvim.call('cm#complete', [
-        info,
-        ctx,
-        startcol,
-        completions
-      ]);
+      const completions = await Promise.all(
+        data.map(async entry => await convertEntry(this.nvim, entry))
+      );
+      await this.nvim.call('cm#complete', [info, ctx, startcol, completions]);
       return;
     }
 
@@ -570,13 +574,12 @@ export default class TSHost {
       offset,
       entryNames
     });
-    const detailedEntries = await Promise.all(detailedCompletions.map(async entry => await convertDetailEntry(this.nvim, entry)));
-    await this.nvim.call('cm#complete', [
-      info,
-      ctx,
-      startcol,
-      detailedEntries
-    ]);
+    const detailedEntries = await Promise.all(
+      detailedCompletions.map(
+        async entry => await convertDetailEntry(this.nvim, entry)
+      )
+    );
+    await this.nvim.call('cm#complete', [info, ctx, startcol, detailedEntries]);
   }
 
   // Utils

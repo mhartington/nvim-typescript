@@ -220,16 +220,17 @@ let TSHost = class TSHost {
                 if (renameResults.info.canRename) {
                     let changeCount = 0;
                     for (let loc of renameResults.locs) {
+                        let defFile = loc.file;
+                        let substitutions;
+                        yield this.nvim.command(`e! ${defFile}`);
                         for (let rename of loc.locs) {
-                            console.log(rename);
-                            yield this.nvim.callFunction('cursor', [
-                                rename.start.line,
-                                rename.start.offset
-                            ]);
-                            yield this.nvim.command(`normal cw${newName}`);
+                            let { line, offset } = rename.start;
+                            substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
                             changeCount += 1;
                         }
+                        yield this.nvim.command(substitutions);
                     }
+                    yield this.nvim.command(`e! ${renameArgs.file}`);
                     yield this.nvim.callFunction('cursor', [
                         renameArgs.line,
                         renameArgs.offset
@@ -519,12 +520,7 @@ let TSHost = class TSHost {
                 return [];
             if (data.length > this.maxCompletion) {
                 const completions = yield Promise.all(data.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertEntry(this.nvim, entry); })));
-                yield this.nvim.call('cm#complete', [
-                    info,
-                    ctx,
-                    startcol,
-                    completions
-                ]);
+                yield this.nvim.call('cm#complete', [info, ctx, startcol, completions]);
                 return;
             }
             let entryNames = data.map(v => v.name);
@@ -535,12 +531,7 @@ let TSHost = class TSHost {
                 entryNames
             });
             const detailedEntries = yield Promise.all(detailedCompletions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertDetailEntry(this.nvim, entry); })));
-            yield this.nvim.call('cm#complete', [
-                info,
-                ctx,
-                startcol,
-                detailedEntries
-            ]);
+            yield this.nvim.call('cm#complete', [info, ctx, startcol, detailedEntries]);
         });
     }
     // Utils

@@ -1,10 +1,6 @@
 #! /usr/bin/env python3
-
-import os
 import re
-import sys
 from deoplete.source.base import Base
-from deoplete.util import error
 
 
 class Source(Base):
@@ -17,7 +13,8 @@ class Source(Base):
         self.rank = 1000
         self.min_pattern_length = 1
         self.input_pattern = r'(\.|::)\w*'
-        self.filetypes = ["typescript", "tsx","typescript.tsx", "typescriptreact"]
+        self.filetypes = ["typescript", "tsx",
+                          "typescript.tsx", "typescriptreact"]
         if self.vim.vars["nvim_typescript#javascript_support"]:
             self.filetypes.extend(["javascript", "jsx", "javascript.jsx"])
         if self.vim.vars["nvim_typescript#vue_support"]:
@@ -32,7 +29,7 @@ class Source(Base):
         self.debug('************')
 
     def get_complete_position(self, context):
-        m = re.search(r"\w*$", context['input'])
+        m = re.search(r"\w*$", context["input"], re.IGNORECASE)
         return m.start() if m else -1
 
     def gather_candidates(self, context):
