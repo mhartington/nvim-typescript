@@ -212,33 +212,44 @@ let TSHost = class TSHost {
     tsRename(args) {
         return __awaiter(this, void 0, void 0, function* () {
             const symbol = yield this.nvim.eval('expand("<cword>")');
-            const newName = args.length > 0
-                ? args[0]
-                : yield this.nvim.call('input', `nvim-ts: rename ${symbol} to `);
+            let newName;
+            if (args.length > 0) {
+                newName = args[0];
+            }
+            else {
+                const input = yield this.nvim.call('input', `nvim-ts: rename ${symbol} to `);
+                if (!input) {
+                    yield this.printErr('Rename canceled');
+                    return;
+                }
+                else {
+                    newName = input;
+                }
+            }
             yield this.reloadFile();
             const renameArgs = yield this.getCommonData();
+            const buffNum = yield this.nvim.call('bufnr', '%');
             const renameResults = yield this.client.renameSymbol(Object.assign({}, renameArgs, { findInComments: false, findInStrings: false }));
             if (renameResults) {
                 if (renameResults.info.canRename) {
                     let changeCount = 0;
-                    for (let loc of renameResults.locs) {
-                        let defFile = loc.file;
-                        let substitutions;
+                    for (let fileLocation of renameResults.locs) {
+                        let defFile = fileLocation.file;
                         yield this.nvim.command(`e! ${defFile}`);
-                        for (let rename of loc.locs) {
+                        for (let rename of fileLocation.locs) {
                             let { line, offset } = rename.start;
-                            substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
+                            let substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
+                            yield this.nvim.command(substitutions);
                             changeCount += 1;
                         }
-                        yield this.nvim.command(substitutions);
                     }
-                    yield this.nvim.command(`e! ${renameArgs.file}`);
-                    yield this.nvim.callFunction('cursor', [
-                        renameArgs.line,
-                        renameArgs.offset
-                    ]);
+                    yield this.nvim.command(`buffer ${buffNum}`);
+                    yield this.nvim.call('cursor', [renameArgs.line, renameArgs.offset]);
                     this.printMsg(`Replaced ${changeCount} in ${renameResults.locs.length} files`);
                 }
+            }
+            else {
+                this.printErr(renameResults.info.localizedErrorMessage);
             }
         });
     }

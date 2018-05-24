@@ -163,7 +163,7 @@ export default class TSHost {
   async getDef() {
     const definition = await this.getDefFunc();
     if (definition) {
-      const defFile = definition[0].file
+      const defFile = definition[0].file;
       const defLine = definition[0].start.line;
       await this.openBufferOrWindow(defFile, defLine);
     }
@@ -229,13 +229,27 @@ export default class TSHost {
   @Command('TSRename', { nargs: '*' })
   async tsRename(args) {
     const symbol = await this.nvim.eval('expand("<cword>")');
-    const newName =
-      args.length > 0
-        ? args[0]
-        : await this.nvim.call('input', `nvim-ts: rename ${symbol} to `);
+
+    let newName: string;
+
+    if (args.length > 0) {
+      newName = args[0];
+    } else {
+      const input = await this.nvim.call(
+        'input',
+        `nvim-ts: rename ${symbol} to `
+      );
+      if (!input) {
+        await this.printErr('Rename canceled');
+        return;
+      } else {
+        newName = input;
+      }
+    }
 
     await this.reloadFile();
     const renameArgs = await this.getCommonData();
+    const buffNum = await this.nvim.call('bufnr', '%');
     const renameResults = await this.client.renameSymbol({
       ...renameArgs,
       findInComments: false,
@@ -244,26 +258,25 @@ export default class TSHost {
     if (renameResults) {
       if (renameResults.info.canRename) {
         let changeCount = 0;
-        for (let loc of renameResults.locs) {
-          let defFile = loc.file;
-          let substitutions: string;
+        for (let fileLocation of renameResults.locs) {
+          let defFile = fileLocation.file;
           await this.nvim.command(`e! ${defFile}`);
-          for (let rename of loc.locs) {
+          for (let rename of fileLocation.locs) {
             let { line, offset } = rename.start;
-            substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
+            let substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
+            await this.nvim.command(substitutions);
             changeCount += 1;
           }
-          await this.nvim.command(substitutions);
         }
-        await this.nvim.command(`e! ${renameArgs.file}`);
-        await this.nvim.callFunction('cursor', [
-          renameArgs.line,
-          renameArgs.offset
-        ]);
+
+        await this.nvim.command(`buffer ${buffNum}`);
+        await this.nvim.call('cursor', [renameArgs.line, renameArgs.offset]);
         this.printMsg(
           `Replaced ${changeCount} in ${renameResults.locs.length} files`
         );
       }
+    } else {
+      this.printErr(renameResults.info.localizedErrorMessage);
     }
   }
 
@@ -480,12 +493,11 @@ export default class TSHost {
     });
   }
 
-
-  async openBufferOrWindow(file: string, lineNumber: number){
+  async openBufferOrWindow(file: string, lineNumber: number) {
     const windowNumber = await this.nvim.call('bufwinnr', file);
-    if(windowNumber != -1){
-      await this.nvim.command(`${windowNumber}wincmd w`)
-      await this.nvim.command(`${lineNumber}`)
+    if (windowNumber != -1) {
+      await this.nvim.command(`${windowNumber}wincmd w`);
+      await this.nvim.command(`${lineNumber}`);
     } else {
       await this.nvim.command(`e! +${lineNumber} ${file}`);
     }
