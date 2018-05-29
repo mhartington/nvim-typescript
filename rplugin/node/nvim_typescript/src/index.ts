@@ -146,6 +146,7 @@ export default class TSHost {
         }
       }
     }
+    await this.printMsg('Import applied')
   }
 
   @Command('TSSig')

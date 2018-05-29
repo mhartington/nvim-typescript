@@ -132,6 +132,7 @@ let TSHost = class TSHost {
                     }
                 }
             }
+            yield this.printMsg('Import applied');
         });
     }
     getSig() {
