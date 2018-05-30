@@ -460,8 +460,23 @@ export default class TSHost {
     await this.reloadFile();
     const file = await this.getCurrentFile();
     const funcArgs = [...args, file];
+
     const results = await this.getWorkspaceSymbolsFunc(funcArgs);
     if (results) {
+      await this.createLocList(results, 'WorkspaceSymbols');
+    }
+  }
+
+  @Function('TSGetWorkspaceSymbolsFunc', { sync: true })
+  async getWorkspaceSymbolsFunc(args) {
+      const searchValue = args.length > 0 ? args[0] : '';
+      const maxResultCount = 50;
+      const results = await this.client.getWorkspaceSymbols({
+          file: args[1],
+          searchValue,
+          maxResultCount: 50
+      });
+
       const symbolsRes = results.map(symbol => {
         return {
           filename: symbol.file,
@@ -470,19 +485,8 @@ export default class TSHost {
           text: `${symbol.name} - ${symbol.kind}`
         };
       });
-      await this.createLocList(symbolsRes, 'WorkspaceSymbols');
-    }
-  }
 
-  @Function('TSGetWorkspaceSymbolsFunc', { sync: true })
-  async getWorkspaceSymbolsFunc(args) {
-    const searchValue = args.length > 0 ? args[0] : '';
-    const maxResultCount = 50;
-    return await this.client.getWorkspaceSymbols({
-      file: args[1],
-      searchValue: searchValue,
-      maxResultCount: 50
-    });
+      return symbolsRes;
   }
 
   @Function('TSGetProjectInfoFunc', { sync: true })

@@ -75,7 +75,7 @@ augroup nvim-typescript "{{{
 
   "FZF stuff
   function! s:TSSearch(query) "{{{
-      let l:symbols = TSGetWorkspaceSymbolsFunc(a:query)
+      let l:symbols = TSGetWorkspaceSymbolsFunc(a:query, expand("%"))
       call setloclist(0, l:symbols, 'r', 'Symbols')
       lopen
   endfunction
