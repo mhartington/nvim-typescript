@@ -55,7 +55,8 @@ export default class TSHost {
     if (typeDefRes && typeDefRes.length > 0) {
       const defFile = typeDefRes[0].file;
       const defLine = typeDefRes[0].start.line;
-      await this.openBufferOrWindow(defFile, defLine);
+      const defOffset = typeDefRes[0].start.offset;
+      await this.openBufferOrWindow(defFile, defLine, defOffset);
     }
   }
 
@@ -172,7 +173,8 @@ export default class TSHost {
     if (definition) {
       const defFile = definition[0].file;
       const defLine = definition[0].start.line;
-      await this.openBufferOrWindow(defFile, defLine);
+      const defOffset = definition[0].start.offset;
+      await this.openBufferOrWindow(defFile, defLine, defOffset);
     }
   }
   @Command('TSDefPreview')
@@ -500,14 +502,14 @@ export default class TSHost {
     });
   }
 
-  async openBufferOrWindow(file: string, lineNumber: number) {
+  async openBufferOrWindow(file: string, lineNumber: number, offset: number) {
     const windowNumber = await this.nvim.call('bufwinnr', file);
     if (windowNumber != -1) {
       await this.nvim.command(`${windowNumber}wincmd w`);
-      await this.nvim.command(`${lineNumber}`);
     } else {
-      await this.nvim.command(`e! +${lineNumber} ${file}`);
+      await this.nvim.command(`e! ${file}`);
     }
+    await this.nvim.command(`call cursor(${lineNumber}, ${offset})`);
   }
 
   //SERVER Utils
