@@ -55,7 +55,8 @@ let TSHost = class TSHost {
             if (typeDefRes && typeDefRes.length > 0) {
                 const defFile = typeDefRes[0].file;
                 const defLine = typeDefRes[0].start.line;
-                yield this.openBufferOrWindow(defFile, defLine);
+                const defOffset = typeDefRes[0].start.offset;
+                yield this.openBufferOrWindow(defFile, defLine, defOffset);
             }
         });
     }
@@ -157,7 +158,8 @@ let TSHost = class TSHost {
             if (definition) {
                 const defFile = definition[0].file;
                 const defLine = definition[0].start.line;
-                yield this.openBufferOrWindow(defFile, defLine);
+                const defOffset = definition[0].start.offset;
+                yield this.openBufferOrWindow(defFile, defLine, defOffset);
             }
         });
     }
@@ -460,16 +462,16 @@ let TSHost = class TSHost {
             }));
         });
     }
-    openBufferOrWindow(file, lineNumber) {
+    openBufferOrWindow(file, lineNumber, offset) {
         return __awaiter(this, void 0, void 0, function* () {
             const windowNumber = yield this.nvim.call('bufwinnr', file);
             if (windowNumber != -1) {
                 yield this.nvim.command(`${windowNumber}wincmd w`);
-                yield this.nvim.command(`${lineNumber}`);
             }
             else {
-                yield this.nvim.command(`e! +${lineNumber} ${file}`);
+                yield this.nvim.command(`e! ${file}`);
             }
+            yield this.nvim.command(`call cursor(${lineNumber}, ${offset})`);
         });
     }
     //SERVER Utils
