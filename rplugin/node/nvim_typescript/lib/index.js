@@ -424,15 +424,7 @@ let TSHost = class TSHost {
             const funcArgs = [...args, file];
             const results = yield this.getWorkspaceSymbolsFunc(funcArgs);
             if (results) {
-                const symbolsRes = results.map(symbol => {
-                    return {
-                        filename: symbol.file,
-                        lnum: symbol.start.line,
-                        col: symbol.start.offset,
-                        text: `${symbol.name} - ${symbol.kind}`
-                    };
-                });
-                yield this.createLocList(symbolsRes, 'WorkspaceSymbols');
+                yield this.createLocList(results, 'WorkspaceSymbols');
             }
         });
     }
@@ -440,11 +432,20 @@ let TSHost = class TSHost {
         return __awaiter(this, void 0, void 0, function* () {
             const searchValue = args.length > 0 ? args[0] : '';
             const maxResultCount = 50;
-            return yield this.client.getWorkspaceSymbols({
+            const results = yield this.client.getWorkspaceSymbols({
                 file: args[1],
-                searchValue: searchValue,
+                searchValue,
                 maxResultCount: 50
             });
+            const symbolsRes = results.map(symbol => {
+                return {
+                    filename: symbol.file,
+                    lnum: symbol.start.line,
+                    col: symbol.start.offset,
+                    text: `${symbol.name} - ${symbol.kind}`
+                };
+            });
+            return symbolsRes;
         });
     }
     getProjectInfoFunc() {
