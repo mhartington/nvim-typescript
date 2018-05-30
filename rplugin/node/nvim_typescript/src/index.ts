@@ -507,11 +507,20 @@ export default class TSHost {
   }
 
   async openBufferOrWindow(file: string, lineNumber: number, offset: number) {
+
+    const fileIsAlreadyFocused =
+        await this.getCurrentFile().then(currentFile => file === currentFile);
+
+    if (fileIsAlreadyFocused) {
+        await this.nvim.command(`call cursor(${lineNumber}, ${offset})`);
+        return;
+    }
+
     const windowNumber = await this.nvim.call('bufwinnr', file);
     if (windowNumber != -1) {
       await this.nvim.command(`${windowNumber}wincmd w`);
     } else {
-      await this.nvim.command(`e! ${file}`);
+      await this.nvim.command(`e ${file}`);
     }
     await this.nvim.command(`call cursor(${lineNumber}, ${offset})`);
   }

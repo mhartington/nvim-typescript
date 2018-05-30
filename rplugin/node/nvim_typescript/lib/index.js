@@ -465,12 +465,17 @@ let TSHost = class TSHost {
     }
     openBufferOrWindow(file, lineNumber, offset) {
         return __awaiter(this, void 0, void 0, function* () {
+            const fileIsAlreadyFocused = yield this.getCurrentFile().then(currentFile => file === currentFile);
+            if (fileIsAlreadyFocused) {
+                yield this.nvim.command(`call cursor(${lineNumber}, ${offset})`);
+                return;
+            }
             const windowNumber = yield this.nvim.call('bufwinnr', file);
             if (windowNumber != -1) {
                 yield this.nvim.command(`${windowNumber}wincmd w`);
             }
             else {
-                yield this.nvim.command(`e! ${file}`);
+                yield this.nvim.command(`e ${file}`);
             }
             yield this.nvim.command(`call cursor(${lineNumber}, ${offset})`);
         });
