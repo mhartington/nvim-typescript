@@ -115,14 +115,16 @@ export default class TSHost {
         const addingNewLine = change.newText.match(leadingNewLineRexeg)
           ? true
           : false;
-
         const newText = change.newText.replace(
           leadingAndTrailingNewLineRegex,
           ''
         );
+
         if (changeOffset === 1) {
+          console.log('changOffset === 1');
           await this.nvim.buffer.insert(newText, changeLine);
         } else if (addingNewLine) {
+          console.log('adding new line');
           await this.nvim.buffer.insert(newText, changeLine + 1);
         } else {
           const addingTrailingComma = newText.match(/^,$/) ? true : false;
@@ -134,7 +136,11 @@ export default class TSHost {
           const lineAlreadyHasTrailingComma = linesToChange[0].match(/^.*,\s*$/)
             ? true
             : false;
-          if (!addingTrailingComma && !lineAlreadyHasTrailingComma) {
+
+          if (addingTrailingComma && lineAlreadyHasTrailingComma) {
+            console.log('nothing to see folks');
+          } else {
+            console.log('no trailing comma, and line has no trailing comma');
             await this.nvim.buffer.setLines(
               `${linesToChange[0].substring(
                 changeOffset - 1,
@@ -146,7 +152,7 @@ export default class TSHost {
         }
       }
     }
-    await this.printMsg('Import applied')
+    await this.printMsg('Import applied');
   }
 
   @Command('TSSig')

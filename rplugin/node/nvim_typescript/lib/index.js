@@ -111,9 +111,11 @@ let TSHost = class TSHost {
                         : false;
                     const newText = change.newText.replace(leadingAndTrailingNewLineRegex, '');
                     if (changeOffset === 1) {
+                        console.log('changOffset === 1');
                         yield this.nvim.buffer.insert(newText, changeLine);
                     }
                     else if (addingNewLine) {
+                        console.log('adding new line');
                         yield this.nvim.buffer.insert(newText, changeLine + 1);
                     }
                     else {
@@ -126,7 +128,11 @@ let TSHost = class TSHost {
                         const lineAlreadyHasTrailingComma = linesToChange[0].match(/^.*,\s*$/)
                             ? true
                             : false;
-                        if (!addingTrailingComma && !lineAlreadyHasTrailingComma) {
+                        if (addingTrailingComma && lineAlreadyHasTrailingComma) {
+                            console.log('nothing to see folks');
+                        }
+                        else {
+                            console.log('no trailing comma, and line has no trailing comma');
                             yield this.nvim.buffer.setLines(`${linesToChange[0].substring(changeOffset - 1, 0)}${newText}${linesToChange[0].substring(changeOffset - 1)} `, { start: changeLine, end: changeLine + 1, strictIndexing: true });
                         }
                     }
