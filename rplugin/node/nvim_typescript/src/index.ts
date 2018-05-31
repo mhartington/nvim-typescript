@@ -10,7 +10,8 @@ import {
   getCurrentImports,
   getImportCandidates,
   convertDetailEntry,
-  convertEntry
+  convertEntry,
+  getKind
 } from './utils';
 import { writeFileSync, statSync } from 'fs';
 
@@ -477,14 +478,15 @@ export default class TSHost {
           maxResultCount: 50
       });
 
-      const symbolsRes = results.map(symbol => {
+      const symbolsRes = await Promise.all(
+      results.map(async symbol => {
         return {
           filename: symbol.file,
           lnum: symbol.start.line,
           col: symbol.start.offset,
-          text: `${symbol.name} - ${symbol.kind}`
-        };
-      });
+          text: `${await getKind(this.nvim, symbol.kind)}\t ${symbol.name}`
+        }
+      }))
 
       return symbolsRes;
   }

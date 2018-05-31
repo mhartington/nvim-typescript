@@ -437,14 +437,14 @@ let TSHost = class TSHost {
                 searchValue,
                 maxResultCount: 50
             });
-            const symbolsRes = results.map(symbol => {
+            const symbolsRes = yield Promise.all(results.map((symbol) => __awaiter(this, void 0, void 0, function* () {
                 return {
                     filename: symbol.file,
                     lnum: symbol.start.line,
                     col: symbol.start.offset,
-                    text: `${symbol.name} - ${symbol.kind}`
+                    text: `${yield utils_1.getKind(this.nvim, symbol.kind)}\t ${symbol.name}`
                 };
-            });
+            })));
             return symbolsRes;
         });
     }
