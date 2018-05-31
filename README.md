@@ -8,7 +8,7 @@ Nvim language service plugin for typescript
 
 ## Installation
 
-First make sure you have Neovim 0.2.1 or highter. 
+First make sure you have Neovim 0.2.1 or highter.
 This includes the node-host that is required for this plugin.
 
 You will need a global install of the neovim client as well.
@@ -27,13 +27,13 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 
 ```viml
  " Dein
-  call dein#add('mhartington/nvim-typescript')
+  call dein#add('mhartington/nvim-typescript', {'build': './install.
  " For async completion
    call dein#add('Shougo/deoplete.nvim')
 
 
  " Plug
-  Plug 'mhartington/nvim-typescript'
+  Plug 'mhartington/nvim-typescript', { 'do': './install.sh' }
  " For async completion
   Plug 'Shougo/deoplete.nvim'
 
