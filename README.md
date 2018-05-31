@@ -5,37 +5,37 @@ Nvim language service plugin for typescript
 
 ![](https://github.com/mhartington/nvim-typescript/blob/master/deoplete-tss.gif)
 
-This is alpha-ish :smile:
 
 ## Installation
 
-First make sure you have python3 bindings installed for neovim
-If :echo has("python3") returns 1, then you're done.
-If not, run
+First make sure you have Neovim 0.2.1 or highter. 
+This includes the node-host that is required for this plugin.
+
+You will need a global install of the neovim client as well.
 
 ```bash
-sudo pip3 install neovim
+npm install -g neovim
 ```
-
-[zchee](https://github.com/zchee/deoplete-jedi/wiki/Setting-up-Python-for-Neovim) has provided an in depth guide to setting up neovim with python bindings
 
 You also need to have typescript installed globally.
 
-```
+```bash
 npm -g install typescript
 ```
-In the future, I'd like to add a variable to allow use of local npm installs instead of global installs.
 
 Then add the following plugins. This example uses Dein.vim, but any plugin manager will work.
 
 ```viml
  " Dein
-  call dein#add('Shougo/deoplete.nvim')
   call dein#add('mhartington/nvim-typescript')
+ " For async completion
+   call dein#add('Shougo/deoplete.nvim')
+
 
  " Plug
-  Plug 'Shougo/deoplete.nvim'
   Plug 'mhartington/nvim-typescript'
+ " For async completion
+  Plug 'Shougo/deoplete.nvim'
 
 " Enable deoplete at startup
 
@@ -75,8 +75,5 @@ There are a few things you'll have to modify in your vim config in order to be a
 
 ## TODOS
 
-- [x] Refactor `TSDoc`, print docs to split.
-- [ ] Add `TSRename`
 - [ ] Refactor client to support `geterr` request
 - [ ] Add `TSGetErr`
-- [x] Use local install of `tsserver` and not global
