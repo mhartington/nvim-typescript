@@ -27,16 +27,19 @@ INSTALL                                                    *typescript-install*
 To install, use your typical plugin manager and add a reference in your
 init.vim. If you'd like completion support, install Deoplete.nvim as well.
 
-*  https://github.com/junegunn/vim-plug >
+* https://github.com/junegunn/vim-plug >
 
-    Plug 'Shougo/deoplete.nvim'
-    Plug 'mhartington/nvim-typescript'
+  Plug 'mhartington/nvim-typescript', { 'do': './install.sh' }
+  " For async completion
+  Plug 'Shougo/deoplete.nvim'
 <
 
-*  https://github.com/Shougo/dein.vim >
+* https://github.com/Shougo/dein.vim >
 
-    call dein#add('Shougo/deoplete.nvim')
-    call dein#add('mhartington/nvim-typescript')
+  call dein#add('mhartington/nvim-typescript', {'build': './install'}
+  " For async completion
+  call dein#add('Shougo/deoplete.nvim')
+
 <
 You also need the node-client for neovim installed globally. >
 

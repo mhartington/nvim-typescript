@@ -27,7 +27,7 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 
 ```viml
  " Dein
-  call dein#add('mhartington/nvim-typescript', {'build': './install.
+  call dein#add('mhartington/nvim-typescript', {'build': './install'}
  " For async completion
    call dein#add('Shougo/deoplete.nvim')
 
