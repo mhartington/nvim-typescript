@@ -1,5 +1,4 @@
 " nvim-completion-manager source
-
 func! cm#sources#typescript#register()
     let scopes = ['typescript', 'tsx', 'typescript.tsx']
     if g:nvim_typescript#javascript_support

@@ -37,38 +37,22 @@ function! s:check_global_tsserver() abort "{{{
   endif
 endfunction "}}}
 
-function! s:check_deoplete() abort "{{{
-  call health#report_start('Check for deoplete')
-  if exists('g:loaded_deoplete')
-    call health#report_ok('Deoplete is found!')
+function! s:check_required_node_for_nvim_typescript() abort "{{{
+  call health#report_start('Check for node bindings')
+  if has('nvim-0.2.1')
+    call health#report_ok('node bindings found')
   else
-    call health#report_error('Deoplete is not loaded',
-          \ "Install Deoplete for Async completion\n".
-          \ 'https://github.com/Shougo/deoplete.nvim')
+    call health#report_error('node bindings were not found', [
+          \ 'Please update to a newer version of neovim.',
+          \ ])
   endif
 endfunction "}}}
 
-function! s:check_required_python_for_nvim_typescript() abort "{{{
-  call health#report_start('Check for python 3 bindings')
-  if has('python3')
-    call health#report_ok('has("python3") was successful')
-  else
-    call health#report_error('has("python3") was not successful', [
-          \ 'Please install the python3 package for neovim.',
-          \ 'A good guide can be found here: ' .
-          \ 'https://github.com/tweekmonster/nvim-python-doctor/'
-          \ . 'wiki/Advanced:-Using-pyenv'
-          \ ]
-          \ )
-  endif
-endfunction "}}}
-
-function! health#nvim_typescript#check() abort "{{{
+function! health#nvim_typescript#check() abort
   call s:check_node()
   call s:check_local_tsserver()
   call s:check_global_tsserver()
-  call s:check_deoplete()
-  call s:check_required_python_for_nvim_typescript()
-endfunction "}}}
+  call s:check_required_node_for_nvim_typescript()
+endfunction
 
 

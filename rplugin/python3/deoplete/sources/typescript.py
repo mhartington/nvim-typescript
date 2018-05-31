@@ -1,16 +1,6 @@
 #! /usr/bin/env python3
-
-import os
 import re
-import sys
 from deoplete.source.base import Base
-from deoplete.util import error
-from tempfile import NamedTemporaryFile
-
-sys.path.insert(1, os.path.join(os.path.dirname(
-    __file__), '..', '..', 'nvim_typescript'))
-
-from utils import convert_completion_data, convert_detailed_completion_data
 
 
 class Source(Base):
@@ -23,7 +13,8 @@ class Source(Base):
         self.rank = 1000
         self.min_pattern_length = 1
         self.input_pattern = r'(\.|::)\w*'
-        self.filetypes = ["typescript", "tsx","typescript.tsx", "typescriptreact"]
+        self.filetypes = ["typescript", "tsx",
+                          "typescript.tsx", "typescriptreact"]
         if self.vim.vars["nvim_typescript#javascript_support"]:
             self.filetypes.extend(["javascript", "jsx", "javascript.jsx"])
         if self.vim.vars["nvim_typescript#vue_support"]:
@@ -43,7 +34,7 @@ class Source(Base):
 
     def gather_candidates(self, context):
         try:
-            offset = context["complete_position"] + 1,
+            [offset] = context["complete_position"] + 1,
             res = self.vim.funcs.TSComplete(context["complete_str"], offset)
             if len(res) == 0:
                 return []

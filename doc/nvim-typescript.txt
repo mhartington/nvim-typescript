@@ -21,7 +21,6 @@ Typescript support for Vim. Nvim-typescript provide standard IDE-like features
 like auto-completion, viewing of documentation, type-signature, go to
 definition, and reference finder.
 
-
 ===============================================================================
 INSTALL                                                    *typescript-install*
 
@@ -39,6 +38,11 @@ init.vim. If you'd like completion support, install Deoplete.nvim as well.
     call dein#add('Shougo/deoplete.nvim')
     call dein#add('mhartington/nvim-typescript')
 <
+You also need the node-client for neovim installed globally. >
+
+npm install -g neovim
+
+<
 
 In you install Deoplete as well, make sure you also have the python3 bindings
 to Neovim. >
@@ -47,12 +51,6 @@ pip3 install neovim
 
 
 Then run `UpdateRemotePlugins`.
-
-
-Currently, a global install of typescript is required. So make sure your have
-it installed with >
-
-npm install -g typescript
 
 
 ===============================================================================
@@ -229,6 +227,7 @@ Default: 'TS'
     Use this vs setting from deoplete.
 
 
+
 ===============================================================================
 MAPPINGS                                                  *typescript-mappings*
 
@@ -303,4 +302,3 @@ Q: This breaks with specific version of Typescript.
 A: New versions of typescript could contain breaking changes. This is to be
    expected. See the `g:nvim_typescript#ts_version` variable for the  current
    version support.
-

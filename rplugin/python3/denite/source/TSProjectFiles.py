@@ -1,15 +1,6 @@
 #! /usr/bin/env python3
 
-from operator import itemgetter
-import sys
-import os
-import re
 from .base import Base
-
-sys.path.insert(1, os.path.join(os.path.dirname(__file__), '..','..', 'nvim_typescript'))
-
-import client
-from utils import getKind
 
 
 class Source(Base):
@@ -26,8 +17,7 @@ class Source(Base):
         }, symbols))
 
     def gather_candidates(self, context):
-        bufname = self.vim.current.buffer.name
-        responce = client.projectInfo(bufname)
+        responce = self.vim.funcs.TSGetProjectInfoFunc()
         if responce is None:
             return []
         candidates = self.convertToCandidate(responce['fileNames'])

@@ -1,14 +1,7 @@
 #! /usr/bin/env python3
 
 from operator import itemgetter
-import sys
-import os
 from .base import Base
-
-sys.path.insert(1, os.path.join(os.path.dirname(__file__), '..','..', 'nvim_typescript'))
-
-import client
-from utils import getKind
 
 
 class Source(Base):
@@ -19,12 +12,18 @@ class Source(Base):
         self.name = 'TSDocumentSymbol'
         self.kind = 'file'
 
+    def getKind(self,kind):
+        if kind in self.vim.vars["nvim_typescript#kind_symbols"].keys():
+            return self.vim.vars["nvim_typescript#kind_symbols"][kind]
+        else:
+            return kind
+
     def convertToCandidate(self, symbols):
         candidates = []
         for symbol in symbols['childItems']:
             candidates.append({
                 'text':  symbol['text'],
-                'kindIcon': getKind(self.vim, symbol['kind']),
+                'kindIcon': self.getKind(symbol['kind']),
                 'lnum':  symbol['spans'][0]['start']['line'],
                 'col':  symbol['spans'][0]['start']['offset']
             })
@@ -32,7 +31,7 @@ class Source(Base):
                 for childSymbol in symbol['childItems']:
                     candidates.append({
                         'text': childSymbol['text'] + ' - ' + symbol['text'],
-                        'kindIcon': getKind(self.vim, childSymbol['kind']),
+                        'kindIcon': self.getKind(childSymbol['kind']),
                         'lnum': childSymbol['spans'][0]['start']['line'],
                         'col': childSymbol['spans'][0]['start']['offset']
                     })
@@ -40,13 +39,13 @@ class Source(Base):
 
     def gather_candidates(self, context):
         bufname = self.vim.current.buffer.name
-        responce = client.getDocumentSymbols(bufname)
+        responce = self.vim.funcs.TSGetDocSymbolsFunc()
         if responce is None:
             return []
 
         candidates = self.convertToCandidate(responce)
         values = list(map(lambda symbol: {
-            'abbr': " {0}\t{1}".format(symbol['kindIcon'], symbol['text']),
+            'abbr': "{0}\t{1}".format(symbol['kindIcon'], symbol['text']),
             'word': symbol['text'],
             'action__line': symbol['lnum'],
             "action__path": bufname,

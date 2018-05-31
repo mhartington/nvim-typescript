@@ -31,6 +31,9 @@ let g:nvim_typescript#debug_enabled =
       \ get(g:, 'nvim_typescript#debug_enabled', 0)
 let g:nvim_typescript#debug_settings =
       \ get(g:, 'nvim_typescript#debug_settings', {'file': 'nvim-typescript-tsserver.log', 'level': 'normal'})
+
+let g:nvim_typescript#server_options =
+      \ get(g:, 'nvim_typescript#server_options', [])
 let g:nvim_typescript#follow_dir_change =
       \ get(g:, 'nvim_typescript#follow_dir_change', 0)
 let s:kind_symbols = {
@@ -72,7 +75,7 @@ augroup nvim-typescript "{{{
 
   "FZF stuff
   function! s:TSSearch(query) "{{{
-      let l:symbols = TSGetWorkspaceSymbolsFunc(a:query)
+      let l:symbols = TSGetWorkspaceSymbolsFunc(a:query, expand("%"))
       call setloclist(0, l:symbols, 'r', 'Symbols')
       lopen
   endfunction
