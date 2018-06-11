@@ -88,7 +88,7 @@ function convertDetailEntry(nvim, entry) {
         signature = signature.replace(/\s+/gi, ' ');
         let menuText = signature.replace(/^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+/gi, '');
         // let documentation = menuText;
-        let kind = yield getKind(nvim, entry.kind);
+        // let kind = await getKind(nvim, entry.kind);
         return {
             word: entry.name,
             kind: entry.kind,

@@ -25,10 +25,8 @@ export default class TSHost {
   private maxCompletion: number;
 
   async init() {
-    this.maxCompletion = parseFloat(
-      await this.nvim.getVar('nvim_typescript#max_completion_detail')
-    );
-    const serverPath = await this.nvim.getVar('nvim_typescript#server_path');
+    this.maxCompletion = parseFloat((await this.nvim.getVar('nvim_typescript#max_completion_detail') as string));
+    const serverPath = (await this.nvim.getVar('nvim_typescript#server_path') as string);
     const serverOpts = await this.nvim.getVar('nvim_typescript#server_options');
 
     this.client.setServerPath(serverPath);

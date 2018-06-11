@@ -136,7 +136,7 @@ export async function printEllipsis(nvim: Neovim, message: string) {
    * Print as much of msg as possible without triggering "Press Enter"
    * Inspired by neomake, which is in turn inspired by syntastic.
    */
-  const columns = await nvim.getOption('columns');
+  const columns = (await nvim.getOption('columns') as number);
   let msg = message.replace('\n', '. ');
   if (msg.length > columns - 12) {
     msg = msg.substring(0, columns - 15) + '...';
