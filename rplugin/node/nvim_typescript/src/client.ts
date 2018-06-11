@@ -183,9 +183,24 @@ export namespace Client {
     return _makeTssRequest('navto', args);
   }
 
+  export function getSemanticDiagnosticsSync(
+    args: protocol.SemanticDiagnosticsSyncRequestArgs
+  ): Promise<protocol.Diagnostic[]> {
+    return _makeTssRequest('semanticDiagnosticsSync', args);
+  }
+  export function getSyntacticDiagnosticsSync(
+    args: protocol.SyntacticDiagnosticsSyncRequestArgs
+  ): Promise<protocol.Diagnostic[]> {
+    return _makeTssRequest('syntacticDiagnosticsSync', args);
+  }
+  export function getSuggestionDiagnosticsSync(
+    args: protocol.SuggestionDiagnosticsSyncRequestArgs
+  ): Promise<protocol.Diagnostic[]> {
+    return _makeTssRequest('suggestionDiagnosticsSync', args);
+  }
+
   // Server communication
   function _makeTssRequest<T>(commandName: string, args: any): Promise<T> {
-    // console.log('making request', commandName)
     const seq = _seqNumber++;
     const payload = {
       seq,
@@ -204,7 +219,6 @@ export namespace Client {
     const success = response['success']; // tslint:disable-line no-string-literal
     if (typeof seq === 'number') {
       if (success) {
-        // console.log(response.body)
         _seqToPromises[seq].resolve(response.body);
       } else {
         _seqToPromises[seq].reject(new Error(response.message));
@@ -214,11 +228,8 @@ export namespace Client {
       // Like 'geterr' - returns both semanticDiag and syntaxDiag
       if (response.type && response.type === 'event') {
         if (response.event && response.event === 'telemetry') {
-          // console.log(response.body.payload.version)
         }
         if (response.event && response.event === 'semanticDiag') {
-          // console.log(response.body);
-          // this.emit("semanticDiag", response.body);
         }
       }
     }

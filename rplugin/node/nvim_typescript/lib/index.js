@@ -22,19 +22,47 @@ const tmp_1 = require("tmp");
 const client_1 = require("./client");
 const utils_1 = require("./utils");
 const fs_1 = require("fs");
+const diagnostic_1 = require("./diagnostic");
 let TSHost = class TSHost {
-    constructor(nvim) {
+    constructor() {
         this.client = client_1.Client;
-        this.nvim = nvim;
-        this.nvim
-            .getVar('nvim_typescript#max_completion_detail')
-            .then((res) => (this.maxCompletion = parseFloat(res)));
-        this.nvim
-            .getVar('nvim_typescript#server_path')
-            .then((val) => this.client.setServerPath(val));
-        this.nvim
-            .getVar('nvim_typescript#server_options')
-            .then((val) => (this.client.serverOptions = val));
+    }
+    init() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.maxCompletion = parseFloat(yield this.nvim.getVar('nvim_typescript#max_completion_detail'));
+            const serverPath = yield this.nvim.getVar('nvim_typescript#server_path');
+            const serverOpts = yield this.nvim.getVar('nvim_typescript#server_options');
+            this.client.setServerPath(serverPath);
+            this.client.serverOptions = serverOpts;
+            // const defaultSigns = await this.nvim.getVar('nvim_typescript#')
+            const defaultSigns = [
+                {
+                    name: 'error',
+                    texthl: 'NeomakeError',
+                    signText: '•',
+                    signTexthl: 'NeomakeErrorSign'
+                },
+                {
+                    name: 'warning',
+                    texthl: 'NeomakeWarning',
+                    signText: '•',
+                    signTexthl: 'NeomakeWarningSign'
+                },
+                {
+                    name: 'information',
+                    texthl: 'NeomakeInfo',
+                    signText: '•',
+                    signTexthl: 'NeomakeInfoSign'
+                },
+                {
+                    name: 'hint',
+                    texthl: 'NeomakeInfo',
+                    signText: '?',
+                    signTexthl: 'NeomakeInfoSign'
+                }
+            ];
+            diagnostic_1.defineSigns(this.nvim, defaultSigns).then(res => console.warn('signs defined'));
+        });
     }
     getType() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -42,7 +70,7 @@ let TSHost = class TSHost {
             const args = yield this.getCommonData();
             const typeInfo = yield this.client.quickInfo(args);
             if (typeInfo) {
-                yield this.printMsg(`${typeInfo.displayString.replace(/(\r\n|\n|\r)/gm, '')}`);
+                yield utils_1.printEllipsis(this.nvim, typeInfo.displayString.replace(/(\r\n|\n|\r)/gm, ''));
             }
         });
     }
@@ -303,7 +331,7 @@ let TSHost = class TSHost {
                         text: utils_1.trim(ref.lineText)
                     };
                 });
-                this.createLocList(locationList, 'References');
+                utils_1.createLocList(this.nvim, locationList, 'References');
             }
             {
                 this.printErr('References not found');
@@ -406,7 +434,7 @@ let TSHost = class TSHost {
                         }
                     }
                 }
-                this.createLocList(docSysmbolsLoc, 'Symbols');
+                utils_1.createLocList(this.nvim, docSysmbolsLoc, 'Symbols');
             }
         });
     }
@@ -424,7 +452,7 @@ let TSHost = class TSHost {
             const funcArgs = [...args, file];
             const results = yield this.getWorkspaceSymbolsFunc(funcArgs);
             if (results) {
-                yield this.createLocList(results, 'WorkspaceSymbols');
+                yield utils_1.createLocList(this.nvim, results, 'WorkspaceSymbols');
             }
         });
     }
@@ -454,13 +482,43 @@ let TSHost = class TSHost {
             return yield this.client.getProjectInfo({ file, needFileNameList: true });
         });
     }
-    createLocList(list, title) {
+    getDiagnostics() {
         return __awaiter(this, void 0, void 0, function* () {
-            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                yield this.nvim.call('setloclist', [0, list, 'r', title]);
-                yield this.nvim.command('lwindow');
-                resolve();
-            }));
+            const file = yield this.getCurrentFile();
+            const sematicErrors = yield this.getSematicErrors(file);
+            const syntaxErrors = yield this.getSyntaxErrors(file);
+            const res = [...sematicErrors, ...syntaxErrors];
+            yield diagnostic_1.placeSigns(this.nvim, res, file);
+            yield this.handleCursorMoved();
+        });
+    }
+    handleCursorMoved() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { file, line, offset } = yield this.getCommonData();
+            const buftype = yield this.nvim.eval('&buftype');
+            if (buftype !== '')
+                return;
+            const errorSign = diagnostic_1.getSign(this.nvim, line, offset);
+            let errorText = errorSign ? errorSign.text : ' ';
+            yield utils_1.printEllipsis(this.nvim, errorText);
+        });
+    }
+    getSematicErrors(file) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.reloadFile();
+            return yield this.client.getSemanticDiagnosticsSync({ file });
+        });
+    }
+    getSyntaxErrors(file) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.reloadFile();
+            return yield this.client.getSyntacticDiagnosticsSync({ file });
+        });
+    }
+    getSuggested(file) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.reloadFile();
+            return yield this.client.getSuggestionDiagnosticsSync({ file });
         });
     }
     openBufferOrWindow(file, lineNumber, offset) {
@@ -492,12 +550,14 @@ let TSHost = class TSHost {
     onBufEnter() {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.client.serverHandle == null) {
+                yield this.init();
                 this.client.setTSConfigVersion();
                 yield this.tsstart();
             }
             else {
                 const file = yield this.getCurrentFile();
                 yield this.client.openFile({ file });
+                yield diagnostic_1.clearSigns(this.nvim, file);
             }
         });
     }
@@ -741,6 +801,18 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TSHost.prototype, "getProjectInfoFunc", null);
 __decorate([
+    neovim_1.Command('TSGetDiagnostics'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], TSHost.prototype, "getDiagnostics", null);
+__decorate([
+    neovim_1.Function('TSEchoMessage'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], TSHost.prototype, "handleCursorMoved", null);
+__decorate([
     neovim_1.Function('TSGetServerPath', { sync: true }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -789,7 +861,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TSHost.prototype, "onCMRefresh", null);
 TSHost = __decorate([
-    neovim_1.Plugin({ dev: true }),
-    __metadata("design:paramtypes", [Object])
+    neovim_1.Plugin({ dev: true })
 ], TSHost);
 exports.default = TSHost;

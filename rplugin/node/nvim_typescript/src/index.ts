@@ -11,9 +11,12 @@ import {
   getImportCandidates,
   convertDetailEntry,
   convertEntry,
-  getKind
+  getKind,
+  createLocList,
+  printEllipsis
 } from './utils';
 import { writeFileSync, statSync } from 'fs';
+import { placeSigns, defineSigns, getSign, clearSigns } from './diagnostic';
 
 @Plugin({ dev: true })
 export default class TSHost {
@@ -21,17 +24,45 @@ export default class TSHost {
   private client = Client;
   private maxCompletion: number;
 
-  constructor(nvim) {
-    this.nvim = nvim;
-    this.nvim
-      .getVar('nvim_typescript#max_completion_detail')
-      .then((res: string) => (this.maxCompletion = parseFloat(res)));
-    this.nvim
-      .getVar('nvim_typescript#server_path')
-      .then((val: string) => this.client.setServerPath(val));
-    this.nvim
-      .getVar('nvim_typescript#server_options')
-      .then((val: any) => (this.client.serverOptions = val));
+  async init() {
+    this.maxCompletion = parseFloat(
+      await this.nvim.getVar('nvim_typescript#max_completion_detail')
+    );
+    const serverPath = await this.nvim.getVar('nvim_typescript#server_path');
+    const serverOpts = await this.nvim.getVar('nvim_typescript#server_options');
+
+    this.client.setServerPath(serverPath);
+    this.client.serverOptions = serverOpts as any;
+    // const defaultSigns = await this.nvim.getVar('nvim_typescript#')
+    const defaultSigns = [
+      {
+        name: 'error',
+        texthl: 'NeomakeError',
+        signText: '•',
+        signTexthl: 'NeomakeErrorSign'
+      },
+      {
+        name: 'warning',
+        texthl: 'NeomakeWarning',
+        signText: '•',
+        signTexthl: 'NeomakeWarningSign'
+      },
+      {
+        name: 'information',
+        texthl: 'NeomakeInfo',
+        signText: '•',
+        signTexthl: 'NeomakeInfoSign'
+      },
+      {
+        name: 'hint',
+        texthl: 'NeomakeInfo',
+        signText: '?',
+        signTexthl: 'NeomakeInfoSign'
+      }
+    ];
+    defineSigns(this.nvim, defaultSigns).then(res =>
+      console.warn('signs defined')
+    );
   }
 
   @Command('TSType')
@@ -40,8 +71,9 @@ export default class TSHost {
     const args = await this.getCommonData();
     const typeInfo = await this.client.quickInfo(args);
     if (typeInfo) {
-      await this.printMsg(
-        `${typeInfo.displayString.replace(/(\r\n|\n|\r)/gm, '')}`
+      await printEllipsis(
+        this.nvim,
+        typeInfo.displayString.replace(/(\r\n|\n|\r)/gm, '')
       );
     }
   }
@@ -338,7 +370,7 @@ export default class TSHost {
           text: trim(ref.lineText)
         };
       });
-      this.createLocList(locationList, 'References');
+      createLocList(this.nvim, locationList, 'References');
     }
     {
       this.printErr('References not found');
@@ -445,7 +477,7 @@ export default class TSHost {
           }
         }
       }
-      this.createLocList(docSysmbolsLoc, 'Symbols');
+      createLocList(this.nvim, docSysmbolsLoc, 'Symbols');
     }
   }
 
@@ -464,31 +496,32 @@ export default class TSHost {
 
     const results = await this.getWorkspaceSymbolsFunc(funcArgs);
     if (results) {
-      await this.createLocList(results, 'WorkspaceSymbols');
+      await createLocList(this.nvim, results, 'WorkspaceSymbols');
     }
   }
 
   @Function('TSGetWorkspaceSymbolsFunc', { sync: true })
   async getWorkspaceSymbolsFunc(args) {
-      const searchValue = args.length > 0 ? args[0] : '';
-      const maxResultCount = 50;
-      const results = await this.client.getWorkspaceSymbols({
-          file: args[1],
-          searchValue,
-          maxResultCount: 50
-      });
+    const searchValue = args.length > 0 ? args[0] : '';
+    const maxResultCount = 50;
+    const results = await this.client.getWorkspaceSymbols({
+      file: args[1],
+      searchValue,
+      maxResultCount: 50
+    });
 
-      const symbolsRes = await Promise.all(
+    const symbolsRes = await Promise.all(
       results.map(async symbol => {
         return {
           filename: symbol.file,
           lnum: symbol.start.line,
           col: symbol.start.offset,
           text: `${await getKind(this.nvim, symbol.kind)}\t ${symbol.name}`
-        }
-      }))
+        };
+      })
+    );
 
-      return symbolsRes;
+    return symbolsRes;
   }
 
   @Function('TSGetProjectInfoFunc', { sync: true })
@@ -497,25 +530,47 @@ export default class TSHost {
     return await this.client.getProjectInfo({ file, needFileNameList: true });
   }
 
-  async createLocList(
-    list: Array<{ filename: string; lnum: number; col: number; text: string }>,
-    title: string
-  ) {
-    return new Promise(async (resolve, reject) => {
-      await this.nvim.call('setloclist', [0, list, 'r', title]);
-      await this.nvim.command('lwindow');
-      resolve();
-    });
+  @Command('TSGetDiagnostics')
+  async getDiagnostics() {
+    const file = await this.getCurrentFile();
+    const sematicErrors = await this.getSematicErrors(file);
+    const syntaxErrors = await this.getSyntaxErrors(file);
+    const res = [...sematicErrors, ...syntaxErrors];
+    await placeSigns(this.nvim, res, file);
+    await this.handleCursorMoved();
+  }
+
+  @Function('TSEchoMessage')
+  async handleCursorMoved() {
+    const { file, line, offset } = await this.getCommonData();
+    const buftype = await this.nvim.eval('&buftype');
+    if (buftype !== '') return;
+    const errorSign = getSign(this.nvim, line, offset);
+    let errorText = errorSign ? errorSign.text : ' ';
+    await printEllipsis(this.nvim, errorText);
+  }
+
+  async getSematicErrors(file) {
+    await this.reloadFile();
+    return await this.client.getSemanticDiagnosticsSync({ file });
+  }
+  async getSyntaxErrors(file) {
+    await this.reloadFile();
+    return await this.client.getSyntacticDiagnosticsSync({ file });
+  }
+  async getSuggested(file) {
+    await this.reloadFile();
+    return await this.client.getSuggestionDiagnosticsSync({ file });
   }
 
   async openBufferOrWindow(file: string, lineNumber: number, offset: number) {
-
-    const fileIsAlreadyFocused =
-        await this.getCurrentFile().then(currentFile => file === currentFile);
+    const fileIsAlreadyFocused = await this.getCurrentFile().then(
+      currentFile => file === currentFile
+    );
 
     if (fileIsAlreadyFocused) {
-        await this.nvim.command(`call cursor(${lineNumber}, ${offset})`);
-        return;
+      await this.nvim.command(`call cursor(${lineNumber}, ${offset})`);
+      return;
     }
 
     const windowNumber = await this.nvim.call('bufwinnr', file);
@@ -544,11 +599,13 @@ export default class TSHost {
   @Function('TSOnBufEnter')
   async onBufEnter() {
     if (this.client.serverHandle == null) {
+      await this.init();
       this.client.setTSConfigVersion();
       await this.tsstart();
     } else {
       const file = await this.getCurrentFile();
       await this.client.openFile({ file });
+      await clearSigns(this.nvim, file);
     }
   }
 

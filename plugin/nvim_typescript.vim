@@ -31,6 +31,8 @@ let g:nvim_typescript#debug_enabled =
       \ get(g:, 'nvim_typescript#debug_enabled', 0)
 let g:nvim_typescript#debug_settings =
       \ get(g:, 'nvim_typescript#debug_settings', {'file': 'nvim-typescript-tsserver.log', 'level': 'normal'})
+let g:nvim_typescript#diagnosticsEnable =
+      \ get(g:, 'nvim_typescript#diagnosticsEnable', 1)
 
 let g:nvim_typescript#server_options =
       \ get(g:, 'nvim_typescript#server_options', [])
@@ -92,6 +94,11 @@ augroup nvim-typescript "{{{
     if get(g:, 'nvim_typescript#type_info_on_hold', 1)
       autocmd CursorHold *.js,*.jsx TSType
     endif
+    if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
+      autocmd BufEnter *.js,*.jsx TSGetDiagnostics
+      autocmd TextChanged *.js,*.jsx TSGetDiagnostics
+      autocmd CursorMoved *.js,*.jsx call TSEchoMessage()
+    endif
   endif "}}}
 
   " Vue Support {{{
@@ -104,6 +111,11 @@ augroup nvim-typescript "{{{
     endif
     if get(g:, 'nvim_typescript#type_info_on_hold', 1)
       autocmd CursorHold *.vue TSType
+    endif
+    if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
+      autocmd BufEnter *.vue TSGetDiagnostics
+      autocmd TextChanged *.vue TSGetDiagnostics
+      autocmd CursorMoved *.vue call TSEchoMessage()
     endif
   endif "}}}
 
@@ -119,6 +131,11 @@ augroup nvim-typescript "{{{
   endif
   if get(g:, 'nvim_typescript#follow_dir_change', 1)
     autocmd DirChanged * call TSOnBufSave()
+  endif
+  if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
+    autocmd BufEnter *.ts,*.tsx TSGetDiagnostics
+    autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
+    autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()
   endif
   "}}}
 

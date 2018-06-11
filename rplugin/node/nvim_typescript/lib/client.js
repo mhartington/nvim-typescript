@@ -153,9 +153,20 @@ var Client;
         return _makeTssRequest('navto', args);
     }
     Client.getWorkspaceSymbols = getWorkspaceSymbols;
+    function getSemanticDiagnosticsSync(args) {
+        return _makeTssRequest('semanticDiagnosticsSync', args);
+    }
+    Client.getSemanticDiagnosticsSync = getSemanticDiagnosticsSync;
+    function getSyntacticDiagnosticsSync(args) {
+        return _makeTssRequest('syntacticDiagnosticsSync', args);
+    }
+    Client.getSyntacticDiagnosticsSync = getSyntacticDiagnosticsSync;
+    function getSuggestionDiagnosticsSync(args) {
+        return _makeTssRequest('suggestionDiagnosticsSync', args);
+    }
+    Client.getSuggestionDiagnosticsSync = getSuggestionDiagnosticsSync;
     // Server communication
     function _makeTssRequest(commandName, args) {
-        // console.log('making request', commandName)
         const seq = Client._seqNumber++;
         const payload = {
             seq,
@@ -174,7 +185,6 @@ var Client;
         const success = response['success']; // tslint:disable-line no-string-literal
         if (typeof seq === 'number') {
             if (success) {
-                // console.log(response.body)
                 Client._seqToPromises[seq].resolve(response.body);
             }
             else {
@@ -186,11 +196,8 @@ var Client;
             // Like 'geterr' - returns both semanticDiag and syntaxDiag
             if (response.type && response.type === 'event') {
                 if (response.event && response.event === 'telemetry') {
-                    // console.log(response.body.payload.version)
                 }
                 if (response.event && response.event === 'semanticDiag') {
-                    // console.log(response.body);
-                    // this.emit("semanticDiag", response.body);
                 }
             }
         }

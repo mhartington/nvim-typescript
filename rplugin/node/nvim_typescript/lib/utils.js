@@ -91,7 +91,7 @@ function convertDetailEntry(nvim, entry) {
         let kind = yield getKind(nvim, entry.kind);
         return {
             word: entry.name,
-            kind: kind,
+            kind: entry.kind,
             menu: menuText
         };
     });
@@ -116,3 +116,31 @@ function toTitleCase(str) {
         return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
     });
 }
+function createLocList(nvim, list, title, autoOpen = true) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+            yield nvim.call('setloclist', [0, list, 'r', title]);
+            if (autoOpen) {
+                yield nvim.command('lwindow');
+            }
+            resolve();
+        }));
+    });
+}
+exports.createLocList = createLocList;
+exports.guid = () => Math.floor((1 + Math.random()) * 0x10000);
+function printEllipsis(nvim, message) {
+    return __awaiter(this, void 0, void 0, function* () {
+        /**
+         * Print as much of msg as possible without triggering "Press Enter"
+         * Inspired by neomake, which is in turn inspired by syntastic.
+         */
+        const columns = yield nvim.getOption('columns');
+        let msg = message.replace('\n', '. ');
+        if (msg.length > columns - 12) {
+            msg = msg.substring(0, columns - 15) + '...';
+        }
+        yield nvim.command(`echo "${msg}"`);
+    });
+}
+exports.printEllipsis = printEllipsis;

@@ -13,8 +13,7 @@ class Source(Base):
         self.rank = 1000
         self.min_pattern_length = 1
         self.input_pattern = r'(\.|::)\w*'
-        self.filetypes = ["typescript", "tsx",
-                          "typescript.tsx", "typescriptreact"]
+        self.filetypes = ["typescript", "tsx", "typescript.tsx", "typescriptreact"]
         if self.vim.vars["nvim_typescript#javascript_support"]:
             self.filetypes.extend(["javascript", "jsx", "javascript.jsx"])
         if self.vim.vars["nvim_typescript#vue_support"]:
