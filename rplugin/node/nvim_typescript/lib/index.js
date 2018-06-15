@@ -29,39 +29,39 @@ let TSHost = class TSHost {
     }
     init() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.maxCompletion = parseFloat(yield this.nvim.getVar('nvim_typescript#max_completion_detail'));
-            const serverPath = yield this.nvim.getVar('nvim_typescript#server_path');
+            this.maxCompletion = parseFloat((yield this.nvim.getVar('nvim_typescript#max_completion_detail')));
+            const serverPath = (yield this.nvim.getVar('nvim_typescript#server_path'));
             const serverOpts = yield this.nvim.getVar('nvim_typescript#server_options');
             this.client.setServerPath(serverPath);
             this.client.serverOptions = serverOpts;
             // const defaultSigns = await this.nvim.getVar('nvim_typescript#')
             const defaultSigns = [
                 {
-                    name: 'error',
+                    name: 'TSerror',
                     texthl: 'NeomakeError',
                     signText: '•',
                     signTexthl: 'NeomakeErrorSign'
                 },
                 {
-                    name: 'warning',
+                    name: 'TSwarning',
                     texthl: 'NeomakeWarning',
                     signText: '•',
                     signTexthl: 'NeomakeWarningSign'
                 },
                 {
-                    name: 'information',
+                    name: 'TSinformation',
                     texthl: 'NeomakeInfo',
                     signText: '•',
                     signTexthl: 'NeomakeInfoSign'
                 },
                 {
-                    name: 'hint',
+                    name: 'TShint',
                     texthl: 'NeomakeInfo',
                     signText: '?',
                     signTexthl: 'NeomakeInfoSign'
                 }
             ];
-            diagnostic_1.defineSigns(this.nvim, defaultSigns).then(res => console.warn('signs defined'));
+            yield diagnostic_1.defineSigns(this.nvim, defaultSigns);
         });
     }
     getType() {
@@ -498,7 +498,8 @@ let TSHost = class TSHost {
             const buftype = yield this.nvim.eval('&buftype');
             if (buftype !== '')
                 return;
-            const errorSign = diagnostic_1.getSign(this.nvim, line, offset);
+            const errorSign = diagnostic_1.getSign(this.nvim, file, line, offset);
+            console.warn('errorSign', errorSign);
             let errorText = errorSign ? errorSign.text : ' ';
             yield utils_1.printEllipsis(this.nvim, errorText);
         });
@@ -557,7 +558,7 @@ let TSHost = class TSHost {
             else {
                 const file = yield this.getCurrentFile();
                 yield this.client.openFile({ file });
-                yield diagnostic_1.clearSigns(this.nvim, file);
+                // await clearSigns(this.nvim, file);
             }
         });
     }

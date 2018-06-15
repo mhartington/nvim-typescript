@@ -25,8 +25,12 @@ export default class TSHost {
   private maxCompletion: number;
 
   async init() {
-    this.maxCompletion = parseFloat((await this.nvim.getVar('nvim_typescript#max_completion_detail') as string));
-    const serverPath = (await this.nvim.getVar('nvim_typescript#server_path') as string);
+    this.maxCompletion = parseFloat((await this.nvim.getVar(
+      'nvim_typescript#max_completion_detail'
+    )) as string);
+    const serverPath = (await this.nvim.getVar(
+      'nvim_typescript#server_path'
+    )) as string;
     const serverOpts = await this.nvim.getVar('nvim_typescript#server_options');
 
     this.client.setServerPath(serverPath);
@@ -34,33 +38,31 @@ export default class TSHost {
     // const defaultSigns = await this.nvim.getVar('nvim_typescript#')
     const defaultSigns = [
       {
-        name: 'error',
+        name: 'TSerror',
         texthl: 'NeomakeError',
         signText: '•',
         signTexthl: 'NeomakeErrorSign'
       },
       {
-        name: 'warning',
+        name: 'TSwarning',
         texthl: 'NeomakeWarning',
         signText: '•',
         signTexthl: 'NeomakeWarningSign'
       },
       {
-        name: 'information',
+        name: 'TSinformation',
         texthl: 'NeomakeInfo',
         signText: '•',
         signTexthl: 'NeomakeInfoSign'
       },
       {
-        name: 'hint',
+        name: 'TShint',
         texthl: 'NeomakeInfo',
         signText: '?',
         signTexthl: 'NeomakeInfoSign'
       }
     ];
-    defineSigns(this.nvim, defaultSigns).then(res =>
-      console.warn('signs defined')
-    );
+    await defineSigns(this.nvim, defaultSigns);
   }
 
   @Command('TSType')
@@ -543,7 +545,8 @@ export default class TSHost {
     const { file, line, offset } = await this.getCommonData();
     const buftype = await this.nvim.eval('&buftype');
     if (buftype !== '') return;
-    const errorSign = getSign(this.nvim, line, offset);
+    const errorSign = getSign(this.nvim, file, line, offset);
+    console.warn('errorSign', errorSign);
     let errorText = errorSign ? errorSign.text : ' ';
     await printEllipsis(this.nvim, errorText);
   }
@@ -603,7 +606,7 @@ export default class TSHost {
     } else {
       const file = await this.getCurrentFile();
       await this.client.openFile({ file });
-      await clearSigns(this.nvim, file);
+      // await clearSigns(this.nvim, file);
     }
   }
 

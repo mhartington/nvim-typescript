@@ -83,10 +83,9 @@ augroup nvim-typescript "{{{
   endfunction
   command! -nargs=1 TSSearch call s:TSSearch(<q-args>) "}}}
 
-  "Regular JS supporti {{{
-  if get(g:, 'nvim_typescript#javascript_support', 1)
-    autocmd BufEnter *.js,*.jsx call nvim_typescript#DefaultKeyMap()
-    autocmd BufEnter *.js,*.jsx call TSOnBufEnter()
+  " Regular JS support {{{
+    autocmd BufEnter,Filetype javascript,javascriptreact call nvim_typescript#DefaultKeyMap()
+    autocmd BufEnter,Filetype javascript,javascriptreact call TSOnBufEnter()
     autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
     if get(g:, 'nvim_typescript#signature_complete', 1)
        autocmd CompleteDone *.js,*.jsx TSSig
@@ -94,34 +93,37 @@ augroup nvim-typescript "{{{
     if get(g:, 'nvim_typescript#type_info_on_hold', 1)
       autocmd CursorHold *.js,*.jsx TSType
     endif
-    if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
-      autocmd BufEnter *.js,*.jsx TSGetDiagnostics
-      autocmd TextChanged *.js,*.jsx TSGetDiagnostics
-      autocmd CursorMoved *.js,*.jsx call TSEchoMessage()
+    if get(g:, 'nvim_typescript#follow_dir_change', 1)
+      autocmd DirChanged * call TSOnBufSave()
     endif
-  endif "}}}
+    if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
+      autocmd BufEnter,Filetype javascript,javascriptreact TSGetDiagnostics
+      autocmd TextChanged *js,*.jsx TSGetDiagnostics
+      autocmd CursorMoved *js,*.jsx call TSEchoMessage()
+    endif "}}}
 
   " Vue Support {{{
   if get(g:, 'nvim_typescript#vue_support', 1)
-    autocmd BufEnter *.vue call nvim_typescript#DefaultKeyMap()
-    autocmd BufEnter *.vue call TSOnBufEnter()
+    autocmd BufEnter,Filetype vue call nvim_typescript#DefaultKeyMap()
+    autocmd BufEnter,Filetype vue call TSOnBufEnter()
     autocmd BufWritePost *.vue call TSOnBufSave()
     if get(g:, 'nvim_typescript#signature_complete', 1)
-       autocmd CompleteDone *.vue TSSig
+       autocmd CompleteDone,Filetype vue TSSig
+     autocmd CompleteDone *.vue TSSig
     endif
     if get(g:, 'nvim_typescript#type_info_on_hold', 1)
       autocmd CursorHold *.vue TSType
     endif
     if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
-      autocmd BufEnter *.vue TSGetDiagnostics
-      autocmd TextChanged *.vue TSGetDiagnostics
+      autocmd BufEnter,Filetype vue TSGetDiagnostics
+      autocmd TextChanged *.vue  TSGetDiagnostics
       autocmd CursorMoved *.vue call TSEchoMessage()
     endif
   endif "}}}
 
   " Core {{{
-  autocmd BufEnter *.ts,*.tsx call nvim_typescript#DefaultKeyMap()
-  autocmd BufEnter *.ts,*.tsx call TSOnBufEnter()
+  autocmd BufEnter,Filetype typescript,typescriptreact call nvim_typescript#DefaultKeyMap()
+  autocmd BufEnter,Filetype typescript,typescriptreact call TSOnBufEnter()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   if get(g:, 'nvim_typescript#signature_complete', 1)
      autocmd CompleteDone *.ts,*.tsx TSSig
@@ -133,9 +135,9 @@ augroup nvim-typescript "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif
   if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
-    autocmd BufEnter *.ts,*.tsx TSGetDiagnostics
-    autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
-    autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()
+    autocmd BufEnter,Filetype typescript,typescriptreact TSGetDiagnostics
+    autocmd TextChanged *ts,*.tsx  TSGetDiagnostics
+    autocmd CursorMoved *ts,*.tsx call TSEchoMessage()
   endif
   "}}}
 
@@ -143,3 +145,4 @@ augroup nvim-typescript "{{{
   autocmd User CmSetup call cm#sources#typescript#register()
 
 augroup end "}}}
+
