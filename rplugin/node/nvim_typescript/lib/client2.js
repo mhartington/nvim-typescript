@@ -144,9 +144,6 @@ class Client extends events_1.EventEmitter {
     getSuggestionDiagnosticsSync(args) {
         return this._makeTssRequest('suggestionDiagnosticsSync', args);
     }
-    getErr(args) {
-        return this._makeTssRequest('geterr', args);
-    }
     // Server communication
     _makeTssRequest(commandName, args) {
         const seq = this._seqNumber++;
@@ -163,8 +160,8 @@ class Client extends events_1.EventEmitter {
     }
     parseResponse(returnedData) {
         const response = JSON.parse(returnedData);
-        const seq = response.request_seq;
-        const success = response.success;
+        const seq = response['request_seq']; // tslint:disable-line no-string-literal
+        const success = response['success']; // tslint:disable-line no-string-literal
         if (typeof seq === 'number') {
             if (success) {
                 this._seqToPromises[seq].resolve(response.body);

@@ -25,7 +25,7 @@ const fs_1 = require("fs");
 const diagnostic_1 = require("./diagnostic");
 let TSHost = class TSHost {
     constructor() {
-        this.client = client_1.Client;
+        this.client = client_1.TSServer;
     }
     init() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -34,36 +34,18 @@ let TSHost = class TSHost {
             const serverOpts = yield this.nvim.getVar('nvim_typescript#server_options');
             this.client.setServerPath(serverPath);
             this.client.serverOptions = serverOpts;
-            // const defaultSigns = await this.nvim.getVar('nvim_typescript#')
-            const defaultSigns = [
-                {
-                    name: 'TSerror',
-                    texthl: 'NeomakeError',
-                    signText: '•',
-                    signTexthl: 'NeomakeErrorSign'
-                },
-                {
-                    name: 'TSwarning',
-                    texthl: 'NeomakeWarning',
-                    signText: '•',
-                    signTexthl: 'NeomakeWarningSign'
-                },
-                {
-                    name: 'TSinformation',
-                    texthl: 'NeomakeInfo',
-                    signText: '•',
-                    signTexthl: 'NeomakeInfoSign'
-                },
-                {
-                    name: 'TShint',
-                    texthl: 'NeomakeInfo',
-                    signText: '?',
-                    signTexthl: 'NeomakeInfoSign'
-                }
-            ];
+            const defaultSigns = yield this.nvim.getVar('nvim_typescript#default_signs');
             yield diagnostic_1.defineSigns(this.nvim, defaultSigns);
+            this.client.on('semanticDiag', res => {
+                console.log('coming soon...');
+            });
         });
     }
+    // @Command('TSGetErr')
+    // async getErr(){
+    //   const file = await this.getCurrentFile();
+    //   await this.client.getErr({files: [file], delay: 500})
+    // }
     getType() {
         return __awaiter(this, void 0, void 0, function* () {
             const reloadResults = yield this.reloadFile();

@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import { Neovim, Autocmd, Command, Function, Plugin } from 'neovim';
 import { fileSync } from 'tmp';
 import protocol from 'typescript/lib/protocol';
-import { Client } from './client';
+import { TSServer } from './client';
 import {
   trim,
   convertToDisplayString,
@@ -21,7 +21,7 @@ import { placeSigns, defineSigns, getSign, clearSigns } from './diagnostic';
 @Plugin({ dev: true })
 export default class TSHost {
   private nvim: Neovim;
-  private client = Client;
+  private client = TSServer;
   private maxCompletion: number;
 
   async init() {
@@ -35,35 +35,22 @@ export default class TSHost {
 
     this.client.setServerPath(serverPath);
     this.client.serverOptions = serverOpts as any;
-    // const defaultSigns = await this.nvim.getVar('nvim_typescript#')
-    const defaultSigns = [
-      {
-        name: 'TSerror',
-        texthl: 'NeomakeError',
-        signText: '•',
-        signTexthl: 'NeomakeErrorSign'
-      },
-      {
-        name: 'TSwarning',
-        texthl: 'NeomakeWarning',
-        signText: '•',
-        signTexthl: 'NeomakeWarningSign'
-      },
-      {
-        name: 'TSinformation',
-        texthl: 'NeomakeInfo',
-        signText: '•',
-        signTexthl: 'NeomakeInfoSign'
-      },
-      {
-        name: 'TShint',
-        texthl: 'NeomakeInfo',
-        signText: '?',
-        signTexthl: 'NeomakeInfoSign'
-      }
-    ];
+
+    const defaultSigns = await this.nvim.getVar(
+      'nvim_typescript#default_signs'
+    );
     await defineSigns(this.nvim, defaultSigns);
+
+    this.client.on('semanticDiag', res => {
+      console.log('coming soon...');
+    });
   }
+
+  // @Command('TSGetErr')
+  // async getErr(){
+  //   const file = await this.getCurrentFile();
+  //   await this.client.getErr({files: [file], delay: 500})
+  // }
 
   @Command('TSType')
   async getType() {

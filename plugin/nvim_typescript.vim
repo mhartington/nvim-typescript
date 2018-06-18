@@ -70,6 +70,34 @@ let s:kind_symbols = {
 let g:nvim_typescript#kind_symbols =
       \ get(g:, 'nvim_typescript#kind_symbols', s:kind_symbols)
 
+let g:nvim_typescript#default_signs =
+      \ get(g:, 'nvim_typescript#default_signs', [
+      \  {
+      \  'name': 'TSerror',
+      \  'texthl': 'SpellBad',
+      \  'signText': '•',
+      \  'signTexthl': 'NeomakeErrorSign'
+      \},
+      \{
+      \  'name': 'TSwarning',
+      \  'texthl': 'SpellBad',
+      \  'signText': '•',
+      \  'signTexthl': 'NeomakeWarningSign'
+      \},
+      \{
+      \  'name': 'TSinformation',
+      \  'texthl': 'SpellBad',
+      \  'signText': '•',
+      \  'signTexthl': 'NeomakeInfoSign'
+      \},
+      \{
+      \  'name': 'TShint',
+      \  'texthl': 'SpellBad',
+      \  'signText': '?',
+      \  'signTexthl': 'NeomakeInfoSign'
+      \}
+      \])
+
 "}}}
 
 augroup nvim-typescript "{{{
@@ -77,7 +105,7 @@ augroup nvim-typescript "{{{
 
   "FZF stuff
   function! s:TSSearch(query) "{{{
-      let l:symbols = TSGetWorkspaceSymbolsFunc(a:query, expand("%"))
+      let l:symbols = TSGetWorkspaceSymbolsFunc(a:query, expand('%'))
       call setloclist(0, l:symbols, 'r', 'Symbols')
       lopen
   endfunction
