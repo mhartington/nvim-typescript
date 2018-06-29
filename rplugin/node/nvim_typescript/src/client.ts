@@ -62,7 +62,7 @@ export class Client extends EventEmitter {
       });
 
       this.serverHandle.on('error', data => {
-        console.log(`error Event: ${data}`);
+        console.log(`ERROR Event: ${data}`);
       });
 
       this.serverHandle.on('exit', data => {
@@ -172,11 +172,6 @@ export class Client extends EventEmitter {
     return this._makeTssRequest('navtree', args);
   }
 
-  getCodeFixesAtCursor(
-    args: protocol.CodeFixRequestArgs
-  ): Promise<protocol.CodeFixResponse['body']> {
-    return this._makeTssRequest('getCodeFixes', args);
-  }
   getWorkspaceSymbols(
     args: protocol.NavtoRequestArgs
   ): Promise<protocol.NavtoResponse['body']> {
@@ -203,6 +198,17 @@ export class Client extends EventEmitter {
     args: protocol.GeterrRequestArgs
   ): Promise<any> {
     return this._makeTssRequest('geterr', args);
+  }
+
+  // getOutliningSpans(){}
+  getCodeFixes(
+    args: protocol.CodeFixRequestArgs
+  ): Promise<protocol.GetCodeFixesResponse['body']>{
+    return this._makeTssRequest(protocol.CommandTypes.GetCodeFixes, args);
+  }
+
+  getSupportedCodeFixes(): Promise<protocol.GetSupportedCodeFixesResponse['body']>{
+    return this._makeTssRequest("getSupportedCodeFixes", null)
   }
 
   // Server communication

@@ -1,6 +1,6 @@
 import protocol from 'typescript/lib/protocol';
 import { Neovim } from 'neovim';
-
+import { Client } from './client';
 export function trim(s: string) {
   return (s || '').replace(/^\s+|\s+$/g, '');
 }
@@ -29,38 +29,17 @@ export function getParams(
   });
 }
 
-export async function getCurrentImports(client: any, inspectedFile: string) {
-  return new Promise(async (resolve, reject) => {
-    const documentSymbols = await client.getDocumentSymbols({
-      file: inspectedFile
-    });
-    if (documentSymbols.childItems) {
-      return resolve(
-        documentSymbols.childItems
-          .filter(item => item.kind === 'alias')
-          .map(item => item.text)
-      );
-    } else {
-      return reject();
-    }
-  });
-}
-
-export async function getImportCandidates(
-  client: any,
-  currentFile: string,
-  cursorPosition: { line: number; col: number }
-): Promise<protocol.CodeFixResponse['body']> {
-  const cannotFindNameError = 2304;
-  const args = {
-    file: currentFile,
-    startLine: cursorPosition.line,
-    endLine: cursorPosition.line,
-    startOffset: cursorPosition.col,
-    endOffset: cursorPosition.col,
-    errorCodes: [cannotFindNameError]
-  };
-  return await client.getCodeFixesAtCursor(args);
+export async function getCurrentImports(client: Client, file: string) {
+  const documentSymbols = await client.getDocumentSymbols({ file });
+  if (documentSymbols.childItems) {
+    return Promise.all(
+      documentSymbols.childItems
+        .filter(item => item.kind === 'alias')
+        .map(item => item.text)
+    );
+  } else {
+    return; 
+  }
 }
 
 export async function convertEntry(
@@ -130,13 +109,35 @@ export async function createLocList(
   });
 }
 
+export async function createQuickFixList(
+  nvim: Neovim,
+  list: Array<{
+    filename: string;
+    lnum: number;
+    col: number;
+    text: string;
+    code?: number;
+  }>,
+  title: string,
+  autoOpen = true
+) {
+  return new Promise(async (resolve, reject) => {
+    await nvim.call('setqflist', [list, 'r', title]);
+    if (autoOpen) {
+      await nvim.command('copen');
+    }
+    resolve();
+  });
+}
+
 export const guid = () => Math.floor((1 + Math.random()) * 0x10000);
+
 export async function printEllipsis(nvim: Neovim, message: string) {
   /**
    * Print as much of msg as possible without triggering "Press Enter"
    * Inspired by neomake, which is in turn inspired by syntastic.
    */
-  const columns = (await nvim.getOption('columns') as number);
+  const columns = (await nvim.getOption('columns')) as number;
   let msg = message.replace('\n', '. ');
   if (msg.length > columns - 12) {
     msg = msg.substring(0, columns - 15) + '...';

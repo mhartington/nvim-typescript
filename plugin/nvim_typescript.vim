@@ -126,8 +126,9 @@ augroup nvim-typescript "{{{
     endif
     if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
       autocmd BufEnter,Filetype javascript,javascriptreact TSGetDiagnostics
-      autocmd TextChanged *js,*.jsx TSGetDiagnostics
-      autocmd CursorMoved *js,*.jsx call TSEchoMessage()
+      autocmd TextChanged *.js,*.jsx TSGetDiagnostics
+      autocmd InsertLeave *.js,*.jsx TSGetDiagnostics
+      autocmd CursorMoved *.js,*.jsx call TSEchoMessage()
     endif "}}}
 
   " Vue Support {{{
@@ -145,6 +146,7 @@ augroup nvim-typescript "{{{
     if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
       autocmd BufEnter,Filetype vue TSGetDiagnostics
       autocmd TextChanged *.vue  TSGetDiagnostics
+      autocmd InsertLeave *.vue TSGetDiagnostics
       autocmd CursorMoved *.vue call TSEchoMessage()
     endif
   endif "}}}
@@ -164,8 +166,9 @@ augroup nvim-typescript "{{{
   endif
   if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
     autocmd BufEnter,Filetype typescript,typescriptreact TSGetDiagnostics
-    autocmd TextChanged *ts,*.tsx  TSGetDiagnostics
-    autocmd CursorMoved *ts,*.tsx call TSEchoMessage()
+    autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
+    autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
+    autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()
   endif
   "}}}
 

@@ -50,7 +50,7 @@ class Client extends events_1.EventEmitter {
                 console.error('Error from tss: ' + data);
             });
             this.serverHandle.on('error', data => {
-                console.log(`error Event: ${data}`);
+                console.log(`ERROR Event: ${data}`);
             });
             this.serverHandle.on('exit', data => {
                 console.log(`exit Event: ${data}`);
@@ -129,9 +129,6 @@ class Client extends events_1.EventEmitter {
     getDocumentSymbols(args) {
         return this._makeTssRequest('navtree', args);
     }
-    getCodeFixesAtCursor(args) {
-        return this._makeTssRequest('getCodeFixes', args);
-    }
     getWorkspaceSymbols(args) {
         return this._makeTssRequest('navto', args);
     }
@@ -146,6 +143,13 @@ class Client extends events_1.EventEmitter {
     }
     getErr(args) {
         return this._makeTssRequest('geterr', args);
+    }
+    // getOutliningSpans(){}
+    getCodeFixes(args) {
+        return this._makeTssRequest("getCodeFixes" /* GetCodeFixes */, args);
+    }
+    getSupportedCodeFixes() {
+        return this._makeTssRequest("getSupportedCodeFixes", null);
     }
     // Server communication
     _makeTssRequest(commandName, args) {
