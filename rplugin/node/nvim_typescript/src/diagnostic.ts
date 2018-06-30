@@ -9,7 +9,7 @@ interface SignStoreSign extends Diagnostic {
 export class DiagnosticProvider {
   public signStore: Array<{ file: string; signs: Array<SignStoreSign> }> = [];
   public nvim: Neovim;
-  public signID = 0;
+  public signID = 1;
   async defineSigns(defaults) {
     for (let sign of defaults) {
       await this.nvim.command(
@@ -21,22 +21,19 @@ export class DiagnosticProvider {
   }
 
   async placeSigns(incomingSigns: Diagnostic[], file: string) {
-
-    await this.unsetSigns(file);
-    await this.clearHighlight();
-
+    await this.clearSigns(file);
     const locList = [];
-    const formattedSigns = this.normalizeSigns(incomingSigns);
     let current = this.signStore.find(entry => entry.file === file);
     if (!current) {
       this.signStore.push({ file, signs: [] });
     }
-
     current = this.signStore.find(entry => entry.file === file);
-    current.signs = formattedSigns;
+    current.signs = this.normalizeSigns(incomingSigns);
+
 
     await Promise.all(
       current.signs.map(async (sign, idx) => {
+        console.warn("SIGN: ", JSON.stringify(sign))
         await this.nvim.command(
           `sign place ${sign.id} line=${sign.start.line}, name=TS${
             sign.category
@@ -63,7 +60,7 @@ export class DiagnosticProvider {
   }
 
   async clearSigns(file: string) {
-    await this.clearHighlight();
+    await this.clearHighlight(file);
     await this.unsetSigns(file);
     await this.nvim.call('setqflist', [[]]);
   }
@@ -101,7 +98,7 @@ export class DiagnosticProvider {
     }
   }
 
-  async clearHighlight() {
+  async clearHighlight(file: string) {
     await this.nvim.buffer.clearHighlight({
       lineStart: 1,
       lineEnd: -1
@@ -111,8 +108,9 @@ export class DiagnosticProvider {
     const current = this.signStore.find(entry => entry.file === file);
     if (current) {
       for (let sign of current.signs) {
+        console.warn("SIGN: ", JSON.stringify(sign)) 
         await this.nvim.buffer.addHighlight({
-          srcId: sign['id'],
+          srcId: sign.id,
           hlGroup: 'NeomakeError',
           line: sign.start.line - 1,
           colStart: sign.start.offset - 1,
