@@ -2,8 +2,6 @@ import { Neovim } from 'neovim';
 import { Diagnostic } from 'typescript/lib/protocol';
 import { createLocList, guid, createQuickFixList } from './utils';
 
-let signID = 1;
-
 interface SignStoreSign extends Diagnostic {
   id: number;
 }
@@ -11,6 +9,7 @@ interface SignStoreSign extends Diagnostic {
 export class DiagnosticProvider {
   public signStore: Array<{ file: string; signs: Array<SignStoreSign> }> = [];
   public nvim: Neovim;
+  public signID = 0;
   async defineSigns(defaults) {
     for (let sign of defaults) {
       await this.nvim.command(
@@ -22,12 +21,12 @@ export class DiagnosticProvider {
   }
 
   async placeSigns(incomingSigns: Diagnostic[], file: string) {
+
     await this.unsetSigns(file);
     await this.clearHighlight();
 
     const locList = [];
     const formattedSigns = this.normalizeSigns(incomingSigns);
-
     let current = this.signStore.find(entry => entry.file === file);
     if (!current) {
       this.signStore.push({ file, signs: [] });
@@ -58,9 +57,8 @@ export class DiagnosticProvider {
   }
 
   normalizeSigns(signs: Diagnostic[]) {
-    signID += 1;
     return signs.map(sign => {
-      return { ...sign, id: signID };
+      return { ...sign, id: this.signID++ };
     });
   }
 
@@ -73,7 +71,7 @@ export class DiagnosticProvider {
   async unsetSigns(file: string) {
     const current = this.signStore.find(entry => entry.file === file);
     if (current) {
-      return await Promise.all(
+      return Promise.all(
         current.signs.map(async (sign, idx) => {
           await this.nvim.command(
             `sign unplace ${sign.id} file=${current.file}`

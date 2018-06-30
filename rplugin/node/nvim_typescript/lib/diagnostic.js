@@ -9,10 +9,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const utils_1 = require("./utils");
-let signID = 1;
 class DiagnosticProvider {
     constructor() {
         this.signStore = [];
+        this.signID = 0;
     }
     defineSigns(defaults) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -49,9 +49,8 @@ class DiagnosticProvider {
         });
     }
     normalizeSigns(signs) {
-        signID += 1;
         return signs.map(sign => {
-            return Object.assign({}, sign, { id: signID });
+            return Object.assign({}, sign, { id: this.signID++ });
         });
     }
     clearSigns(file) {
@@ -65,7 +64,7 @@ class DiagnosticProvider {
         return __awaiter(this, void 0, void 0, function* () {
             const current = this.signStore.find(entry => entry.file === file);
             if (current) {
-                return yield Promise.all(current.signs.map((sign, idx) => __awaiter(this, void 0, void 0, function* () {
+                return Promise.all(current.signs.map((sign, idx) => __awaiter(this, void 0, void 0, function* () {
                     yield this.nvim.command(`sign unplace ${sign.id} file=${current.file}`);
                     this.signStore = this.signStore.map(entry => {
                         if (entry === current)
