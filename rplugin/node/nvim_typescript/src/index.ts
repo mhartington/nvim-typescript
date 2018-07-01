@@ -20,18 +20,22 @@ export default class TSHost {
   private nvim: Neovim;
   private client = Client;
   private maxCompletion: number;
+  private initialized: Promise<void>;
 
   constructor(nvim) {
     this.nvim = nvim;
-    this.nvim
-      .getVar('nvim_typescript#max_completion_detail')
-      .then((res: string) => (this.maxCompletion = parseFloat(res)));
-    this.nvim
-      .getVar('nvim_typescript#server_path')
-      .then((val: string) => this.client.setServerPath(val));
-    this.nvim
-      .getVar('nvim_typescript#server_options')
-      .then((val: any) => (this.client.serverOptions = val));
+    this.initialized = this.initialize();
+  }
+
+  async initialize() {
+    const [maxCompletion, serverPath, serverOptions] = await Promise.all([
+      this.nvim.getVar('nvim_typescript#max_completion_detail'),
+      this.nvim.getVar('nvim_typescript#server_path'),
+      this.nvim.getVar('nvim_typescript#server_options'),
+    ]);
+    this.maxCompletion = parseFloat(maxCompletion);
+    this.client.setServerPath(serverPath);
+    this.client.serverOptions = [serverOptions];
   }
 
   @Command('TSType')
@@ -543,6 +547,7 @@ export default class TSHost {
   // autocmd function syncs
   @Function('TSOnBufEnter')
   async onBufEnter() {
+    await this.initialized;
     if (this.client.serverHandle == null) {
       this.client.setTSConfigVersion();
       await this.tsstart();
