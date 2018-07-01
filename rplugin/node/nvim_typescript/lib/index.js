@@ -26,15 +26,19 @@ let TSHost = class TSHost {
     constructor(nvim) {
         this.client = client_1.Client;
         this.nvim = nvim;
-        this.nvim
-            .getVar('nvim_typescript#max_completion_detail')
-            .then((res) => (this.maxCompletion = parseFloat(res)));
-        this.nvim
-            .getVar('nvim_typescript#server_path')
-            .then((val) => this.client.setServerPath(val));
-        this.nvim
-            .getVar('nvim_typescript#server_options')
-            .then((val) => (this.client.serverOptions = val));
+        this.initialized = this.initialize();
+    }
+    initialize() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const [maxCompletion, serverPath, serverOptions] = yield Promise.all([
+                this.nvim.getVar('nvim_typescript#max_completion_detail'),
+                this.nvim.getVar('nvim_typescript#server_path'),
+                this.nvim.getVar('nvim_typescript#server_options'),
+            ]);
+            this.maxCompletion = parseFloat(maxCompletion);
+            this.client.setServerPath(serverPath);
+            this.client.serverOptions = [serverOptions];
+        });
     }
     getType() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -491,6 +495,7 @@ let TSHost = class TSHost {
     // autocmd function syncs
     onBufEnter() {
         return __awaiter(this, void 0, void 0, function* () {
+            yield this.initialized;
             if (this.client.serverHandle == null) {
                 this.client.setTSConfigVersion();
                 yield this.tsstart();
