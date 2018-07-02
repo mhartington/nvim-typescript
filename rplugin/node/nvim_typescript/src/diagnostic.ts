@@ -30,10 +30,9 @@ export class DiagnosticProvider {
     current = this.signStore.find(entry => entry.file === file);
     current.signs = this.normalizeSigns(incomingSigns);
 
-
     await Promise.all(
       current.signs.map(async (sign, idx) => {
-        console.warn("SIGN: ", JSON.stringify(sign))
+        console.warn('SIGN: ', JSON.stringify(sign));
         await this.nvim.command(
           `sign place ${sign.id} line=${sign.start.line}, name=TS${
             sign.category
@@ -108,7 +107,7 @@ export class DiagnosticProvider {
     const current = this.signStore.find(entry => entry.file === file);
     if (current) {
       for (let sign of current.signs) {
-        console.warn("SIGN: ", JSON.stringify(sign)) 
+        console.warn('SIGN: ', JSON.stringify(sign));
         await this.nvim.buffer.addHighlight({
           srcId: sign.id,
           hlGroup: 'NeomakeError',

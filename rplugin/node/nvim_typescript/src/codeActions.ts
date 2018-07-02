@@ -3,10 +3,8 @@ import { FileCodeEdits, CodeAction } from 'typescript/lib/protocol';
 
 const leadingNewLineRexeg = /^\n/;
 const leadingAndTrailingNewLineRegex = /^\n|\n$/;
-export async function promptForSelection(
-  options: CodeAction[],
-  nvim: Neovim
-): Promise<any> {
+
+export async function promptForSelection(options: CodeAction[], nvim: Neovim): Promise<any> {
   const changeDescriptions = options.map(change => change.description);
   const canidates = changeDescriptions.map(
     (change, idx) => `\n[${idx}]: ${change}`
@@ -25,22 +23,21 @@ export async function promptForSelection(
 export async function applyCodeFixes(fixes: FileCodeEdits[], nvim: Neovim) {
   for (let fix of fixes) {
     for (let textChange of fix.textChanges) {
-      console.warn(JSON.stringify(textChange));
       if (textChange.start.line === textChange.end.line) {
-        console.warn('inserting new text or modifying a line');
-        const newText = textChange.newText.replace(leadingAndTrailingNewLineRegex, '')
+        // inserting new text or modifying a line
+        const newText = textChange.newText.replace(
+          leadingAndTrailingNewLineRegex,
+          ''
+        );
         if (textChange.start.offset === 1) {
           console.warn('OFFSET 1');
-          console.warn(newText, textChange.start.line-1)
-          await nvim.buffer.insert(
-            newText,
-            textChange.start.line - 1
-          );
-        } 
+          console.warn(newText, textChange.start.line - 1);
+          await nvim.buffer.insert(newText, textChange.start.line - 1);
+        }
         else if (textChange.newText.match(leadingNewLineRexeg)) {
           console.warn('ADDING NEW LINE');
           await nvim.buffer.insert(textChange.newText, textChange.start.line);
-        } 
+        }
         else {
           let startLine = await nvim.buffer.getLines({
             start: textChange.start.line - 1,
@@ -72,11 +69,13 @@ export async function applyCodeFixes(fixes: FileCodeEdits[], nvim: Neovim) {
             count += 1;
           });
         }
-      } else {
-        console.warn('NOT THE SAME LINE');
+      }
+      // Code fix spans multiple lines
+      else {
+        console.log('NOT THE SAME LINE');
         await nvim.buffer.setLines(textChange.newText, {
           start: textChange.start.line - 1,
-          end: textChange.end.line - 1,
+          end: textChange.end.line,
           strictIndexing: true
         });
       }
@@ -99,7 +98,7 @@ export async function applyImports(fixes: FileCodeEdits[], nvim: Neovim) {
 
       if (changeOffset === 1) {
         console.warn('changOffset === 1');
-        console.warn(newText, changeLine)
+        console.warn(newText, changeLine);
         await nvim.buffer.insert(newText, changeLine);
       } else if (addingNewLine) {
         console.warn('adding new line');

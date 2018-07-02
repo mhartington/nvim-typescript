@@ -76,7 +76,7 @@ function applyCodeFixes(fixes, nvim) {
                     console.warn('NOT THE SAME LINE');
                     yield nvim.buffer.setLines(textChange.newText, {
                         start: textChange.start.line - 1,
-                        end: textChange.end.line - 1,
+                        end: textChange.end.line,
                         strictIndexing: true
                     });
                 }

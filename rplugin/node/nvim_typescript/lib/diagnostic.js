@@ -32,7 +32,7 @@ class DiagnosticProvider {
             current = this.signStore.find(entry => entry.file === file);
             current.signs = this.normalizeSigns(incomingSigns);
             yield Promise.all(current.signs.map((sign, idx) => __awaiter(this, void 0, void 0, function* () {
-                console.warn("SIGN: ", JSON.stringify(sign));
+                console.warn('SIGN: ', JSON.stringify(sign));
                 yield this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
                 locList.push({
                     filename: current.file,
@@ -100,7 +100,7 @@ class DiagnosticProvider {
             const current = this.signStore.find(entry => entry.file === file);
             if (current) {
                 for (let sign of current.signs) {
-                    console.warn("SIGN: ", JSON.stringify(sign));
+                    console.warn('SIGN: ', JSON.stringify(sign));
                     yield this.nvim.buffer.addHighlight({
                         srcId: sign.id,
                         hlGroup: 'NeomakeError',
