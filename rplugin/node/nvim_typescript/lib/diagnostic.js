@@ -32,7 +32,6 @@ class DiagnosticProvider {
             current = this.signStore.find(entry => entry.file === file);
             current.signs = this.normalizeSigns(incomingSigns);
             yield Promise.all(current.signs.map((sign, idx) => __awaiter(this, void 0, void 0, function* () {
-                console.warn('SIGN: ', JSON.stringify(sign));
                 yield this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
                 locList.push({
                     filename: current.file,
@@ -42,9 +41,10 @@ class DiagnosticProvider {
                     code: sign.code,
                     type: sign.category[0].toUpperCase()
                 });
+                return;
             })));
             yield this.highlightLine(file);
-            yield utils_1.createLocList(this.nvim, locList, 'Errors', false);
+            yield utils_1.createQuickFixList(this.nvim, locList, 'Errors', false);
         });
     }
     normalizeSigns(signs) {
@@ -54,9 +54,10 @@ class DiagnosticProvider {
     }
     clearSigns(file) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.clearHighlight(file);
-            yield this.unsetSigns(file);
-            yield this.nvim.call('setqflist', [[]]);
+            return Promise.all([
+                yield this.clearHighlight(file),
+                yield this.unsetSigns(file)
+            ]);
         });
     }
     unsetSigns(file) {

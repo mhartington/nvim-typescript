@@ -29,9 +29,8 @@ function applyCodeFixes(fixes, nvim) {
     return __awaiter(this, void 0, void 0, function* () {
         for (let fix of fixes) {
             for (let textChange of fix.textChanges) {
-                console.warn(JSON.stringify(textChange));
                 if (textChange.start.line === textChange.end.line) {
-                    console.warn('inserting new text or modifying a line');
+                    // inserting new text or modifying a line
                     const newText = textChange.newText.replace(leadingAndTrailingNewLineRegex, '');
                     if (textChange.start.offset === 1) {
                         console.warn('OFFSET 1');
@@ -72,8 +71,9 @@ function applyCodeFixes(fixes, nvim) {
                         }));
                     }
                 }
+                // Code fix spans multiple lines
                 else {
-                    console.warn('NOT THE SAME LINE');
+                    console.log('NOT THE SAME LINE');
                     yield nvim.buffer.setLines(textChange.newText, {
                         start: textChange.start.line - 1,
                         end: textChange.end.line,
