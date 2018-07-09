@@ -4,8 +4,6 @@ endif
 
 " Some settings {{{
 let g:nvim_typescript#loaded = 1
-let g:nvim_typescript#ts_version = 'typescript@2.4.0'
-let g:nvim_typescript#version = '1.4.0'
 
 let g:nvim_typescript#javascript_support =
       \ get(g:, 'nvim_typescript#javascript_support', 0)

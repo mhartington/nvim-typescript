@@ -38,7 +38,7 @@ export async function getCurrentImports(client: Client, file: string) {
         .map(item => item.text)
     );
   } else {
-    return; 
+    return;
   }
 }
 
@@ -69,6 +69,7 @@ export async function convertDetailEntry(
   );
   // let documentation = menuText;
   // let kind = await getKind(nvim, entry.kind);
+  // console.warn(JSON.stringify(entry))
   return {
     word: entry.name,
     kind: entry.kind,

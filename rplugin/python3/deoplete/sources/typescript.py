@@ -12,6 +12,9 @@ class Source(Base):
         self.mark = self.vim.vars['nvim_typescript#completion_mark']
         self.rank = 1000
         self.min_pattern_length = 1
+        self.max_abbr_width = 0
+        self.max_kind_width = 0
+        self.max_menu_width = 0
         self.input_pattern = r'(\.|::)\w*'
         self.filetypes = ["typescript", "tsx", "typescript.tsx", "typescriptreact"]
         if self.vim.vars["nvim_typescript#javascript_support"]:
