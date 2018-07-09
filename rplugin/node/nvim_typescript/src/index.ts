@@ -1,38 +1,65 @@
 import { execSync } from 'child_process';
 import { Neovim, Autocmd, Command, Function, Plugin } from 'neovim';
 import { fileSync } from 'tmp';
-import protocol from 'typescript/lib/protocol';
-import { Client } from './client';
+import protocol, { Diagnostic } from 'typescript/lib/protocol';
+import { TSServer } from './client';
 import {
   trim,
   convertToDisplayString,
   getParams,
   getCurrentImports,
-  getImportCandidates,
   convertDetailEntry,
   convertEntry,
-  getKind
+  getKind,
+  createLocList,
+  printEllipsis
 } from './utils';
-import { writeFileSync, statSync } from 'fs';
+import { writeFileSync, statSync, appendFileSync } from 'fs';
+import { DiagnosticHost } from './diagnostic';
+import {
+  promptForSelection,
+  applyCodeFixes,
+  applyImports
+} from './codeActions';
 
 @Plugin({ dev: true })
 export default class TSHost {
   private nvim: Neovim;
-  private client = Client;
+  private client = TSServer;
+  private diagnosticHost = DiagnosticHost;
   private maxCompletion: number;
 
   constructor(nvim) {
     this.nvim = nvim;
-    this.nvim
-      .getVar('nvim_typescript#max_completion_detail')
-      .then((res: string) => (this.maxCompletion = parseFloat(res)));
-    this.nvim
-      .getVar('nvim_typescript#server_path')
-      .then((val: string) => this.client.setServerPath(val));
-    this.nvim
-      .getVar('nvim_typescript#server_options')
-      .then((val: any) => (this.client.serverOptions = val));
   }
+  async init() {
+    this.diagnosticHost.nvim = this.nvim;
+    this.maxCompletion = parseFloat((await this.nvim.getVar(
+      'nvim_typescript#max_completion_detail'
+    )) as string);
+    const serverPath = (await this.nvim.getVar(
+      'nvim_typescript#server_path'
+    )) as string;
+    const serverOpts = await this.nvim.getVar('nvim_typescript#server_options');
+
+    this.client.setServerPath(serverPath);
+    this.client.serverOptions = serverOpts as any;
+
+    const defaultSigns = await this.nvim.getVar(
+      'nvim_typescript#default_signs'
+    );
+    await this.diagnosticHost.defineSigns(defaultSigns);
+
+    this.client.on('semanticDiag', res => {
+      console.log('coming soon...');
+    });
+  }
+
+  // @Command('TSGetErr')
+  // async getErr(){
+  //   const file = await this.getCurrentFile();
+  //   await this.client.getErr({files: [file], delay: 500})
+  // }
 
   @Command('TSType')
   async getType() {
@@ -40,8 +67,9 @@ export default class TSHost {
     const args = await this.getCommonData();
     const typeInfo = await this.client.quickInfo(args);
     if (typeInfo) {
-      await this.printMsg(
-        `${typeInfo.displayString.replace(/(\r\n|\n|\r)/gm, '')}`
+      await printEllipsis(
+        this.nvim,
+        typeInfo.displayString.replace(/(\r\n|\n|\r)/gm, '')
       );
     }
   }
@@ -70,14 +98,17 @@ export default class TSHost {
     const cursorPosition = { line, col };
 
     const currentlyImportedItems = await getCurrentImports(this.client, file);
-    if ((currentlyImportedItems as Array<string>).includes(symbol)) {
+    if (currentlyImportedItems.includes(symbol)) {
       await this.printMsg(`${symbol} is already imported`);
     }
-    const results = await getImportCandidates(
-      this.client,
+    const results = await this.client.getCodeFixes({
       file,
-      cursorPosition
-    );
+      startLine: cursorPosition.line,
+      endLine: cursorPosition.line,
+      startOffset: cursorPosition.col,
+      endOffset: cursorPosition.col,
+      errorCodes: [2304]
+    });
     let fixes;
     // No imports
     if (!results.length) {
@@ -85,76 +116,11 @@ export default class TSHost {
     } else if (results.length === 1) {
       fixes = results[0].changes;
     } else {
-      const changeDescriptions = results.map(change => change.description);
-      const canidates = changeDescriptions.map(
-        (change, idx) => `\n[${idx}]: ${change}`
-      );
-      const input = await this.nvim.call(
-        'input',
-        `nvim-ts: More than 1 candidate found, Select from the following options: \n${canidates} \nplease choose one: `
-      );
-
-      if (!input) {
-        await this.printErr('Inport canceled');
-        return;
-      }
-      if (parseInt(input) > results.length - 1) {
-        await this.printErr('Selection not valid');
-        return;
-      } else {
-        fixes = results[parseInt(input)].changes;
-      }
+      await promptForSelection(results, this.nvim).then(res => {
+        fixes = res;
+      });
     }
-    this.applyImportChanges(fixes);
-  }
-  async applyImportChanges(fixes: protocol.FileCodeEdits[]) {
-    for (let fix of fixes) {
-      for (let change of fix.textChanges) {
-        const changeLine = change.start.line - 1;
-        const changeOffset = change.start.offset;
-        const leadingNewLineRexeg = /^\n/;
-        const leadingAndTrailingNewLineRegex = /^\n|\n$/;
-        const addingNewLine = change.newText.match(leadingNewLineRexeg)
-          ? true
-          : false;
-        const newText = change.newText.replace(
-          leadingAndTrailingNewLineRegex,
-          ''
-        );
-
-        if (changeOffset === 1) {
-          console.log('changOffset === 1');
-          await this.nvim.buffer.insert(newText, changeLine);
-        } else if (addingNewLine) {
-          console.log('adding new line');
-          await this.nvim.buffer.insert(newText, changeLine + 1);
-        } else {
-          const addingTrailingComma = newText.match(/^,$/) ? true : false;
-          const linesToChange = await this.nvim.buffer.getLines({
-            start: changeLine,
-            end: changeLine + 1,
-            strictIndexing: true
-          });
-          const lineAlreadyHasTrailingComma = linesToChange[0].match(/^.*,\s*$/)
-            ? true
-            : false;
-
-          if (addingTrailingComma && lineAlreadyHasTrailingComma) {
-            console.log('nothing to see folks');
-          } else {
-            console.log('no trailing comma, and line has no trailing comma');
-            await this.nvim.buffer.setLines(
-              `${linesToChange[0].substring(
-                changeOffset - 1,
-                0
-              )}${newText}${linesToChange[0].substring(changeOffset - 1)} `,
-              { start: changeLine, end: changeLine + 1, strictIndexing: true }
-            );
-          }
-        }
-      }
-    }
-    await this.printMsg('Import applied');
+    await applyImports(fixes, this.nvim);
   }
 
   @Command('TSSig')
@@ -338,7 +304,7 @@ export default class TSHost {
           text: trim(ref.lineText)
         };
       });
-      this.createLocList(locationList, 'References');
+      createLocList(this.nvim, locationList, 'References');
     }
     {
       this.printErr('References not found');
@@ -445,7 +411,7 @@ export default class TSHost {
           }
         }
       }
-      this.createLocList(docSysmbolsLoc, 'Symbols');
+      createLocList(this.nvim, docSysmbolsLoc, 'Symbols');
     }
   }
 
@@ -464,31 +430,32 @@ export default class TSHost {
 
     const results = await this.getWorkspaceSymbolsFunc(funcArgs);
     if (results) {
-      await this.createLocList(results, 'WorkspaceSymbols');
+      await createLocList(this.nvim, results, 'WorkspaceSymbols');
     }
   }
 
   @Function('TSGetWorkspaceSymbolsFunc', { sync: true })
   async getWorkspaceSymbolsFunc(args) {
-      const searchValue = args.length > 0 ? args[0] : '';
-      const maxResultCount = 50;
-      const results = await this.client.getWorkspaceSymbols({
-          file: args[1],
-          searchValue,
-          maxResultCount: 50
-      });
+    const searchValue = args.length > 0 ? args[0] : '';
+    const maxResultCount = 50;
+    const results = await this.client.getWorkspaceSymbols({
+      file: args[1],
+      searchValue,
+      maxResultCount: 50
+    });
 
-      const symbolsRes = await Promise.all(
+    const symbolsRes = await Promise.all(
       results.map(async symbol => {
         return {
           filename: symbol.file,
           lnum: symbol.start.line,
           col: symbol.start.offset,
           text: `${await getKind(this.nvim, symbol.kind)}\t ${symbol.name}`
-        }
-      }))
+        };
+      })
+    );
 
-      return symbolsRes;
+    return symbolsRes;
   }
 
   @Function('TSGetProjectInfoFunc', { sync: true })
@@ -497,25 +464,80 @@ export default class TSHost {
     return await this.client.getProjectInfo({ file, needFileNameList: true });
   }
 
-  async createLocList(
-    list: Array<{ filename: string; lnum: number; col: number; text: string }>,
-    title: string
-  ) {
-    return new Promise(async (resolve, reject) => {
-      await this.nvim.call('setloclist', [0, list, 'r', title]);
-      await this.nvim.command('lwindow');
-      resolve();
+  @Command('TSGetDiagnostics')
+  async getDiagnostics() {
+    const file = await this.getCurrentFile();
+    const sematicErrors = await this.getSematicErrors(file);
+    const syntaxErrors = await this.getSyntaxErrors(file);
+    const res = [...sematicErrors, ...syntaxErrors];
+    await this.diagnosticHost.placeSigns(res, file);
+    await this.handleCursorMoved();
+  }
+
+  @Function('TSEchoMessage')
+  async handleCursorMoved() {
+    const { file, line, offset } = await this.getCommonData();
+    const buftype = await this.nvim.eval('&buftype');
+    if (buftype !== '') return;
+    const errorSign = this.diagnosticHost.getSign(file, line, offset);
+    let errorText = errorSign ? errorSign.text : ' ';
+    await printEllipsis(this.nvim, errorText);
+  }
+
+  @Command('TSGetCodeFix')
+  async getCodeFix() {
+    await this.reloadFile();
+    const { file, line, offset } = await this.getCommonData();
+    const errorAtCursor = this.diagnosticHost.getSign(file, line, offset);
+
+    const fixes = await this.client.getCodeFixes({
+      file,
+      startLine: errorAtCursor.start.line,
+      startOffset: errorAtCursor.start.offset,
+      endLine: errorAtCursor.end.line,
+      endOffset: errorAtCursor.end.offset,
+      errorCodes: [errorAtCursor.code]
     });
+    if (fixes.length !== 0) {
+      promptForSelection(fixes, this.nvim).then(
+        async res => await applyCodeFixes(res, this.nvim),
+        rej => this.printErr(rej)
+      );
+    } else {
+      await this.printMsg('No fix');
+    }
+  }
+
+  @Function('TSGetErrorCountForFile', { sync: true })
+  async getErrorsForFile() {
+    const file = await this.getCurrentFile();
+    const currentStore = this.diagnosticHost.signStore.find(
+      entry => entry.file === file
+    );
+    return currentStore.signs.length;
+  }
+
+  async getSematicErrors(file) {
+    await this.reloadFile();
+    return await this.client.getSemanticDiagnosticsSync({ file });
+  }
+  async getSyntaxErrors(file) {
+    await this.reloadFile();
+    return await this.client.getSyntacticDiagnosticsSync({ file });
+  }
+  async getSuggested(file) {
+    await this.reloadFile();
+    return await this.client.getSuggestionDiagnosticsSync({ file });
   }
 
   async openBufferOrWindow(file: string, lineNumber: number, offset: number) {
-
-    const fileIsAlreadyFocused =
-        await this.getCurrentFile().then(currentFile => file === currentFile);
+    const fileIsAlreadyFocused = await this.getCurrentFile().then(
+      currentFile => file === currentFile
+    );
 
     if (fileIsAlreadyFocused) {
-        await this.nvim.command(`call cursor(${lineNumber}, ${offset})`);
-        return;
+      await this.nvim.command(`call cursor(${lineNumber}, ${offset})`);
+      return;
     }
 
     const windowNumber = await this.nvim.call('bufwinnr', file);
@@ -544,11 +566,13 @@ export default class TSHost {
   @Function('TSOnBufEnter')
   async onBufEnter() {
     if (this.client.serverHandle == null) {
+      await this.init();
       this.client.setTSConfigVersion();
       await this.tsstart();
     } else {
       const file = await this.getCurrentFile();
       await this.client.openFile({ file });
+      // await clearSigns(this.nvim, file);
     }
   }
 
@@ -633,6 +657,7 @@ export default class TSHost {
 
   // Utils
   // TODO: Extract to own file
+  // Started, see utils.ts
   async printErr(message: string) {
     await this.nvim.errWrite(`nvim-ts: ${message} \n`);
   }

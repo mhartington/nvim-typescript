@@ -2,183 +2,179 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const child_process_1 = require("child_process");
 const path_1 = require("path");
+const events_1 = require("events");
 const fs_1 = require("fs");
 const os_1 = require("os");
 const readline_1 = require("readline");
 const utils_1 = require("./utils");
-var Client;
-(function (Client) {
-    Client.serverHandle = null;
-    Client._seqNumber = 0;
-    Client._seqToPromises = {};
-    Client._cwd = process.cwd();
-    Client._env = process.env;
-    Client.serverPath = 'tsserver';
-    Client.serverOptions = [];
-    Client.logFunc = null;
-    Client.tsConfigVersion = null;
-    // Get server, set server
-    function getServerPath() {
-        return Client.serverPath;
+class Client extends events_1.EventEmitter {
+    constructor() {
+        super(...arguments);
+        this.serverHandle = null;
+        this._seqNumber = 0;
+        this._seqToPromises = {};
+        this._cwd = process.cwd();
+        this._env = process.env;
+        this.serverPath = 'tsserver';
+        this.serverOptions = [];
+        this.logFunc = null;
+        this.tsConfigVersion = null;
     }
-    Client.getServerPath = getServerPath;
-    function setServerPath(val) {
+    // Get server, set server
+    getServerPath() {
+        return this.serverPath;
+    }
+    setServerPath(val) {
         const normalizedPath = path_1.normalize(val);
         if (fs_1.existsSync(normalizedPath)) {
-            Client.serverPath = normalizedPath;
+            this.serverPath = normalizedPath;
         }
     }
-    Client.setServerPath = setServerPath;
     // Start the Proc
-    function startServer() {
+    startServer() {
         new Promise((resolve, reject) => {
             // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
-            Client.serverHandle = child_process_1.spawn(Client.serverPath, [...Client.serverOptions, `--locale=${utils_1.getLocale(process.env)}`], {
+            this.serverHandle = child_process_1.spawn(this.serverPath, [...this.serverOptions, `--locale=${utils_1.getLocale(process.env)}`], {
                 stdio: 'pipe',
-                cwd: Client._cwd,
-                env: Client._env,
+                cwd: this._cwd,
+                env: this._env,
                 detached: true,
                 shell: false
             });
-            Client._rl = readline_1.createInterface({
-                input: Client.serverHandle.stdout,
-                output: Client.serverHandle.stdin,
+            this._rl = readline_1.createInterface({
+                input: this.serverHandle.stdout,
+                output: this.serverHandle.stdin,
                 terminal: false
             });
-            Client.serverHandle.stderr.on('data', (data, err) => {
+            this.serverHandle.stderr.on('data', (data, err) => {
                 console.error('Error from tss: ' + data);
             });
-            Client.serverHandle.on('error', data => {
-                console.log(`error Event: ${data}`);
+            this.serverHandle.on('error', data => {
+                console.log(`ERROR Event: ${data}`);
             });
-            Client.serverHandle.on('exit', data => {
+            this.serverHandle.on('exit', data => {
                 console.log(`exit Event: ${data}`);
             });
-            Client.serverHandle.on('close', data => {
+            this.serverHandle.on('close', data => {
                 console.log(`Close Event: ${data}`);
             });
-            Client._rl.on('line', msg => {
+            this._rl.on('line', msg => {
                 if (msg.indexOf('{') === 0) {
-                    parseResponse(msg);
+                    this.parseResponse(msg);
                 }
             });
             return resolve();
         });
     }
-    Client.startServer = startServer;
-    function stopServer() {
-        Client.serverHandle.kill('SIGINT');
+    stopServer() {
+        this.serverHandle.kill('SIGINT');
     }
-    Client.stopServer = stopServer;
-    function setTSConfigVersion() {
-        const command = Client.serverPath.replace('tsserver', 'tsc');
+    setTSConfigVersion() {
+        const command = this.serverPath.replace('tsserver', 'tsc');
         const rawOutput = child_process_1.execSync(`${command} --version`).toString();
         const [major, minor, patch] = utils_1.trim(rawOutput)
             .split(' ')
             .pop()
             .split('-')[0]
             .split('.');
-        Client.tsConfigVersion = {
+        this.tsConfigVersion = {
             major: parseInt(major),
             minor: parseInt(minor),
             patch: parseInt(patch)
         };
     }
-    Client.setTSConfigVersion = setTSConfigVersion;
-    function isCurrentVersionHighter(val) {
-        const local = Client.tsConfigVersion.major * 100 +
-            Client.tsConfigVersion.minor * 10 +
-            Client.tsConfigVersion.patch;
+    isCurrentVersionHighter(val) {
+        const local = this.tsConfigVersion.major * 100 +
+            this.tsConfigVersion.minor * 10 +
+            this.tsConfigVersion.patch;
         return local >= val;
     }
-    Client.isCurrentVersionHighter = isCurrentVersionHighter;
     // LangServer Commands
-    function openFile(args) {
-        return _makeTssRequest('open', args);
+    openFile(args) {
+        return this._makeTssRequest('open', args);
     }
-    Client.openFile = openFile;
-    function reloadProject() {
-        return _makeTssRequest('reloadProjects', null);
+    reloadProject() {
+        return this._makeTssRequest('reloadProjects', null);
     }
-    Client.reloadProject = reloadProject;
-    function updateFile(args) {
-        return _makeTssRequest('reload', args);
+    updateFile(args) {
+        return this._makeTssRequest('reload', args);
     }
-    Client.updateFile = updateFile;
-    function quickInfo(args) {
-        return _makeTssRequest('quickinfo', args);
+    quickInfo(args) {
+        return this._makeTssRequest('quickinfo', args);
     }
-    Client.quickInfo = quickInfo;
-    function getDef(args) {
-        return _makeTssRequest('definition', args);
+    getDef(args) {
+        return this._makeTssRequest('definition', args);
     }
-    Client.getDef = getDef;
-    function getCompletions(args) {
-        return _makeTssRequest('completions', args);
+    getCompletions(args) {
+        return this._makeTssRequest('completions', args);
     }
-    Client.getCompletions = getCompletions;
-    function getCompletionDetails(args) {
-        return _makeTssRequest('completionEntryDetails', args);
+    getCompletionDetails(args) {
+        return this._makeTssRequest('completionEntryDetails', args);
     }
-    Client.getCompletionDetails = getCompletionDetails;
-    function getProjectInfo(args) {
-        return _makeTssRequest('projectInfo', args);
+    getProjectInfo(args) {
+        return this._makeTssRequest('projectInfo', args);
     }
-    Client.getProjectInfo = getProjectInfo;
-    function getSymbolRefs(args) {
-        return _makeTssRequest('references', args);
+    getSymbolRefs(args) {
+        return this._makeTssRequest('references', args);
     }
-    Client.getSymbolRefs = getSymbolRefs;
-    function getSignature(args) {
-        return _makeTssRequest('signatureHelp', args);
+    getSignature(args) {
+        return this._makeTssRequest('signatureHelp', args);
     }
-    Client.getSignature = getSignature;
-    function renameSymbol(args) {
-        return _makeTssRequest('rename', args);
+    renameSymbol(args) {
+        return this._makeTssRequest('rename', args);
     }
-    Client.renameSymbol = renameSymbol;
-    function getTypeDef(args) {
-        return _makeTssRequest('typeDefinition', args);
+    getTypeDef(args) {
+        return this._makeTssRequest('typeDefinition', args);
     }
-    Client.getTypeDef = getTypeDef;
-    function getDocumentSymbols(args) {
-        return _makeTssRequest('navtree', args);
+    getDocumentSymbols(args) {
+        return this._makeTssRequest('navtree', args);
     }
-    Client.getDocumentSymbols = getDocumentSymbols;
-    function getCodeFixesAtCursor(args) {
-        return _makeTssRequest('getCodeFixes', args);
+    getWorkspaceSymbols(args) {
+        return this._makeTssRequest('navto', args);
     }
-    Client.getCodeFixesAtCursor = getCodeFixesAtCursor;
-    function getWorkspaceSymbols(args) {
-        return _makeTssRequest('navto', args);
+    getSemanticDiagnosticsSync(args) {
+        return this._makeTssRequest('semanticDiagnosticsSync', args);
     }
-    Client.getWorkspaceSymbols = getWorkspaceSymbols;
+    getSyntacticDiagnosticsSync(args) {
+        return this._makeTssRequest('syntacticDiagnosticsSync', args);
+    }
+    getSuggestionDiagnosticsSync(args) {
+        return this._makeTssRequest('suggestionDiagnosticsSync', args);
+    }
+    getErr(args) {
+        return this._makeTssRequest('geterr', args);
+    }
+    // getOutliningSpans(){}
+    getCodeFixes(args) {
+        return this._makeTssRequest("getCodeFixes" /* GetCodeFixes */, args);
+    }
+    getSupportedCodeFixes() {
+        return this._makeTssRequest("getSupportedCodeFixes", null);
+    }
     // Server communication
-    function _makeTssRequest(commandName, args) {
-        // console.log('making request', commandName)
-        const seq = Client._seqNumber++;
+    _makeTssRequest(commandName, args) {
+        const seq = this._seqNumber++;
         const payload = {
             seq,
             type: 'request',
             command: commandName,
             arguments: args
         };
-        const ret = createDeferredPromise();
-        Client._seqToPromises[seq] = ret;
-        Client.serverHandle.stdin.write(JSON.stringify(payload) + os_1.EOL);
+        const ret = this.createDeferredPromise();
+        this._seqToPromises[seq] = ret;
+        this.serverHandle.stdin.write(JSON.stringify(payload) + os_1.EOL);
         return ret.promise;
     }
-    function parseResponse(returnedData) {
+    parseResponse(returnedData) {
         const response = JSON.parse(returnedData);
-        const seq = response['request_seq']; // tslint:disable-line no-string-literal
-        const success = response['success']; // tslint:disable-line no-string-literal
+        const seq = response.request_seq;
+        const success = response.success;
         if (typeof seq === 'number') {
             if (success) {
-                // console.log(response.body)
-                Client._seqToPromises[seq].resolve(response.body);
+                this._seqToPromises[seq].resolve(response.body);
             }
             else {
-                Client._seqToPromises[seq].reject(new Error(response.message));
+                this._seqToPromises[seq].reject(new Error(response.message));
             }
         }
         else {
@@ -186,16 +182,14 @@ var Client;
             // Like 'geterr' - returns both semanticDiag and syntaxDiag
             if (response.type && response.type === 'event') {
                 if (response.event && response.event === 'telemetry') {
-                    // console.log(response.body.payload.version)
                 }
                 if (response.event && response.event === 'semanticDiag') {
-                    // console.log(response.body);
-                    // this.emit("semanticDiag", response.body);
+                    this.emit("semanticDiag", response.body);
                 }
             }
         }
     }
-    function createDeferredPromise() {
+    createDeferredPromise() {
         let resolve;
         let reject;
         const promise = new Promise((res, rej) => {
@@ -208,4 +202,6 @@ var Client;
             promise
         };
     }
-})(Client = exports.Client || (exports.Client = {}));
+}
+exports.Client = Client;
+exports.TSServer = new Client();

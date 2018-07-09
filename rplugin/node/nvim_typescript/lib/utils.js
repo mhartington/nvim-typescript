@@ -35,39 +35,20 @@ function getParams(members, separator) {
     });
 }
 exports.getParams = getParams;
-function getCurrentImports(client, inspectedFile) {
+function getCurrentImports(client, file) {
     return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-            const documentSymbols = yield client.getDocumentSymbols({
-                file: inspectedFile
-            });
-            if (documentSymbols.childItems) {
-                return resolve(documentSymbols.childItems
-                    .filter(item => item.kind === 'alias')
-                    .map(item => item.text));
-            }
-            else {
-                return reject();
-            }
-        }));
+        const documentSymbols = yield client.getDocumentSymbols({ file });
+        if (documentSymbols.childItems) {
+            return Promise.all(documentSymbols.childItems
+                .filter(item => item.kind === 'alias')
+                .map(item => item.text));
+        }
+        else {
+            return;
+        }
     });
 }
 exports.getCurrentImports = getCurrentImports;
-function getImportCandidates(client, currentFile, cursorPosition) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const cannotFindNameError = 2304;
-        const args = {
-            file: currentFile,
-            startLine: cursorPosition.line,
-            endLine: cursorPosition.line,
-            startOffset: cursorPosition.col,
-            endOffset: cursorPosition.col,
-            errorCodes: [cannotFindNameError]
-        };
-        return yield client.getCodeFixesAtCursor(args);
-    });
-}
-exports.getImportCandidates = getImportCandidates;
 function convertEntry(nvim, entry) {
     return __awaiter(this, void 0, void 0, function* () {
         let kind = yield getKind(nvim, entry.kind);
@@ -88,10 +69,10 @@ function convertDetailEntry(nvim, entry) {
         signature = signature.replace(/\s+/gi, ' ');
         let menuText = signature.replace(/^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+/gi, '');
         // let documentation = menuText;
-        let kind = yield getKind(nvim, entry.kind);
+        // let kind = await getKind(nvim, entry.kind);
         return {
             word: entry.name,
-            kind: kind,
+            kind: entry.kind,
             menu: menuText
         };
     });
@@ -116,3 +97,43 @@ function toTitleCase(str) {
         return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
     });
 }
+function createLocList(nvim, list, title, autoOpen = true) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+            yield nvim.call('setloclist', [0, list, 'r', title]);
+            if (autoOpen) {
+                yield nvim.command('lwindow');
+            }
+            resolve();
+        }));
+    });
+}
+exports.createLocList = createLocList;
+function createQuickFixList(nvim, list, title, autoOpen = true) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+            yield nvim.call('setqflist', [list, 'r', title]);
+            if (autoOpen) {
+                yield nvim.command('copen');
+            }
+            resolve();
+        }));
+    });
+}
+exports.createQuickFixList = createQuickFixList;
+exports.guid = () => Math.floor((1 + Math.random()) * 0x10000);
+function printEllipsis(nvim, message) {
+    return __awaiter(this, void 0, void 0, function* () {
+        /**
+         * Print as much of msg as possible without triggering "Press Enter"
+         * Inspired by neomake, which is in turn inspired by syntastic.
+         */
+        const columns = (yield nvim.getOption('columns'));
+        let msg = message.replace('\n', '. ');
+        if (msg.length > columns - 12) {
+            msg = msg.substring(0, columns - 15) + '...';
+        }
+        yield nvim.command(`echo "${msg}"`);
+    });
+}
+exports.printEllipsis = printEllipsis;

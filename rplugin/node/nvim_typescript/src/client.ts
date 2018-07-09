@@ -9,221 +9,245 @@ import protocol from 'typescript/lib/protocol';
 
 import { trim, getLocale } from './utils';
 
-export namespace Client {
-  export let serverHandle: ChildProcess = null;
-  export let _rl: any;
-  export let _seqNumber = 0;
-  export let _seqToPromises = {};
-  export let _cwd = process.cwd();
-  export let _env = process.env;
-  export let serverPath = 'tsserver';
-  export let serverOptions = [];
-  export let logFunc: Function = null;
-  export let tsConfigVersion: {
+export class Client extends EventEmitter {
+  public serverHandle: ChildProcess = null;
+  public _rl: any;
+  public _seqNumber = 0;
+  public _seqToPromises = {};
+  public _cwd = process.cwd();
+  public _env = process.env;
+  public serverPath = 'tsserver';
+  public serverOptions = [];
+  public logFunc: Function = null;
+  public tsConfigVersion: {
     major: number;
     minor: number;
     patch: number;
   } = null;
   // Get server, set server
-  export function getServerPath() {
-    return serverPath;
+  getServerPath() {
+    return this.serverPath;
   }
-  export function setServerPath(val: string) {
+  setServerPath(val: string) {
     const normalizedPath = normalize(val);
     if (existsSync(normalizedPath)) {
-      serverPath = normalizedPath;
+      this.serverPath = normalizedPath;
     }
   }
 
   // Start the Proc
-  export function startServer() {
+  startServer() {
     new Promise((resolve, reject) => {
       // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
-      serverHandle = spawn(
-        serverPath,
-        [...serverOptions, `--locale=${getLocale(process.env)}`],
+      this.serverHandle = spawn(
+        this.serverPath,
+        [...this.serverOptions, `--locale=${getLocale(process.env)}`],
         {
           stdio: 'pipe',
-          cwd: _cwd,
-          env: _env,
+          cwd: this._cwd,
+          env: this._env,
           detached: true,
           shell: false
         }
       );
 
-      _rl = createInterface({
-        input: serverHandle.stdout,
-        output: serverHandle.stdin,
+      this._rl = createInterface({
+        input: this.serverHandle.stdout,
+        output: this.serverHandle.stdin,
         terminal: false
       });
 
-      serverHandle.stderr.on('data', (data, err) => {
+      this.serverHandle.stderr.on('data', (data, err) => {
         console.error('Error from tss: ' + data);
       });
 
-      serverHandle.on('error', data => {
-        console.log(`error Event: ${data}`);
+      this.serverHandle.on('error', data => {
+        console.log(`ERROR Event: ${data}`);
       });
 
-      serverHandle.on('exit', data => {
+      this.serverHandle.on('exit', data => {
         console.log(`exit Event: ${data}`);
       });
 
-      serverHandle.on('close', data => {
+      this.serverHandle.on('close', data => {
         console.log(`Close Event: ${data}`);
       });
 
-      _rl.on('line', msg => {
+      this._rl.on('line', msg => {
         if (msg.indexOf('{') === 0) {
-          parseResponse(msg);
+          this.parseResponse(msg);
         }
       });
       return resolve();
     });
   }
-  export function stopServer() {
-    serverHandle.kill('SIGINT');
+  stopServer() {
+    this.serverHandle.kill('SIGINT');
   }
 
-  export function setTSConfigVersion() {
-    const command = serverPath.replace('tsserver', 'tsc');
+  setTSConfigVersion() {
+    const command = this.serverPath.replace('tsserver', 'tsc');
     const rawOutput = execSync(`${command} --version`).toString();
     const [major, minor, patch] = trim(rawOutput)
       .split(' ')
       .pop()
       .split('-')[0]
       .split('.');
-    tsConfigVersion = {
+    this.tsConfigVersion = {
       major: parseInt(major),
       minor: parseInt(minor),
       patch: parseInt(patch)
     };
   }
 
-  export function isCurrentVersionHighter(val) {
+  isCurrentVersionHighter(val) {
     const local =
-      tsConfigVersion.major * 100 +
-      tsConfigVersion.minor * 10 +
-      tsConfigVersion.patch;
+     this.tsConfigVersion.major * 100 +
+     this.tsConfigVersion.minor * 10 +
+     this.tsConfigVersion.patch;
     return local >= val;
   }
 
   // LangServer Commands
-  export function openFile(args: protocol.OpenRequestArgs): Promise<any> {
-    return _makeTssRequest('open', args);
+  openFile(args: protocol.OpenRequestArgs): Promise<any> {
+    return this._makeTssRequest('open', args);
   }
-  export function reloadProject() {
-    return _makeTssRequest('reloadProjects', null);
+  reloadProject() {
+    return this._makeTssRequest('reloadProjects', null);
   }
-  export function updateFile(
+  updateFile(
     args: protocol.ReloadRequestArgs
   ): Promise<protocol.ReloadResponse> {
-    return _makeTssRequest('reload', args);
+    return this._makeTssRequest('reload', args);
   }
-  export function quickInfo(
+  quickInfo(
     args: protocol.FileLocationRequestArgs
   ): Promise<protocol.QuickInfoResponseBody> {
-    return _makeTssRequest('quickinfo', args);
+    return this._makeTssRequest('quickinfo', args);
   }
-  export function getDef(
+  getDef(
     args: protocol.FileLocationRequestArgs
   ): Promise<protocol.DefinitionResponse['body']> {
-    return _makeTssRequest('definition', args);
+    return this._makeTssRequest('definition', args);
   }
-  export function getCompletions(
+  getCompletions(
     args: protocol.CompletionsRequestArgs
   ): Promise<protocol.CompletionsResponse['body']> {
-    return _makeTssRequest('completions', args);
+    return this._makeTssRequest('completions', args);
   }
-  export function getCompletionDetails(
+  getCompletionDetails(
     args: protocol.CompletionDetailsRequestArgs
   ): Promise<protocol.CompletionDetailsResponse['body']> {
-    return _makeTssRequest('completionEntryDetails', args);
+    return this._makeTssRequest('completionEntryDetails', args);
   }
-  export function getProjectInfo(
+  getProjectInfo(
     args: protocol.ProjectInfoRequestArgs
   ): Promise<protocol.ProjectInfo> {
-    return _makeTssRequest('projectInfo', args);
+    return this._makeTssRequest('projectInfo', args);
   }
-  export function getSymbolRefs(
+  getSymbolRefs(
     args: protocol.FileLocationRequestArgs
   ): Promise<protocol.ReferencesResponse['body']> {
-    return _makeTssRequest('references', args);
+    return this._makeTssRequest('references', args);
   }
-  export function getSignature(
+  getSignature(
     args: protocol.FileLocationRequestArgs
   ): Promise<protocol.SignatureHelpResponse['body']> {
-    return _makeTssRequest('signatureHelp', args);
+    return this._makeTssRequest('signatureHelp', args);
   }
-  export function renameSymbol(
+  renameSymbol(
     args: protocol.RenameRequestArgs
   ): Promise<protocol.RenameResponseBody> {
-    return _makeTssRequest('rename', args);
+    return this._makeTssRequest('rename', args);
   }
-  export function getTypeDef(
+  getTypeDef(
     args: protocol.FileLocationRequestArgs
   ): Promise<protocol.TypeDefinitionResponse['body']> {
-    return _makeTssRequest('typeDefinition', args);
+    return this._makeTssRequest('typeDefinition', args);
   }
 
-  export function getDocumentSymbols(
+  getDocumentSymbols(
     args: protocol.FileRequestArgs
   ): Promise<protocol.NavTreeResponse['body']> {
-    return _makeTssRequest('navtree', args);
+    return this._makeTssRequest('navtree', args);
   }
 
-  export function getCodeFixesAtCursor(
-    args: protocol.CodeFixRequestArgs
-  ): Promise<protocol.CodeFixResponse['body']> {
-    return _makeTssRequest('getCodeFixes', args);
-  }
-  export function getWorkspaceSymbols(
+  getWorkspaceSymbols(
     args: protocol.NavtoRequestArgs
   ): Promise<protocol.NavtoResponse['body']> {
-    return _makeTssRequest('navto', args);
+    return this._makeTssRequest('navto', args);
+  }
+
+  getSemanticDiagnosticsSync(
+    args: protocol.SemanticDiagnosticsSyncRequestArgs
+  ): Promise<protocol.Diagnostic[]> {
+    return this._makeTssRequest('semanticDiagnosticsSync', args);
+  }
+  getSyntacticDiagnosticsSync(
+    args: protocol.SyntacticDiagnosticsSyncRequestArgs
+  ): Promise<protocol.Diagnostic[]> {
+    return this._makeTssRequest('syntacticDiagnosticsSync', args);
+  }
+  getSuggestionDiagnosticsSync(
+    args: protocol.SuggestionDiagnosticsSyncRequestArgs
+  ): Promise<protocol.Diagnostic[]> {
+    return this._makeTssRequest('suggestionDiagnosticsSync', args);
+  }
+
+  getErr(
+    args: protocol.GeterrRequestArgs
+  ): Promise<any> {
+    return this._makeTssRequest('geterr', args);
+  }
+
+  // getOutliningSpans(){}
+  getCodeFixes(
+    args: protocol.CodeFixRequestArgs
+  ): Promise<protocol.GetCodeFixesResponse['body']>{
+    return this._makeTssRequest(protocol.CommandTypes.GetCodeFixes, args);
+  }
+
+  getSupportedCodeFixes(): Promise<protocol.GetSupportedCodeFixesResponse['body']>{
+    return this._makeTssRequest("getSupportedCodeFixes", null)
   }
 
   // Server communication
-  function _makeTssRequest<T>(commandName: string, args: any): Promise<T> {
-    // console.log('making request', commandName)
-    const seq = _seqNumber++;
+  _makeTssRequest<T>(commandName: string, args: any): Promise<T> {
+    const seq = this._seqNumber++;
     const payload = {
       seq,
       type: 'request',
       command: commandName,
       arguments: args
     };
-    const ret = createDeferredPromise<T>();
-    _seqToPromises[seq] = ret;
-    serverHandle.stdin.write(JSON.stringify(payload) + EOL);
+    const ret = this.createDeferredPromise<T>();
+    this._seqToPromises[seq] = ret;
+    this.serverHandle.stdin.write(JSON.stringify(payload) + EOL);
     return ret.promise;
   }
-  function parseResponse(returnedData: string): void {
+  parseResponse(returnedData: string): void {
     const response = JSON.parse(returnedData);
-    const seq = response['request_seq']; // tslint:disable-line no-string-literal
-    const success = response['success']; // tslint:disable-line no-string-literal
+    const seq = response.request_seq;
+    const success = response.success;
     if (typeof seq === 'number') {
       if (success) {
-        // console.log(response.body)
-        _seqToPromises[seq].resolve(response.body);
+        this._seqToPromises[seq].resolve(response.body);
       } else {
-        _seqToPromises[seq].reject(new Error(response.message));
+        this._seqToPromises[seq].reject(new Error(response.message));
       }
     } else {
       // If a sequence wasn't specified, it might be a call that returns multiple results
       // Like 'geterr' - returns both semanticDiag and syntaxDiag
       if (response.type && response.type === 'event') {
         if (response.event && response.event === 'telemetry') {
-          // console.log(response.body.payload.version)
         }
         if (response.event && response.event === 'semanticDiag') {
-          // console.log(response.body);
-          // this.emit("semanticDiag", response.body);
+          this.emit("semanticDiag", response.body)
         }
       }
     }
   }
-  function createDeferredPromise<T>(): any {
+  createDeferredPromise<T>(): any {
     let resolve: Function;
     let reject: Function;
     const promise = new Promise((res, rej) => {
@@ -237,3 +261,5 @@ export namespace Client {
     };
   }
 }
+
+export const TSServer = new Client();
