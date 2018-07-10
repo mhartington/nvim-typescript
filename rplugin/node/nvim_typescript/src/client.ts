@@ -17,7 +17,7 @@ export class Client extends EventEmitter {
   public _cwd = process.cwd();
   public _env = process.env;
   public serverPath = 'tsserver';
-  public serverOptions = [];
+  public serverOptions: string[] = [];
   public logFunc: Function = null;
   public tsConfigVersion: {
     major: number;

@@ -34,21 +34,20 @@ export default class TSHost {
   }
   async init() {
     this.diagnosticHost.nvim = this.nvim;
-    this.maxCompletion = parseFloat((await this.nvim.getVar(
-      'nvim_typescript#max_completion_detail'
-    )) as string);
-    const serverPath = (await this.nvim.getVar(
-      'nvim_typescript#server_path'
-    )) as string;
-    const serverOpts = await this.nvim.getVar('nvim_typescript#server_options');
 
-    this.client.setServerPath(serverPath);
-    this.client.serverOptions = serverOpts as any;
-
-    const defaultSigns = await this.nvim.getVar(
-      'nvim_typescript#default_signs'
-    );
-    await this.diagnosticHost.defineSigns(defaultSigns);
+    // Borrowed from https://github.com/mhartington/nvim-typescript/pull/143
+    // Much cleaner, sorry I couldn't merge the PR!
+    const [maxCompletion, serverPath, serverOptions, defaultSigns] = await Promise.all([
+       this.nvim.getVar('nvim_typescript#max_completion_detail'),
+       this.nvim.getVar('nvim_typescript#server_path'),
+       this.nvim.getVar('nvim_typescript#server_options'),
+       this.nvim.getVar('nvim_typescript#default_signs')
+     ]);
+     this.log(JSON.stringify(serverOptions))
+     this.maxCompletion = parseFloat(maxCompletion as string);
+     this.client.setServerPath(serverPath as string);
+     this.client.serverOptions = serverOptions as string[];
+     await this.diagnosticHost.defineSigns(defaultSigns);
 
     this.client.on('semanticDiag', res => {
       console.log('coming soon...');

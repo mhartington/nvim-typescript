@@ -33,12 +33,18 @@ let TSHost = class TSHost {
     init() {
         return __awaiter(this, void 0, void 0, function* () {
             this.diagnosticHost.nvim = this.nvim;
-            this.maxCompletion = parseFloat((yield this.nvim.getVar('nvim_typescript#max_completion_detail')));
-            const serverPath = (yield this.nvim.getVar('nvim_typescript#server_path'));
-            const serverOpts = yield this.nvim.getVar('nvim_typescript#server_options');
+            // Borrowed from https://github.com/mhartington/nvim-typescript/pull/143
+            // Much cleaner, sorry I couldn't merge the PR!
+            const [maxCompletion, serverPath, serverOptions, defaultSigns] = yield Promise.all([
+                this.nvim.getVar('nvim_typescript#max_completion_detail'),
+                this.nvim.getVar('nvim_typescript#server_path'),
+                this.nvim.getVar('nvim_typescript#server_options'),
+                this.nvim.getVar('nvim_typescript#default_signs')
+            ]);
+            this.log(JSON.stringify(serverOptions));
+            this.maxCompletion = parseFloat(maxCompletion);
             this.client.setServerPath(serverPath);
-            this.client.serverOptions = serverOpts;
-            const defaultSigns = yield this.nvim.getVar('nvim_typescript#default_signs');
+            this.client.serverOptions = [serverOptions];
             yield this.diagnosticHost.defineSigns(defaultSigns);
             this.client.on('semanticDiag', res => {
                 console.log('coming soon...');
