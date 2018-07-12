@@ -56,7 +56,7 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 
 ## Limitation
 
-If no completion is happening, please be sure to have a Typescript syntax file in your RTP. Neovim does not include a default syntax for Typescript, so be sure to include one. A popular syntax file for Typescript is [yats.vim](https://github.com/HerringtonDarkholme/yats.vim)
+If no completion is happening, please be sure to have a Typescript syntax file in your RTP. Neovim does not include a default syntax for Typescript, so be sure to include one. A popular syntax file for Typescript is [yats.vim](https://github.com/HerringtonDarkholme/yats.vim). Running nvim-typescript with no syntax file could lead to unexpected behavior.
 
 ## Open Open Source, or how to make this everyone's code
 
