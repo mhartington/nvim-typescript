@@ -19,7 +19,6 @@ export class DiagnosticProvider {
       );
     }
   }
-
   async placeSigns(incomingSigns: Diagnostic[], file: string) {
     await this.clearSigns(file);
     const locList = [];
@@ -32,7 +31,11 @@ export class DiagnosticProvider {
 
     await Promise.all(
       current.signs.map(async (sign, idx) => {
-        await this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
+        await this.nvim.command(
+          `sign place ${sign.id} line=${sign.start.line}, name=TS${
+            sign.category
+          } file=${current.file}`
+        );
         locList.push({
           filename: current.file,
           lnum: sign.start.line,
@@ -41,26 +44,23 @@ export class DiagnosticProvider {
           code: sign.code,
           type: sign.category[0].toUpperCase()
         });
-        return
+        return;
       })
     );
     await this.highlightLine(file);
     await createQuickFixList(this.nvim, locList, 'Errors', false);
   }
-
   normalizeSigns(signs: Diagnostic[]) {
     return signs.map(sign => {
       return { ...sign, id: this.signID++ };
     });
   }
-
   async clearSigns(file: string) {
     return Promise.all([
-    await this.clearHighlight(file),
-    await this.unsetSigns(file)
-    ])
+      await this.clearHighlight(file),
+      await this.unsetSigns(file)
+    ]);
   }
-
   async unsetSigns(file: string) {
     const current = this.signStore.find(entry => entry.file === file);
     if (current) {
@@ -77,7 +77,6 @@ export class DiagnosticProvider {
       );
     }
   }
-
   getSign(file: string, line: number, offset: number): Diagnostic {
     const current = this.signStore.find(entry => entry.file === file);
     if (current) {
@@ -93,7 +92,6 @@ export class DiagnosticProvider {
       }
     }
   }
-
   async clearHighlight(file: string) {
     await this.nvim.buffer.clearHighlight({
       lineStart: 1,
@@ -104,7 +102,6 @@ export class DiagnosticProvider {
     const current = this.signStore.find(entry => entry.file === file);
     if (current) {
       for (let sign of current.signs) {
-        console.warn('SIGN: ', JSON.stringify(sign));
         await this.nvim.buffer.addHighlight({
           srcId: sign.id,
           hlGroup: 'NeomakeError',

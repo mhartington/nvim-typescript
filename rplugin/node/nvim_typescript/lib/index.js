@@ -41,10 +41,9 @@ let TSHost = class TSHost {
                 this.nvim.getVar('nvim_typescript#server_options'),
                 this.nvim.getVar('nvim_typescript#default_signs')
             ]);
-            this.log(JSON.stringify(serverOptions));
             this.maxCompletion = parseFloat(maxCompletion);
             this.client.setServerPath(serverPath);
-            this.client.serverOptions = [serverOptions];
+            this.client.serverOptions = serverOptions;
             yield this.diagnosticHost.defineSigns(defaultSigns);
             this.client.on('semanticDiag', res => {
                 console.log('coming soon...');
@@ -304,7 +303,10 @@ let TSHost = class TSHost {
                 let currentLine = yield this.nvim.line;
                 let [line, col] = yield this.getCursorPos();
                 let start = col - 1;
-                while (start >= 0 && currentLine[start - 1].match(/[a-zA-Z_0-9$]/)) {
+                while (start > 0 && currentLine[start - 1].match(/[a-zA-Z_0-9$]/)) {
+                    if (currentLine[start] === '.') {
+                        return start + 1;
+                    }
                     start--;
                 }
                 return start;
@@ -444,8 +446,9 @@ let TSHost = class TSHost {
             if (buftype !== '')
                 return;
             const errorSign = this.diagnosticHost.getSign(file, line, offset);
-            let errorText = errorSign ? errorSign.text : ' ';
-            yield utils_1.printEllipsis(this.nvim, errorText);
+            if (errorSign) {
+                yield utils_1.printEllipsis(this.nvim, errorSign.text);
+            }
         });
     }
     getCodeFix() {

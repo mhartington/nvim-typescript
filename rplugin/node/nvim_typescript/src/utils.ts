@@ -143,5 +143,5 @@ export async function printEllipsis(nvim: Neovim, message: string) {
   if (msg.length > columns - 12) {
     msg = msg.substring(0, columns - 15) + '...';
   }
-  await nvim.command(`echo "${msg}"`);
+  await nvim.outWrite(`${msg} \n`);
 }

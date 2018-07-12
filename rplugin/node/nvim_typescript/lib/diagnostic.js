@@ -101,7 +101,6 @@ class DiagnosticProvider {
             const current = this.signStore.find(entry => entry.file === file);
             if (current) {
                 for (let sign of current.signs) {
-                    console.warn('SIGN: ', JSON.stringify(sign));
                     yield this.nvim.buffer.addHighlight({
                         srcId: sign.id,
                         hlGroup: 'NeomakeError',

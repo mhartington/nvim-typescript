@@ -134,7 +134,7 @@ function printEllipsis(nvim, message) {
         if (msg.length > columns - 12) {
             msg = msg.substring(0, columns - 15) + '...';
         }
-        yield nvim.command(`echo "${msg}"`);
+        yield nvim.outWrite(`${msg} \n`);
     });
 }
 exports.printEllipsis = printEllipsis;

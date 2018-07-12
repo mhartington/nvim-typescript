@@ -27,11 +27,12 @@ class Source(Base):
         Log message to vim echo
         """
         self.debug('************')
-        self.debug('{} \n'.format(message))
+        self.vim.out_write('{} \n'.format(message))
         self.debug('************')
 
     def get_complete_position(self, context):
         m = re.search(r"\w*$", context["input"], re.IGNORECASE)
+        # self.log(m)
         return m.start() if m else -1
 
     def gather_candidates(self, context):

@@ -37,17 +37,21 @@ export default class TSHost {
 
     // Borrowed from https://github.com/mhartington/nvim-typescript/pull/143
     // Much cleaner, sorry I couldn't merge the PR!
-    const [maxCompletion, serverPath, serverOptions, defaultSigns] = await Promise.all([
-       this.nvim.getVar('nvim_typescript#max_completion_detail'),
-       this.nvim.getVar('nvim_typescript#server_path'),
-       this.nvim.getVar('nvim_typescript#server_options'),
-       this.nvim.getVar('nvim_typescript#default_signs')
-     ]);
-     this.log(JSON.stringify(serverOptions))
-     this.maxCompletion = parseFloat(maxCompletion as string);
-     this.client.setServerPath(serverPath as string);
-     this.client.serverOptions = serverOptions as string[];
-     await this.diagnosticHost.defineSigns(defaultSigns);
+    const [
+      maxCompletion,
+      serverPath,
+      serverOptions,
+      defaultSigns
+    ] = await Promise.all([
+      this.nvim.getVar('nvim_typescript#max_completion_detail'),
+      this.nvim.getVar('nvim_typescript#server_path'),
+      this.nvim.getVar('nvim_typescript#server_options'),
+      this.nvim.getVar('nvim_typescript#default_signs')
+    ]);
+    this.maxCompletion = parseFloat(maxCompletion as string);
+    this.client.setServerPath(serverPath as string);
+    this.client.serverOptions = serverOptions as string[];
+    await this.diagnosticHost.defineSigns(defaultSigns);
 
     this.client.on('semanticDiag', res => {
       console.log('coming soon...');
@@ -330,7 +334,10 @@ export default class TSHost {
       let currentLine = await this.nvim.line;
       let [line, col] = await this.getCursorPos();
       let start = col - 1;
-      while (start >= 0 && currentLine[start - 1].match(/[a-zA-Z_0-9$]/)) {
+      while (start > 0 && currentLine[start - 1].match(/[a-zA-Z_0-9$]/)) {
+        if (currentLine[start] === '.') {
+          return start + 1;
+        }
         start--;
       }
       return start;
@@ -479,8 +486,9 @@ export default class TSHost {
     const buftype = await this.nvim.eval('&buftype');
     if (buftype !== '') return;
     const errorSign = this.diagnosticHost.getSign(file, line, offset);
-    let errorText = errorSign ? errorSign.text : ' ';
-    await printEllipsis(this.nvim, errorText);
+    if (errorSign) {
+      await printEllipsis(this.nvim, errorSign.text);
+    }
   }
 
   @Command('TSGetCodeFix')
