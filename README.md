@@ -1,7 +1,7 @@
 # Nvim-Typescript
 
 
-Nvim language service plugin for typescript
+nvim language service plugin for typescript
 
 ![](https://github.com/mhartington/nvim-typescript/blob/master/deoplete-tss.gif)
 
@@ -12,12 +12,15 @@ First make sure you have Neovim 0.2.1 or highter.
 This includes the node-host that is required for this plugin.
 
 You will need a global install of the neovim client as well.
+This will make sure that neovim and node can communicate.
+
 
 ```bash
 npm install -g neovim
 ```
 
-You also need to have typescript installed globally.
+You might want to also have typescript install globally.
+By default, this plugin will look in your `node_modules` folder first for typescript, but if that does not exist, it will use the global install.
 
 ```bash
 npm -g install typescript
@@ -27,15 +30,24 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 
 ```viml
  " Dein
+ # REQUIRED: Add a syntax file. YATS is the best
+  call dein#add('HerringtonDarkholme/yats.vim')
   call dein#add('mhartington/nvim-typescript', {'build': './install.sh'})
  " For async completion
   call dein#add('Shougo/deoplete.nvim')
+ " For Denite features
+  call dein#add('Shougo/denite.nvim')
 
 
- " Plug
-  Plug 'mhartington/nvim-typescript', { 'do': './install.sh' }
+ " Vim-Plug
+ # REQUIRED: Add a syntax file. YATS is the best
+  Plug 'HerringtonDarkholme/yats.vim'
+  Plug 'mhartington/nvim-typescript'
  " For async completion
   Plug 'Shougo/deoplete.nvim'
+ " For Denite features
+  Plug 'Shougo/denite.nvim'
+
 
 " Enable deoplete at startup
 
@@ -43,8 +55,6 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 ```
 
 ## Limitation
-
-Currently, this plugin requires a `tsconfig.json` to be present in the current working directory. This is how we can feed TSS proper project information, like modules and files. See [this issue](https://github.com/mhartington/nvim-typescript/issues/10) for clarification.
 
 If no completion is happening, please be sure to have a Typescript syntax file in your RTP. Neovim does not include a default syntax for Typescript, so be sure to include one. A popular syntax file for Typescript is [yats.vim](https://github.com/HerringtonDarkholme/yats.vim)
 
@@ -59,21 +69,18 @@ See:
 
 ## Debugging
 
-There are a few things you'll have to modify in your vim config in order to be able to effectively work on this plugin:
+There are a few things you'll have to modify in your nvim config in order to be able to effectively work on this plugin:
 
 ```viml
   call dein#local('~/GitHub', {},['nvim-typescript'])
+  let $NVIM_NODE_LOG_FILE='nvim-node.log'
+  let $NVIM_NODE_LOG_LEVEL='warn'
 
-  let g:deoplete#enable_at_startup = 1
-  let g:deoplete#enable_debug = 1
-  let g:deoplete#enable_profile = 1
-  call deoplete#enable_logging('DEBUG', '/PATH_TO/deoplete.log')
 ```
-
- You will now be able to `tail -f /PATH_TO/deoplete.log`, and see debug output appear.
+ This plug will try to log most things to warn as the node-client logs a lot of verbose output to debug/info.
+ You will now be able to `tail -f /PATH_TO/nvim-node.log`, and see debug output appear.
 
 
 ## TODOS
 
-- [ ] Refactor client to support `geterr` request
-- [ ] Add `TSGetErr`
+If there's a feature that you would like to see, feel free to open an issue or send a PR.
