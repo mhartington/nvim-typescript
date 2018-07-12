@@ -46,7 +46,7 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 
 Currently, this plugin requires a `tsconfig.json` to be present in the current working directory. This is how we can feed TSS proper project information, like modules and files. See [this issue](https://github.com/mhartington/nvim-typescript/issues/10) for clarification.
 
-If no completion is happening, please be sure to have a Typescript syntax file in your RTP. Neovim does not include a default syntax for Typescript, so be sure to include one. A popular syntax file for Typescript is [yats.vim](https://github.com/HerringtonDarkholme/yats.vim)
+If no completion is happening, please be sure to have a Typescript syntax file in your RTP. Neovim does not include a default syntax for Typescript, so be sure to include one. A popular syntax file for Typescript is [yats.vim](https://github.com/HerringtonDarkholme/yats.vim). Running nvim-typescript with no syntax file could lead to unexpected behavior such as the complete freezing of vim. 
 
 ## Open Open Source, or how to make this everyone's code
 
