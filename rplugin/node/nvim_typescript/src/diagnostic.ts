@@ -1,6 +1,6 @@
 import { Neovim } from 'neovim';
 import { Diagnostic } from 'typescript/lib/protocol';
-import { createLocList, guid, createQuickFixList } from './utils';
+import { createLocList, createQuickFixList } from './utils';
 
 interface SignStoreSign extends Diagnostic {
   id: number;
@@ -20,35 +20,29 @@ export class DiagnosticProvider {
     }
   }
   async placeSigns(incomingSigns: Diagnostic[], file: string) {
-    await this.clearSigns(file);
     const locList = [];
+    await this.clearSigns(file)
     let current = this.signStore.find(entry => entry.file === file);
-    if (!current) {
-      this.signStore.push({ file, signs: [] });
-    }
+
+    if (!current) this.signStore.push({ file, signs: [] });
     current = this.signStore.find(entry => entry.file === file);
+
     current.signs = this.normalizeSigns(incomingSigns);
 
-    await Promise.all(
-      current.signs.map(async (sign, idx) => {
-        await this.nvim.command(
-          `sign place ${sign.id} line=${sign.start.line}, name=TS${
-            sign.category
-          } file=${current.file}`
-        );
-        locList.push({
-          filename: current.file,
-          lnum: sign.start.line,
-          col: sign.start.offset,
-          text: sign.text,
-          code: sign.code,
-          type: sign.category[0].toUpperCase()
-        });
-        return;
-      })
-    );
-    await this.highlightLine(file);
-    await createQuickFixList(this.nvim, locList, 'Errors', false);
+    current.signs.map(async (sign, idx) => {
+      console.warn(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
+      await this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
+      locList.push({
+        filename: current.file,
+        lnum: sign.start.line,
+        col: sign.start.offset,
+        text: sign.text,
+        code: sign.code,
+        type: sign.category[0].toUpperCase()
+      });
+    })
+    await this.highlightLine(current.file);
+    createQuickFixList(this.nvim, locList, 'Errors', false);
   }
   normalizeSigns(signs: Diagnostic[]) {
     return signs.map(sign => {
@@ -63,9 +57,10 @@ export class DiagnosticProvider {
   }
   async unsetSigns(file: string) {
     const current = this.signStore.find(entry => entry.file === file);
-    if (current) {
+    if (current && current.signs.length > 0) {
       return Promise.all(
         current.signs.map(async (sign, idx) => {
+          console.warn(`sign unplace ${sign.id} file=${current.file}`);
           await this.nvim.command(
             `sign unplace ${sign.id} file=${current.file}`
           );

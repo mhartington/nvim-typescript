@@ -32,13 +32,13 @@ class Source(Base):
 
     def get_complete_position(self, context):
         m = re.search(r"\w*$", context["input"], re.IGNORECASE)
-        # self.log(m)
         return m.start() if m else -1
 
     def gather_candidates(self, context):
         try:
             [offset] = context["complete_position"] + 1,
-            res = self.vim.funcs.TSComplete(context["complete_str"], offset)
+            self.vim.funcs.TSComplete(context["complete_str"], offset)
+            res = self.vim.vars["nvim_typescript#completionRes"]
             if len(res) == 0:
                 return []
             return res

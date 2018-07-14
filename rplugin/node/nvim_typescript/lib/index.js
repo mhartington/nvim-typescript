@@ -30,26 +30,6 @@ let TSHost = class TSHost {
         this.diagnosticHost = diagnostic_1.DiagnosticHost;
         this.nvim = nvim;
     }
-    init() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.diagnosticHost.nvim = this.nvim;
-            // Borrowed from https://github.com/mhartington/nvim-typescript/pull/143
-            // Much cleaner, sorry I couldn't merge the PR!
-            const [maxCompletion, serverPath, serverOptions, defaultSigns] = yield Promise.all([
-                this.nvim.getVar('nvim_typescript#max_completion_detail'),
-                this.nvim.getVar('nvim_typescript#server_path'),
-                this.nvim.getVar('nvim_typescript#server_options'),
-                this.nvim.getVar('nvim_typescript#default_signs')
-            ]);
-            this.maxCompletion = parseFloat(maxCompletion);
-            this.client.setServerPath(serverPath);
-            this.client.serverOptions = serverOptions;
-            yield this.diagnosticHost.defineSigns(defaultSigns);
-            this.client.on('semanticDiag', res => {
-                console.log('coming soon...');
-            });
-        });
-    }
     // @Command('TSGetErr')
     // async getErr(){
     //   const file = await this.getCurrentFile();
@@ -343,7 +323,9 @@ let TSHost = class TSHost {
             // K, we got our first set of completion data, now lets sort...
             // console.log(completions.length)
             if (completions.length > this.maxCompletion) {
-                return yield Promise.all(completions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertEntry(this.nvim, entry); })));
+                let completionRes = yield Promise.all(completions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertEntry(this.nvim, entry); })));
+                yield this.nvim.setVar('nvim_typescript#completionRes', completionRes);
+                return completionRes;
             }
             let entryNames = completions.map(v => v.name);
             let detailedCompletions = yield this.client.getCompletionDetails({
@@ -352,7 +334,49 @@ let TSHost = class TSHost {
                 offset,
                 entryNames
             });
-            return yield Promise.all(detailedCompletions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertDetailEntry(this.nvim, entry); })));
+            let completionResDetailed = yield Promise.all(detailedCompletions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertDetailEntry(this.nvim, entry); })));
+            yield this.nvim.setVar('nvim_typescript#completionRes', completionResDetailed);
+            return completionResDetailed;
+        });
+    }
+    tsDeoplete(args) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.reloadFile();
+            let file = yield this.getCurrentFile();
+            let cursorPos = yield this.nvim.window.cursor;
+            let line = cursorPos[0];
+            let offset, prefix;
+            if (typeof args === 'string') {
+                prefix = args;
+                offset = cursorPos[1] + 1;
+            }
+            else {
+                prefix = args[0];
+                offset = args[1];
+            }
+            let completions = yield this.client.getCompletions({
+                file,
+                line,
+                offset,
+                prefix,
+                includeInsertTextCompletions: false,
+                includeExternalModuleExports: false
+            });
+            // K, we got our first set of completion data, now lets sort...
+            // console.log(completions.length)
+            if (completions.length > this.maxCompletion) {
+                let completionRes = yield Promise.all(completions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertEntry(this.nvim, entry); })));
+                yield this.nvim.setVar('nvim_typescript#completionRes', completionRes);
+            }
+            let entryNames = completions.map(v => v.name);
+            let detailedCompletions = yield this.client.getCompletionDetails({
+                file,
+                line,
+                offset,
+                entryNames
+            });
+            let completionResDetailed = yield Promise.all(detailedCompletions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertDetailEntry(this.nvim, entry); })));
+            yield this.nvim.setVar('nvim_typescript#completionRes', completionResDetailed);
         });
     }
     //Display Doc symbols in loclist
@@ -527,13 +551,11 @@ let TSHost = class TSHost {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.client.serverHandle == null) {
                 yield this.init();
-                this.client.setTSConfigVersion();
                 yield this.tsstart();
             }
             else {
                 const file = yield this.getCurrentFile();
                 yield this.client.openFile({ file });
-                // await clearSigns(this.nvim, file);
             }
         });
     }
@@ -545,17 +567,10 @@ let TSHost = class TSHost {
     // Life cycle events
     tsstart() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (this.client.serverHandle === null) {
-                yield this.client.startServer();
-                yield this.printMsg(`Server started`);
-                const file = yield this.getCurrentFile();
-                yield this.client.openFile({ file });
-            }
-            else {
-                console.log('server is running');
-                const file = yield this.getCurrentFile();
-                yield this.client.openFile({ file });
-            }
+            yield this.client.startServer();
+            yield this.printMsg(`Server started`);
+            const file = yield this.getCurrentFile();
+            yield this.client.openFile({ file });
         });
     }
     tsstop() {
@@ -608,6 +623,27 @@ let TSHost = class TSHost {
             });
             const detailedEntries = yield Promise.all(detailedCompletions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertDetailEntry(this.nvim, entry); })));
             yield this.nvim.call('cm#complete', [info, ctx, startcol, detailedEntries]);
+        });
+    }
+    init() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.diagnosticHost.nvim = this.nvim;
+            // Borrowed from https://github.com/mhartington/nvim-typescript/pull/143
+            // Much cleaner, sorry I couldn't merge the PR!
+            const [maxCompletion, serverPath, serverOptions, defaultSigns] = yield Promise.all([
+                this.nvim.getVar('nvim_typescript#max_completion_detail'),
+                this.nvim.getVar('nvim_typescript#server_path'),
+                this.nvim.getVar('nvim_typescript#server_options'),
+                this.nvim.getVar('nvim_typescript#default_signs')
+            ]);
+            this.maxCompletion = parseFloat(maxCompletion);
+            this.client.setServerPath(serverPath);
+            this.client.serverOptions = serverOptions;
+            yield this.diagnosticHost.defineSigns(defaultSigns);
+            this.client.setTSConfigVersion();
+            // this.client.on('semanticDiag', res => {
+            //   console.log('coming soon...');
+            // });
         });
     }
     // Utils
@@ -748,6 +784,12 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TSHost.prototype, "tsComplete", null);
 __decorate([
+    neovim_1.Function('TSDeoplete', { sync: false }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], TSHost.prototype, "tsDeoplete", null);
+__decorate([
     neovim_1.Command('TSGetDocSymbols'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -826,7 +868,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TSHost.prototype, "onBufSave", null);
 __decorate([
-    neovim_1.Command('TSStart', {}),
+    neovim_1.Command('TSStart'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)

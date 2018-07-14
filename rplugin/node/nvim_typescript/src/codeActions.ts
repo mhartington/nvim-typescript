@@ -25,10 +25,7 @@ export async function applyCodeFixes(fixes: FileCodeEdits[], nvim: Neovim) {
     for (let textChange of fix.textChanges) {
       if (textChange.start.line === textChange.end.line) {
         // inserting new text or modifying a line
-        const newText = textChange.newText.replace(
-          leadingAndTrailingNewLineRegex,
-          ''
-        );
+        const newText = textChange.newText.replace(leadingAndTrailingNewLineRegex,'');
         if (textChange.start.offset === 1) {
           console.warn('OFFSET 1');
           console.warn(newText, textChange.start.line - 1);
@@ -70,14 +67,12 @@ export async function applyCodeFixes(fixes: FileCodeEdits[], nvim: Neovim) {
           });
         }
       }
-      // Code fix spans multiple lines
       else {
+        // Code fix spans multiple lines
+        // Chances are this is removing text.
+        // Need to confirm though
         console.log('NOT THE SAME LINE');
-        await nvim.buffer.setLines(textChange.newText, {
-          start: textChange.start.line - 1,
-          end: textChange.end.line,
-          strictIndexing: true
-        });
+        await nvim.buffer.remove(textChange.start.line - 1, textChange.end.line -1, true);
       }
     }
   }

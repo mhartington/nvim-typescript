@@ -23,15 +23,15 @@ class DiagnosticProvider {
     }
     placeSigns(incomingSigns, file) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.clearSigns(file);
             const locList = [];
+            yield this.clearSigns(file);
             let current = this.signStore.find(entry => entry.file === file);
-            if (!current) {
+            if (!current)
                 this.signStore.push({ file, signs: [] });
-            }
             current = this.signStore.find(entry => entry.file === file);
             current.signs = this.normalizeSigns(incomingSigns);
-            yield Promise.all(current.signs.map((sign, idx) => __awaiter(this, void 0, void 0, function* () {
+            current.signs.map((sign, idx) => __awaiter(this, void 0, void 0, function* () {
+                console.warn(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
                 yield this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
                 locList.push({
                     filename: current.file,
@@ -41,10 +41,9 @@ class DiagnosticProvider {
                     code: sign.code,
                     type: sign.category[0].toUpperCase()
                 });
-                return;
-            })));
-            yield this.highlightLine(file);
-            yield utils_1.createQuickFixList(this.nvim, locList, 'Errors', false);
+            }));
+            yield this.highlightLine(current.file);
+            utils_1.createQuickFixList(this.nvim, locList, 'Errors', false);
         });
     }
     normalizeSigns(signs) {
@@ -63,8 +62,9 @@ class DiagnosticProvider {
     unsetSigns(file) {
         return __awaiter(this, void 0, void 0, function* () {
             const current = this.signStore.find(entry => entry.file === file);
-            if (current) {
+            if (current && current.signs.length > 0) {
                 return Promise.all(current.signs.map((sign, idx) => __awaiter(this, void 0, void 0, function* () {
+                    console.warn(`sign unplace ${sign.id} file=${current.file}`);
                     yield this.nvim.command(`sign unplace ${sign.id} file=${current.file}`);
                     this.signStore = this.signStore.map(entry => {
                         if (entry === current)

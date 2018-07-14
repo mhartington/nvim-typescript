@@ -163,7 +163,6 @@ augroup nvim-typescript "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif
   if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
-    autocmd BufEnter,Filetype typescript,typescriptreact TSGetDiagnostics
     autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
     autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
     autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()

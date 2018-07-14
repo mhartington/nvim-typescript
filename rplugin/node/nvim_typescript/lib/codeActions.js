@@ -71,14 +71,12 @@ function applyCodeFixes(fixes, nvim) {
                         }));
                     }
                 }
-                // Code fix spans multiple lines
                 else {
+                    // Code fix spans multiple lines
+                    // Chances are this is removing text.
+                    // Need to confirm though
                     console.log('NOT THE SAME LINE');
-                    yield nvim.buffer.setLines(textChange.newText, {
-                        start: textChange.start.line - 1,
-                        end: textChange.end.line,
-                        strictIndexing: true
-                    });
+                    yield nvim.buffer.remove(textChange.start.line - 1, textChange.end.line - 1, true);
                 }
             }
         }
