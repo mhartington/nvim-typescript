@@ -37,11 +37,10 @@ export class Client extends EventEmitter {
 
   // Start the Proc
   startServer() {
-    new Promise((resolve, reject) => {
       // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
       this.serverHandle = spawn(
         this.serverPath,
-        [...this.serverOptions, `--locale=${getLocale(process.env)}`],
+        [...this.serverOptions, `--locale`, getLocale(process.env), `--disableAutomaticTypingAcquisition`],
         {
           stdio: 'pipe',
           cwd: this._cwd,
@@ -78,8 +77,6 @@ export class Client extends EventEmitter {
           this.parseResponse(msg);
         }
       });
-      return resolve();
-    });
   }
   stopServer() {
     this.serverHandle.kill('SIGINT');

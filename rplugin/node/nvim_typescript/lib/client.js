@@ -32,38 +32,35 @@ class Client extends events_1.EventEmitter {
     }
     // Start the Proc
     startServer() {
-        new Promise((resolve, reject) => {
-            // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
-            this.serverHandle = child_process_1.spawn(this.serverPath, [...this.serverOptions, `--locale=${utils_1.getLocale(process.env)}`], {
-                stdio: 'pipe',
-                cwd: this._cwd,
-                env: this._env,
-                detached: true,
-                shell: false
-            });
-            this._rl = readline_1.createInterface({
-                input: this.serverHandle.stdout,
-                output: this.serverHandle.stdin,
-                terminal: false
-            });
-            this.serverHandle.stderr.on('data', (data, err) => {
-                console.error('Error from tss: ' + data);
-            });
-            this.serverHandle.on('error', data => {
-                console.log(`ERROR Event: ${data}`);
-            });
-            this.serverHandle.on('exit', data => {
-                console.log(`exit Event: ${data}`);
-            });
-            this.serverHandle.on('close', data => {
-                console.log(`Close Event: ${data}`);
-            });
-            this._rl.on('line', msg => {
-                if (msg.indexOf('{') === 0) {
-                    this.parseResponse(msg);
-                }
-            });
-            return resolve();
+        // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
+        this.serverHandle = child_process_1.spawn(this.serverPath, [...this.serverOptions, `--locale`, utils_1.getLocale(process.env), `--disableAutomaticTypingAcquisition`], {
+            stdio: 'pipe',
+            cwd: this._cwd,
+            env: this._env,
+            detached: true,
+            shell: false
+        });
+        this._rl = readline_1.createInterface({
+            input: this.serverHandle.stdout,
+            output: this.serverHandle.stdin,
+            terminal: false
+        });
+        this.serverHandle.stderr.on('data', (data, err) => {
+            console.error('Error from tss: ' + data);
+        });
+        this.serverHandle.on('error', data => {
+            console.log(`ERROR Event: ${data}`);
+        });
+        this.serverHandle.on('exit', data => {
+            console.log(`exit Event: ${data}`);
+        });
+        this.serverHandle.on('close', data => {
+            console.log(`Close Event: ${data}`);
+        });
+        this._rl.on('line', msg => {
+            if (msg.indexOf('{') === 0) {
+                this.parseResponse(msg);
+            }
         });
     }
     stopServer() {

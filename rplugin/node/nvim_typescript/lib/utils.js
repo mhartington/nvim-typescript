@@ -59,7 +59,7 @@ function convertEntry(nvim, entry) {
     });
 }
 exports.convertEntry = convertEntry;
-function convertDetailEntry(nvim, entry) {
+function convertDetailEntry(nvim, entry, expandSnippet = false) {
     return __awaiter(this, void 0, void 0, function* () {
         let displayParts = entry.displayParts;
         let signature = '';
@@ -68,17 +68,26 @@ function convertDetailEntry(nvim, entry) {
         }
         signature = signature.replace(/\s+/gi, ' ');
         let menuText = signature.replace(/^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+/gi, '');
+        let formatted = !!(expandSnippet) ? `${entry.name}${getAbbr(entry)}` : entry.name;
         // let documentation = menuText;
         // let kind = await getKind(nvim, entry.kind);
-        // console.warn(JSON.stringify(entry))
         return {
-            word: entry.name,
+            word: formatted,
             kind: entry.kind,
+            abbr: entry.name,
             menu: menuText
         };
     });
 }
 exports.convertDetailEntry = convertDetailEntry;
+function getAbbr(entry) {
+    let name = entry.name;
+    return entry.displayParts
+        .filter(e => (e.kind === 'parameterName' ? e : null))
+        .map(e => e.text)
+        .map((e, idx) => '<`' + (idx) + ':' + e + '`>')
+        .join(', ');
+}
 function getLocale(procEnv) {
     const lang = procEnv.LC_ALL || procEnv.LC_MESSAGES || procEnv.LANG || procEnv.LANGUAGE;
     return lang && lang.replace(/[.:].*/, '').replace(/[_:].*/, '');
@@ -131,10 +140,10 @@ function printEllipsis(nvim, message) {
          */
         const columns = (yield nvim.getOption('columns'));
         let msg = message.replace('\n', '. ');
-        if (msg.length > columns - 12) {
-            msg = msg.substring(0, columns - 15) + '...';
+        if (msg.length > columns - 15) {
+            msg = msg.substring(0, columns - 20) + '...';
         }
-        yield nvim.outWrite(`${msg} \n`);
+        yield nvim.outWrite(`nvim-ts: ${msg} \n`);
     });
 }
 exports.printEllipsis = printEllipsis;

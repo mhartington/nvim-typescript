@@ -31,16 +31,22 @@ class Source(Base):
         self.debug('************')
 
     def get_complete_position(self, context):
-        m = re.search(r"\w*$", context["input"], re.IGNORECASE)
+        m = re.search(r"\w*$", context["input"])
         return m.start() if m else -1
 
     def gather_candidates(self, context):
         try:
-            [offset] = context["complete_position"] + 1,
-            self.vim.funcs.TSComplete(context["complete_str"], offset)
-            res = self.vim.vars["nvim_typescript#completionRes"]
-            if len(res) == 0:
-                return []
-            return res
+            if context["is_async"]:
+                res = self.vim.vars["nvim_typescript#completion_res"]
+                if res:
+                    context["is_async"] = False
+                    self.vim.vars["nvim_typescript#completion_res"] = []
+                    return res
+            else:
+                context["is_async"] = True
+                [offset] = context["complete_position"] + 1,
+                self.vim.vars["nvim_typescript#completion_res"] = []
+                self.vim.funcs.TSDeoplete(context["complete_str"], offset)
+            return []
         except:
             return []

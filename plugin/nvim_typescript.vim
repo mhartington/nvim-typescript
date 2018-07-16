@@ -4,7 +4,7 @@ endif
 
 " Some settings {{{
 let g:nvim_typescript#loaded = 1
-
+let g:nvim_typescript#completion_res = []
 let g:nvim_typescript#javascript_support =
       \ get(g:, 'nvim_typescript#javascript_support', 0)
 let g:nvim_typescript#vue_support =
@@ -33,7 +33,8 @@ let g:nvim_typescript#diagnosticsEnable =
       \ get(g:, 'nvim_typescript#diagnosticsEnable', 1)
 let g:nvim_typescript#server_options =
       \ get(g:, 'nvim_typescript#server_options', [])
-
+let g:nvim_typescript#expand_snippet =
+      \ get(g:, 'nvim_typescript#expand_snippet', 0)
 let g:nvim_typescript#follow_dir_change =
       \ get(g:, 'nvim_typescript#follow_dir_change', 0)
 let s:kind_symbols = {
@@ -110,6 +111,7 @@ augroup nvim-typescript "{{{
   command! -nargs=1 TSSearch call s:TSSearch(<q-args>) "}}}
 
   " Regular JS support {{{
+  if get(g:, 'nvim_typescript#javascript_support', 1)
     autocmd BufEnter,Filetype javascript,javascriptreact call nvim_typescript#DefaultKeyMap()
     autocmd BufEnter,Filetype javascript,javascriptreact call TSOnBufEnter()
     autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
@@ -127,7 +129,8 @@ augroup nvim-typescript "{{{
       autocmd TextChanged *.js,*.jsx TSGetDiagnostics
       autocmd InsertLeave *.js,*.jsx TSGetDiagnostics
       autocmd CursorMoved *.js,*.jsx call TSEchoMessage()
-    endif "}}}
+    endif
+  endif "}}}
 
   " Vue Support {{{
   if get(g:, 'nvim_typescript#vue_support', 1)
@@ -163,6 +166,7 @@ augroup nvim-typescript "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif
   if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
+    " autocmd BufEnter,Filetype typescript,typescriptreact TSGetDiagnostics
     autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
     autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
     autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()

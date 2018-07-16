@@ -55,7 +55,8 @@ export async function convertEntry(
 
 export async function convertDetailEntry(
   nvim: any,
-  entry: protocol.CompletionEntryDetails
+  entry: protocol.CompletionEntryDetails,
+  expandSnippet = false
 ): Promise<any> {
   let displayParts = entry.displayParts;
   let signature = '';
@@ -67,14 +68,25 @@ export async function convertDetailEntry(
     /^(var|let|const|class|\(method\)|\(property\)|enum|namespace|function|import|interface|type)\s+/gi,
     ''
   );
+  let formatted = !!(expandSnippet) ? `${entry.name}${getAbbr(entry)}` : entry.name
   // let documentation = menuText;
   // let kind = await getKind(nvim, entry.kind);
-  // console.warn(JSON.stringify(entry))
+
   return {
-    word: entry.name,
+    word: formatted,
     kind: entry.kind,
+    abbr: entry.name,
     menu: menuText
   };
+}
+
+function getAbbr(entry: protocol.CompletionEntryDetails) {
+  let name = entry.name;
+  return entry.displayParts
+    .filter(e => (e.kind === 'parameterName' ? e : null))
+    .map(e => e.text)
+    .map((e, idx) => '<`' + (idx) + ':' + e + '`>')
+    .join(', ');
 }
 
 export function getLocale(procEnv) {
@@ -140,8 +152,8 @@ export async function printEllipsis(nvim: Neovim, message: string) {
    */
   const columns = (await nvim.getOption('columns')) as number;
   let msg = message.replace('\n', '. ');
-  if (msg.length > columns - 12) {
-    msg = msg.substring(0, columns - 15) + '...';
+  if (msg.length > columns - 15) {
+    msg = msg.substring(0, columns - 20) + '...';
   }
-  await nvim.outWrite(`${msg} \n`);
+  await nvim.outWrite(`nvim-ts: ${msg} \n`);
 }

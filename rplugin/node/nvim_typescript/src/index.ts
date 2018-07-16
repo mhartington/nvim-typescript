@@ -28,7 +28,7 @@ export default class TSHost {
   private client = TSServer;
   private diagnosticHost = DiagnosticHost;
   private maxCompletion: number;
-
+  private expandSnippet: boolean;
   constructor(nvim) {
     this.nvim = nvim;
   }
@@ -323,19 +323,13 @@ export default class TSHost {
   }
 
   @Function('TSComplete', { sync: true })
-  async tsComplete(args: string | [string, number]) {
+  async tsComplete(args: string ) {
     await this.reloadFile();
     let file = await this.getCurrentFile();
     let cursorPos = await this.nvim.window.cursor;
     let line = cursorPos[0];
-    let offset, prefix;
-    if (typeof args === 'string') {
-      prefix = args;
-      offset = cursorPos[1] + 1;
-    } else {
-      prefix = args[0];
-      offset = args[1];
-    }
+    let prefix = args;
+    let offset = cursorPos[1] + 1;
 
     let completions = await this.client.getCompletions({
       file,
@@ -359,25 +353,18 @@ export default class TSHost {
       offset,
       entryNames
     });
-    let completionResDetailed = await Promise.all(detailedCompletions.map(async entry => await convertDetailEntry(this.nvim, entry)));
+    let completionResDetailed = await Promise.all(detailedCompletions.map(async entry => await convertDetailEntry(this.nvim, entry, this.expandSnippet)));
     await this.nvim.setVar('nvim_typescript#completionRes', completionResDetailed);
     return completionResDetailed;
   }
 
   @Function('TSDeoplete', { sync: false })
-  async tsDeoplete(args: string | [string, number]) {
+  async tsDeoplete(args: [string, number]) {
     await this.reloadFile();
     let file = await this.getCurrentFile();
     let cursorPos = await this.nvim.window.cursor;
     let line = cursorPos[0];
-    let offset, prefix;
-    if (typeof args === 'string') {
-      prefix = args;
-      offset = cursorPos[1] + 1;
-    } else {
-      prefix = args[0];
-      offset = args[1];
-    }
+    let [prefix, offset] = args;
 
     let completions = await this.client.getCompletions({
       file,
@@ -391,7 +378,7 @@ export default class TSHost {
     // console.log(completions.length)
     if (completions.length > this.maxCompletion) {
       let completionRes = await Promise.all(completions.map(async entry => await convertEntry(this.nvim, entry)));
-      await this.nvim.setVar('nvim_typescript#completionRes', completionRes)
+      await this.nvim.setVar('nvim_typescript#completion_res', completionRes)
     }
     let entryNames = completions.map(v => v.name);
     let detailedCompletions = await this.client.getCompletionDetails({
@@ -400,8 +387,8 @@ export default class TSHost {
       offset,
       entryNames
     });
-    let completionResDetailed = await Promise.all(detailedCompletions.map(async entry => await convertDetailEntry(this.nvim, entry)));
-    await this.nvim.setVar('nvim_typescript#completionRes', completionResDetailed);
+    let completionResDetailed = await Promise.all(detailedCompletions.map(async entry => await convertDetailEntry(this.nvim, entry, this.expandSnippet)));
+    await this.nvim.setVar('nvim_typescript#completion_res', completionResDetailed);
   }
 
   //Display Doc symbols in loclist
@@ -602,10 +589,10 @@ export default class TSHost {
   // Life cycle events
   @Command('TSStart')
   async tsstart() {
-    await this.client.startServer();
-    await this.printMsg(`Server started`);
+    this.client.startServer();
+    this.printMsg(`Server started`);
     const file = await this.getCurrentFile();
-    await this.client.openFile({ file });
+    this.client.openFile({ file });
   }
 
   @Command('TSStop')
@@ -676,14 +663,18 @@ export default class TSHost {
       maxCompletion,
       serverPath,
       serverOptions,
-      defaultSigns
+      defaultSigns,
+      expandSnippet
     ] = await Promise.all([
       this.nvim.getVar('nvim_typescript#max_completion_detail'),
       this.nvim.getVar('nvim_typescript#server_path'),
       this.nvim.getVar('nvim_typescript#server_options'),
-      this.nvim.getVar('nvim_typescript#default_signs')
+      this.nvim.getVar('nvim_typescript#default_signs'),
+      this.nvim.getVar('nvim_typescript#expand_snippet'),
+
     ]);
     this.maxCompletion = parseFloat(maxCompletion as string);
+    this.expandSnippet = (expandSnippet as boolean);
     this.client.setServerPath(serverPath as string);
     this.client.serverOptions = serverOptions as string[];
     await this.diagnosticHost.defineSigns(defaultSigns);
@@ -693,6 +684,7 @@ export default class TSHost {
     //   console.log('coming soon...');
     // });
   }
+
   // Utils
   // TODO: Extract to own file
   // Started, see utils.ts
