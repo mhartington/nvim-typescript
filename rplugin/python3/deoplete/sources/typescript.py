@@ -37,7 +37,7 @@ class Source(Base):
     def gather_candidates(self, context):
         try:
             [offset] = context["complete_position"] + 1,
-            self.vim.funcs.TSComplete(context["complete_str"], offset)
+            self.vim.funcs.TSDeoplete(context["complete_str"], offset)
             res = self.vim.vars["nvim_typescript#completionRes"]
             if len(res) == 0:
                 return []
