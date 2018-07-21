@@ -44,7 +44,7 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
  " Vim-Plug
  # REQUIRED: Add a syntax file. YATS is the best
   Plug 'HerringtonDarkholme/yats.vim'
-  Plug 'mhartington/nvim-typescript', {'for': ['typescript', 'tsx'], 'do': './install.sh'}
+  Plug 'mhartington/nvim-typescript', {'do': './install.sh'}
  " For async completion
   Plug 'Shougo/deoplete.nvim'
  " For Denite features
