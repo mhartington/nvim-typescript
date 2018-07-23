@@ -19,6 +19,8 @@ This will make sure that neovim and node can communicate.
 npm install -g neovim
 ```
 
+After installing the neovim client, you will have to run `:UpdateRemotePlugins`.
+
 You might want to also have typescript install globally.
 By default, this plugin will look in your `node_modules` folder first for typescript, but if that does not exist, it will use the global install.
 
@@ -42,7 +44,7 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
  " Vim-Plug
  # REQUIRED: Add a syntax file. YATS is the best
   Plug 'HerringtonDarkholme/yats.vim'
-  Plug 'mhartington/nvim-typescript'
+  Plug 'mhartington/nvim-typescript', {'do': './install.sh'}
  " For async completion
   Plug 'Shougo/deoplete.nvim'
  " For Denite features
@@ -53,6 +55,9 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 
   let g:deoplete#enable_at_startup = 1
 ```
+
+If errors occur after installing, make sure to run `./install.sh` in the plugin
+directory.  And try to run `:UpdateRemotePlugins` if you havn't already.
 
 ## Limitation
 
