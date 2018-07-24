@@ -43,7 +43,7 @@ class DiagnosticProvider {
                 });
             }));
             yield this.highlightLine(current.file);
-            utils_1.createQuickFixList(this.nvim, locList, 'Errors', false);
+            utils_1.createLocList(this.nvim, locList, 'Errors', false);
         });
     }
     normalizeSigns(signs) {

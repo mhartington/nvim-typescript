@@ -42,8 +42,9 @@ export class DiagnosticProvider {
       });
     })
     await this.highlightLine(current.file);
-    createQuickFixList(this.nvim, locList, 'Errors', false);
+    createLocList(this.nvim, locList, 'Errors', false);
   }
+
   normalizeSigns(signs: Diagnostic[]) {
     return signs.map(sign => {
       return { ...sign, id: this.signID++ };
