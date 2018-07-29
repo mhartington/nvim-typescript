@@ -16,22 +16,19 @@ class Source(Base):
         self.max_kind_width = 0
         self.max_menu_width = 0
         self.input_pattern = r'(\.|::)\w*'
-        self.filetypes = ["typescript", "tsx", "typescript.tsx", "typescriptreact"]
+        self.filetypes = ["typescript", "tsx",  "typescript.tsx", "typescriptreact"]
         if self.vim.vars["nvim_typescript#javascript_support"]:
             self.filetypes.extend(["javascript", "jsx", "javascript.jsx"])
         if self.vim.vars["nvim_typescript#vue_support"]:
             self.filetypes.extend(["vue"])
 
     def log(self, message):
-        """
-        Log message to vim echo
-        """
         self.debug('************')
         self.vim.out_write('{} \n'.format(message))
         self.debug('************')
 
     def get_complete_position(self, context):
-        m = re.search(r"\w*$", context["input"])
+        m = re.search(r"\w*$", context["input"], re.IGNORECASE)
         return m.start() if m else -1
 
     def gather_candidates(self, context):

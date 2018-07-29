@@ -13,11 +13,15 @@ class DiagnosticProvider {
     constructor() {
         this.signStore = [];
         this.signID = 1;
+        this.diagnosticSigns = [];
     }
     defineSigns(defaults) {
         return __awaiter(this, void 0, void 0, function* () {
+            this.diagnosticSigns = defaults;
             for (let sign of defaults) {
-                yield this.nvim.command(`sign define ${sign.name} text=${sign.signText} texthl=${sign.signTexthl}`);
+                let name = Object.keys(sign)[0];
+                let data = sign[name];
+                yield this.nvim.command(`sign define ${name} text=${data.signText} texthl=${data.signTexthl}`);
             }
         });
     }
@@ -101,9 +105,10 @@ class DiagnosticProvider {
             const current = this.signStore.find(entry => entry.file === file);
             if (current) {
                 for (let sign of current.signs) {
+                    let hlGroup = this.getSignHighlight(sign);
                     yield this.nvim.buffer.addHighlight({
                         srcId: sign.id,
-                        hlGroup: 'NeomakeError',
+                        hlGroup,
                         line: sign.start.line - 1,
                         colStart: sign.start.offset - 1,
                         colEnd: sign.end.offset - 1
@@ -111,6 +116,15 @@ class DiagnosticProvider {
                 }
             }
         });
+    }
+    getSignHighlight(sign) {
+        for (let entry of this.diagnosticSigns) {
+            let name = Object.keys(entry)[0];
+            let data = entry[name];
+            if (name === `TS${sign.category}`) {
+                return data.texthl;
+            }
+        }
     }
 }
 exports.DiagnosticProvider = DiagnosticProvider;

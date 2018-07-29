@@ -6,17 +6,19 @@ interface SignStoreSign extends Diagnostic {
   id: number;
 }
 
+
 export class DiagnosticProvider {
   public signStore: Array<{ file: string; signs: Array<SignStoreSign> }> = [];
   public nvim: Neovim;
   public signID = 1;
+  private diagnosticSigns = [];
   async defineSigns(defaults) {
+    this.diagnosticSigns = defaults;
     for (let sign of defaults) {
-      await this.nvim.command(
-        `sign define ${sign.name} text=${sign.signText} texthl=${
-          sign.signTexthl
-        }`
-      );
+      let name = Object.keys(sign)[0];
+      let data = sign[name];
+
+      await this.nvim.command(`sign define ${name} text=${data.signText} texthl=${data.signTexthl}`)
     }
   }
   async placeSigns(incomingSigns: Diagnostic[], file: string) {
@@ -60,16 +62,20 @@ export class DiagnosticProvider {
     const current = this.signStore.find(entry => entry.file === file);
     if (current && current.signs.length > 0) {
       return Promise.all(
+
         current.signs.map(async (sign, idx) => {
           console.warn(`sign unplace ${sign.id} file=${current.file}`);
-          await this.nvim.command(
-            `sign unplace ${sign.id} file=${current.file}`
-          );
+
+          await this.nvim.command(`sign unplace ${sign.id} file=${current.file}`);
+
           this.signStore = this.signStore.map(entry => {
-            if (entry === current) entry.signs = [];
+            if (entry.file === current.file) {
+              entry.signs = []
+            };
             return entry;
           });
         })
+
       );
     }
   }
@@ -98,13 +104,23 @@ export class DiagnosticProvider {
     const current = this.signStore.find(entry => entry.file === file);
     if (current) {
       for (let sign of current.signs) {
+        let hlGroup = this.getSignHighlight(sign)
         await this.nvim.buffer.addHighlight({
           srcId: sign.id,
-          hlGroup: 'NeomakeError',
+          hlGroup,
           line: sign.start.line - 1,
           colStart: sign.start.offset - 1,
           colEnd: sign.end.offset - 1
         });
+      }
+    }
+  }
+  getSignHighlight(sign: SignStoreSign){
+    for (let entry of this.diagnosticSigns) {
+      let name = Object.keys(entry)[0];
+      let data = entry[name];
+      if(name === `TS${sign.category}`){
+        return data.texthl
       }
     }
   }

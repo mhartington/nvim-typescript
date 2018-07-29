@@ -72,28 +72,32 @@ let g:nvim_typescript#kind_symbols =
 let g:nvim_typescript#default_signs =
       \ get(g:, 'nvim_typescript#default_signs', [
       \  {
-      \  'name': 'TSerror',
-      \  'texthl': 'SpellBad',
-      \  'signText': '•',
-      \  'signTexthl': 'NeomakeErrorSign'
+      \  'TSerror': {
+      \   'texthl': 'SpellBad',
+      \   'signText': '•',
+      \   'signTexthl': 'NeomakeErrorSign'
+      \  }
       \},
       \{
-      \  'name': 'TSwarning',
-      \  'texthl': 'SpellBad',
-      \  'signText': '•',
-      \  'signTexthl': 'NeomakeWarningSign'
+      \  'TSwarning': {
+      \   'texthl': 'SpellBad',
+      \   'signText': '•',
+      \   'signTexthl': 'NeomakeWarningSign'
+      \  }
       \},
       \{
-      \  'name': 'TSinformation',
-      \  'texthl': 'SpellBad',
-      \  'signText': '•',
-      \  'signTexthl': 'NeomakeInfoSign'
+      \  'TSinformation': {
+      \   'texthl': 'SpellBad',
+      \   'signText': '•',
+      \   'signTexthl': 'NeomakeInfoSign'
+      \   }
       \},
       \{
-      \  'name': 'TShint',
-      \  'texthl': 'SpellBad',
-      \  'signText': '?',
-      \  'signTexthl': 'NeomakeInfoSign'
+      \  'TShint': {
+      \   'texthl': 'SpellBad',
+      \   'signText': '?',
+      \   'signTexthl': 'NeomakeInfoSign'
+      \   }
       \}
       \])
 
@@ -166,7 +170,7 @@ augroup nvim-typescript "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif
   if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
-    " autocmd BufEnter,Filetype typescript,typescriptreact TSGetDiagnostics
+    autocmd BufEnter,Filetype typescript,typescriptreact TSGetDiagnostics
     autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
     autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
     autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()
