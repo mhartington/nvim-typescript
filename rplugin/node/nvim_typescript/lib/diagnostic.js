@@ -71,8 +71,10 @@ class DiagnosticProvider {
                     console.warn(`sign unplace ${sign.id} file=${current.file}`);
                     yield this.nvim.command(`sign unplace ${sign.id} file=${current.file}`);
                     this.signStore = this.signStore.map(entry => {
-                        if (entry === current)
+                        if (entry.file === current.file) {
                             entry.signs = [];
+                        }
+                        ;
                         return entry;
                     });
                 })));

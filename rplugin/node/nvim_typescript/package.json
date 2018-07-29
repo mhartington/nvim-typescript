@@ -17,7 +17,7 @@
     "typescript": "^2.8.3"
   },
   "dependencies": {
-    "neovim": "4.1.0",
+    "neovim": "4.2.1",
     "tmp": "0.0.33"
   }
 }

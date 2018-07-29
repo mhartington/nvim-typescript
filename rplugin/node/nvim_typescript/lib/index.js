@@ -610,6 +610,41 @@ let TSHost = class TSHost {
             yield this.nvim.call('cm#complete', [info, ctx, startcol, detailedEntries]);
         });
     }
+    onNcm2Complete(args) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const ctx = args[0];
+            const line = ctx['lnum'];
+            const offset = ctx['ccol'];
+            const prefix = ctx['base'];
+            const startccol = ctx['startccol'];
+            yield this.reloadFile();
+            const file = yield this.getCurrentFile();
+            const data = yield this.client.getCompletions({
+                file,
+                line,
+                offset,
+                prefix,
+                includeInsertTextCompletions: false,
+                includeExternalModuleExports: false
+            });
+            if (data.length === 0)
+                return [];
+            if (data.length > this.maxCompletion) {
+                const completions = yield Promise.all(data.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertEntry(this.nvim, entry); })));
+                yield this.nvim.call('ncm2#complete', [ctx, startccol, completions]);
+                return;
+            }
+            let entryNames = data.map(v => v.name);
+            const detailedCompletions = yield this.client.getCompletionDetails({
+                file,
+                line,
+                offset,
+                entryNames
+            });
+            const detailedEntries = yield Promise.all(detailedCompletions.map((entry) => __awaiter(this, void 0, void 0, function* () { return yield utils_1.convertDetailEntry(this.nvim, entry); })));
+            yield this.nvim.call('ncm2#complete', [ctx, startccol, detailedEntries]);
+        });
+    }
     init() {
         return __awaiter(this, void 0, void 0, function* () {
             this.diagnosticHost.nvim = this.nvim;
@@ -878,6 +913,12 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], TSHost.prototype, "onCMRefresh", null);
+__decorate([
+    neovim_1.Function('TSNcm2OnComplete'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], TSHost.prototype, "onNcm2Complete", null);
 TSHost = __decorate([
     neovim_1.Plugin({ dev: true }),
     __metadata("design:paramtypes", [Object])
