@@ -654,6 +654,49 @@ export default class TSHost {
     await this.nvim.call('cm#complete', [info, ctx, startcol, detailedEntries]);
   }
 
+  @Function('TSNcm2OnComplete')
+  async onNcm2Complete(args) {
+    const ctx = args[0];
+
+    const line = ctx['lnum'];
+    const offset = ctx['ccol'];
+    const prefix = ctx['base'];
+    const startccol = ctx['startccol'];
+    await this.reloadFile();
+    const file = await this.getCurrentFile();
+    const data = await this.client.getCompletions({
+      file,
+      line,
+      offset,
+      prefix,
+      includeInsertTextCompletions: false,
+      includeExternalModuleExports: false
+    });
+    if (data.length === 0) return [];
+
+    if (data.length > this.maxCompletion) {
+      const completions = await Promise.all(
+        data.map(async entry => await convertEntry(this.nvim, entry))
+      );
+      await this.nvim.call('ncm2#complete', [ctx, startccol, completions]);
+      return;
+    }
+
+    let entryNames = data.map(v => v.name);
+    const detailedCompletions = await this.client.getCompletionDetails({
+      file,
+      line,
+      offset,
+      entryNames
+    });
+    const detailedEntries = await Promise.all(
+      detailedCompletions.map(
+        async entry => await convertDetailEntry(this.nvim, entry)
+      )
+    );
+    await this.nvim.call('ncm2#complete', [ctx, startccol, detailedEntries]);
+  }
+
   async init() {
     this.diagnosticHost.nvim = this.nvim;
 
