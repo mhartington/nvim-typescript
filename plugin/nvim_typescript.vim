@@ -180,5 +180,8 @@ augroup nvim-typescript "{{{
   autocmd BufWritePost tsconfig.json TSReloadProject
   autocmd User CmSetup call cm#sources#typescript#register()
 
+  " Cleanup required to prevent hanging on Windows exit
+  autocmd VimLeavePre * TSStop 
+
 augroup end "}}}
 
