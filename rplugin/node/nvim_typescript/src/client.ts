@@ -2,7 +2,7 @@ import { spawn, ChildProcess, execSync } from 'child_process';
 import { normalize } from 'path';
 import { EventEmitter } from 'events';
 import { existsSync } from 'fs';
-import { EOL } from 'os';
+import { platform, EOL } from 'os';
 import { createInterface } from 'readline';
 
 import protocol from 'typescript/lib/protocol';
@@ -38,17 +38,33 @@ export class Client extends EventEmitter {
   // Start the Proc
   startServer() {
       // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
-      this.serverHandle = spawn(
-        this.serverPath,
-        [...this.serverOptions, `--locale`, getLocale(process.env), `--disableAutomaticTypingAcquisition`],
-        {
-          stdio: 'pipe',
-          cwd: this._cwd,
-          env: this._env,
-          detached: true,
-          shell: false
-        }
-      );
+      if (platform() === 'win32') {
+        this.serverHandle = spawn(
+          "cmd",
+          ['/c', this.serverPath, ...this.serverOptions, `--locale`, getLocale(process.env), `--disableAutomaticTypingAcquisition`],
+          {
+            stdio: 'pipe',
+            cwd: this._cwd,
+            env: this._env,
+            // detached must be false for windows to avoid child window
+            // https://nodejs.org/api/child_process.html#child_process_options_detached
+            detached: false, 
+            shell: false
+          }
+        );
+      } else {
+        this.serverHandle = spawn(
+          this.serverPath,
+          [...this.serverOptions, `--locale`, getLocale(process.env), `--disableAutomaticTypingAcquisition`],
+          {
+            stdio: 'pipe',
+            cwd: this._cwd,
+            env: this._env,
+            detached: true,
+            shell: false
+          }
+        );
+      }
 
       this._rl = createInterface({
         input: this.serverHandle.stdout,
