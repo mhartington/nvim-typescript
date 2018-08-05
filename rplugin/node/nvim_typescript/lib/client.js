@@ -33,13 +33,38 @@ class Client extends events_1.EventEmitter {
     // Start the Proc
     startServer() {
         // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
-        this.serverHandle = child_process_1.spawn(this.serverPath, [...this.serverOptions, `--locale`, utils_1.getLocale(process.env), `--disableAutomaticTypingAcquisition`], {
-            stdio: 'pipe',
-            cwd: this._cwd,
-            env: this._env,
-            detached: true,
-            shell: false
-        });
+        if (os_1.platform() === 'win32') {
+            this.serverHandle = child_process_1.spawn('cmd', [
+                '/c',
+                this.serverPath,
+                ...this.serverOptions,
+                `--locale`,
+                utils_1.getLocale(process.env),
+                `--disableAutomaticTypingAcquisition`
+            ], {
+                stdio: 'pipe',
+                cwd: this._cwd,
+                env: this._env,
+                // detached must be false for windows to avoid child window
+                // https://nodejs.org/api/child_process.html#child_process_options_detached
+                detached: false,
+                shell: false
+            });
+        }
+        else {
+            this.serverHandle = child_process_1.spawn(this.serverPath, [
+                ...this.serverOptions,
+                `--locale`,
+                utils_1.getLocale(process.env),
+                `--disableAutomaticTypingAcquisition`
+            ], {
+                stdio: 'pipe',
+                cwd: this._cwd,
+                env: this._env,
+                detached: true,
+                shell: false
+            });
+        }
         this._rl = readline_1.createInterface({
             input: this.serverHandle.stdout,
             output: this.serverHandle.stdin,
@@ -146,7 +171,7 @@ class Client extends events_1.EventEmitter {
         return this._makeTssRequest("getCodeFixes" /* GetCodeFixes */, args);
     }
     getSupportedCodeFixes() {
-        return this._makeTssRequest("getSupportedCodeFixes", null);
+        return this._makeTssRequest('getSupportedCodeFixes', null);
     }
     // Server communication
     _makeTssRequest(commandName, args) {
@@ -181,7 +206,7 @@ class Client extends events_1.EventEmitter {
                 if (response.event && response.event === 'telemetry') {
                 }
                 if (response.event && response.event === 'semanticDiag') {
-                    this.emit("semanticDiag", response.body);
+                    this.emit('semanticDiag', response.body);
                 }
             }
         }

@@ -2,7 +2,7 @@ import { spawn, ChildProcess, execSync } from 'child_process';
 import { normalize } from 'path';
 import { EventEmitter } from 'events';
 import { existsSync } from 'fs';
-import { EOL } from 'os';
+import { platform, EOL } from 'os';
 import { createInterface } from 'readline';
 
 import protocol from 'typescript/lib/protocol';
@@ -37,10 +37,37 @@ export class Client extends EventEmitter {
 
   // Start the Proc
   startServer() {
-      // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
+    // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
+    if (platform() === 'win32') {
+      this.serverHandle = spawn(
+        'cmd',
+        [
+          '/c',
+          this.serverPath,
+          ...this.serverOptions,
+          `--locale`,
+          getLocale(process.env),
+          `--disableAutomaticTypingAcquisition`
+        ],
+        {
+          stdio: 'pipe',
+          cwd: this._cwd,
+          env: this._env,
+          // detached must be false for windows to avoid child window
+          // https://nodejs.org/api/child_process.html#child_process_options_detached
+          detached: false,
+          shell: false
+        }
+      );
+    } else {
       this.serverHandle = spawn(
         this.serverPath,
-        [...this.serverOptions, `--locale`, getLocale(process.env), `--disableAutomaticTypingAcquisition`],
+        [
+          ...this.serverOptions,
+          `--locale`,
+          getLocale(process.env),
+          `--disableAutomaticTypingAcquisition`
+        ],
         {
           stdio: 'pipe',
           cwd: this._cwd,
@@ -49,34 +76,35 @@ export class Client extends EventEmitter {
           shell: false
         }
       );
+    }
 
-      this._rl = createInterface({
-        input: this.serverHandle.stdout,
-        output: this.serverHandle.stdin,
-        terminal: false
-      });
+    this._rl = createInterface({
+      input: this.serverHandle.stdout,
+      output: this.serverHandle.stdin,
+      terminal: false
+    });
 
-      this.serverHandle.stderr.on('data', (data, err) => {
-        console.error('Error from tss: ' + data);
-      });
+    this.serverHandle.stderr.on('data', (data, err) => {
+      console.error('Error from tss: ' + data);
+    });
 
-      this.serverHandle.on('error', data => {
-        console.log(`ERROR Event: ${data}`);
-      });
+    this.serverHandle.on('error', data => {
+      console.log(`ERROR Event: ${data}`);
+    });
 
-      this.serverHandle.on('exit', data => {
-        console.log(`exit Event: ${data}`);
-      });
+    this.serverHandle.on('exit', data => {
+      console.log(`exit Event: ${data}`);
+    });
 
-      this.serverHandle.on('close', data => {
-        console.log(`Close Event: ${data}`);
-      });
+    this.serverHandle.on('close', data => {
+      console.log(`Close Event: ${data}`);
+    });
 
-      this._rl.on('line', msg => {
-        if (msg.indexOf('{') === 0) {
-          this.parseResponse(msg);
-        }
-      });
+    this._rl.on('line', msg => {
+      if (msg.indexOf('{') === 0) {
+        this.parseResponse(msg);
+      }
+    });
   }
   stopServer() {
     this.serverHandle.kill('SIGINT');
@@ -99,9 +127,9 @@ export class Client extends EventEmitter {
 
   isCurrentVersionHighter(val) {
     const local =
-     this.tsConfigVersion.major * 100 +
-     this.tsConfigVersion.minor * 10 +
-     this.tsConfigVersion.patch;
+      this.tsConfigVersion.major * 100 +
+      this.tsConfigVersion.minor * 10 +
+      this.tsConfigVersion.patch;
     return local >= val;
   }
 
@@ -191,21 +219,21 @@ export class Client extends EventEmitter {
     return this._makeTssRequest('suggestionDiagnosticsSync', args);
   }
 
-  getErr(
-    args: protocol.GeterrRequestArgs
-  ): Promise<any> {
+  getErr(args: protocol.GeterrRequestArgs): Promise<any> {
     return this._makeTssRequest('geterr', args);
   }
 
   // getOutliningSpans(){}
   getCodeFixes(
     args: protocol.CodeFixRequestArgs
-  ): Promise<protocol.GetCodeFixesResponse['body']>{
+  ): Promise<protocol.GetCodeFixesResponse['body']> {
     return this._makeTssRequest(protocol.CommandTypes.GetCodeFixes, args);
   }
 
-  getSupportedCodeFixes(): Promise<protocol.GetSupportedCodeFixesResponse['body']>{
-    return this._makeTssRequest("getSupportedCodeFixes", null)
+  getSupportedCodeFixes(): Promise<
+    protocol.GetSupportedCodeFixesResponse['body']
+  > {
+    return this._makeTssRequest('getSupportedCodeFixes', null);
   }
 
   // Server communication
@@ -239,7 +267,7 @@ export class Client extends EventEmitter {
         if (response.event && response.event === 'telemetry') {
         }
         if (response.event && response.event === 'semanticDiag') {
-          this.emit("semanticDiag", response.body)
+          this.emit('semanticDiag', response.body);
         }
       }
     }
