@@ -38,8 +38,6 @@ class Client extends events_1.EventEmitter {
                 '/c',
                 this.serverPath,
                 ...this.serverOptions,
-                `--locale`,
-                utils_1.getLocale(process.env),
                 `--disableAutomaticTypingAcquisition`
             ], {
                 stdio: 'pipe',

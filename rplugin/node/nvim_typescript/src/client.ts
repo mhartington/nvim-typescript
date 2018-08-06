@@ -45,8 +45,6 @@ export class Client extends EventEmitter {
           '/c',
           this.serverPath,
           ...this.serverOptions,
-          `--locale`,
-          getLocale(process.env),
           `--disableAutomaticTypingAcquisition`
         ],
         {
