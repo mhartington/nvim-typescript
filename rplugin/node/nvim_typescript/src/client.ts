@@ -7,7 +7,7 @@ import { createInterface } from 'readline';
 
 import protocol from 'typescript/lib/protocol';
 
-import { trim, getLocale } from './utils';
+import { trim } from './utils';
 
 export class Client extends EventEmitter {
   public serverHandle: ChildProcess = null;
@@ -45,8 +45,6 @@ export class Client extends EventEmitter {
           '/c',
           this.serverPath,
           ...this.serverOptions,
-          `--locale`,
-          getLocale(process.env),
           `--disableAutomaticTypingAcquisition`
         ],
         {
@@ -64,8 +62,6 @@ export class Client extends EventEmitter {
         this.serverPath,
         [
           ...this.serverOptions,
-          `--locale`,
-          getLocale(process.env),
           `--disableAutomaticTypingAcquisition`
         ],
         {
