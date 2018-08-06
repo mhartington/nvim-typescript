@@ -52,8 +52,6 @@ class Client extends events_1.EventEmitter {
         else {
             this.serverHandle = child_process_1.spawn(this.serverPath, [
                 ...this.serverOptions,
-                `--locale`,
-                utils_1.getLocale(process.env),
                 `--disableAutomaticTypingAcquisition`
             ], {
                 stdio: 'pipe',
