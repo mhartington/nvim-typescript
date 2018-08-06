@@ -89,12 +89,6 @@ function getAbbr(entry: protocol.CompletionEntryDetails) {
     .join(', ');
 }
 
-export function getLocale(procEnv) {
-  const lang =
-    procEnv.LC_ALL || procEnv.LC_MESSAGES || procEnv.LANG || procEnv.LANGUAGE;
-  return lang && lang.replace(/[.:].*/, '').replace(/[_:].*/, '');
-}
-
 export async function getKind(nvim: any, kind: string): Promise<any> {
   const icons = await nvim.getVar('nvim_typescript#kind_symbols');
   if (kind in icons) return icons[kind];
