@@ -38,6 +38,7 @@ export class Client extends EventEmitter {
   // Start the Proc
   startServer() {
     // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
+    const locale = getLocale(process.env);
     if (platform() === 'win32') {
       this.serverHandle = spawn(
         'cmd',
@@ -45,8 +46,7 @@ export class Client extends EventEmitter {
           '/c',
           this.serverPath,
           ...this.serverOptions,
-          `--locale`,
-          getLocale(process.env),
+          ...(locale ? ['--locale', locale] : []),
           `--disableAutomaticTypingAcquisition`
         ],
         {
@@ -64,8 +64,7 @@ export class Client extends EventEmitter {
         this.serverPath,
         [
           ...this.serverOptions,
-          `--locale`,
-          getLocale(process.env),
+          ...(locale ? ['--locale', locale] : []),
           `--disableAutomaticTypingAcquisition`
         ],
         {
