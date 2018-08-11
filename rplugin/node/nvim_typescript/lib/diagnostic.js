@@ -34,7 +34,7 @@ class DiagnosticProvider {
                 this.signStore.push({ file, signs: [] });
             current = this.signStore.find(entry => entry.file === file);
             current.signs = this.normalizeSigns(incomingSigns);
-            current.signs.map((sign, idx) => __awaiter(this, void 0, void 0, function* () {
+            current.signs.forEach((sign, idx) => __awaiter(this, void 0, void 0, function* () {
                 console.warn(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
                 yield this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
                 locList.push({

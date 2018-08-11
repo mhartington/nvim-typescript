@@ -284,6 +284,7 @@ A: This could happen for a number of reasons
   1. No valid tsconfig.json in your project
   2. No installation of typescript on your system.
   3. `UpdateRemotePlugins` has not been called since installation.
+  4. Plugin add did not run `install.sh`
 
 Q: The plugin does not recognize my file as typescript.
 
@@ -294,14 +295,7 @@ A: This file does not include a syntax file for typescript. I do not want to
 Q: Why better than tsuquyomi? Why is this better than other plugins?
 
 A: This plugin does not claim to be better than any other plugin, and is more
-   for my own needs. Maybe you would like it too?
-   The plugin is all asynchronous and is lag free. Other plugins are not always
-   async or require additional plugins that need to be built. If you are using
-   regular Vim, I highly suggest Tsuquyomi, especially with Vim 8.
-
-
-Q: This breaks with specific version of Typescript.
-
-A: New versions of typescript could contain breaking changes. This is to be
-   expected. See the `g:nvim_typescript#ts_version` variable for the  current
-   version support.
+   for my own needs. Maybe you would like it too? The plugin is all
+   asynchronous and is lag free. Other plugins are not always async or require
+   additional plugins that need to be built. If you are using regular Vim, I
+   highly suggest Tsuquyomi, especially with Vim 8.

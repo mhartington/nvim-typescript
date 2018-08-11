@@ -6,7 +6,6 @@ interface SignStoreSign extends Diagnostic {
   id: number;
 }
 
-
 export class DiagnosticProvider {
   public signStore: Array<{ file: string; signs: Array<SignStoreSign> }> = [];
   public nvim: Neovim;
@@ -30,8 +29,7 @@ export class DiagnosticProvider {
     current = this.signStore.find(entry => entry.file === file);
 
     current.signs = this.normalizeSigns(incomingSigns);
-
-    current.signs.map(async (sign, idx) => {
+    current.signs.forEach( async (sign, idx) => {
       console.warn(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
       await this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
       locList.push({
@@ -46,7 +44,6 @@ export class DiagnosticProvider {
     await this.highlightLine(current.file);
     createLocList(this.nvim, locList, 'Errors', false);
   }
-
   normalizeSigns(signs: Diagnostic[]) {
     return signs.map(sign => {
       return { ...sign, id: this.signID++ };

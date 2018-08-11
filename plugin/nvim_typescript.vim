@@ -160,28 +160,28 @@ augroup nvim-typescript "{{{
   autocmd BufEnter,Filetype typescript,typescriptreact call nvim_typescript#DefaultKeyMap()
   autocmd BufEnter,Filetype typescript,typescriptreact call TSOnBufEnter()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
-  if get(g:, 'nvim_typescript#signature_complete', 1)
-     autocmd CompleteDone *.ts,*.tsx TSSig
-  endif
-  if get(g:, 'nvim_typescript#type_info_on_hold', 1)
+  if get(g:, 'nvim_typescript#signature_complete', 1) "{{{
+    autocmd CompleteDone *.ts,*.tsx TSSig
+  endif "}}}
+  if get(g:, 'nvim_typescript#type_info_on_hold', 1) "{{{
     autocmd CursorHold *.ts,*.tsx TSType
-  endif
-  if get(g:, 'nvim_typescript#follow_dir_change', 1)
+  endif "}}}
+  if get(g:, 'nvim_typescript#follow_dir_change', 1) "{{{
     autocmd DirChanged * call TSOnBufSave()
-  endif
-  if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
+  endif ""}}}
+  if get(g:, 'nvim_typescript#diagnosticsEnable', 1) "{{{
     autocmd BufEnter,Filetype typescript,typescriptreact TSGetDiagnostics
     autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
     autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
     autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()
-  endif
-  "}}}
+  endif "}}}
 
   autocmd BufWritePost tsconfig.json TSReloadProject
   autocmd User CmSetup call cm#sources#typescript#register()
-
   " Cleanup required to prevent hanging on Windows exit
-  autocmd VimLeavePre * TSStop 
+  autocmd VimLeavePre * TSStop
+  "}}}
+
 
 augroup end "}}}
 

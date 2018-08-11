@@ -5,10 +5,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowUnreachableCode": false,
-    "lib": [
-      "es2017",
-      "dom"
-    ],
+    "lib": ["es2017", "dom"],
     "module": "commonjs",
     "moduleResolution": "node",
     "sourceMap": false,
