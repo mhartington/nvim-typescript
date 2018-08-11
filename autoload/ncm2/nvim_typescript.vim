@@ -1,6 +1,6 @@
 
 func! ncm2#nvim_typescript#init()
-    let scope = ['typescript', 'tsx', 'typescript.tsx']
+    let scope = ['typescript', 'tsx', 'typescript.tsx', 'typescriptreact']
     if g:nvim_typescript#javascript_support
         call extend(scope, ['javascript', 'jsx', 'javascript.jsx'])
       endif
