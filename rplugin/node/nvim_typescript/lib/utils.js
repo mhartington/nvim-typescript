@@ -88,11 +88,6 @@ function getAbbr(entry) {
         .map((e, idx) => '<`' + (idx) + ':' + e + '`>')
         .join(', ');
 }
-function getLocale(procEnv) {
-    const lang = procEnv.LC_ALL || procEnv.LC_MESSAGES || procEnv.LANG || procEnv.LANGUAGE;
-    return lang && lang.replace(/[.:].*/, '').replace(/[_:].*/, '');
-}
-exports.getLocale = getLocale;
 function getKind(nvim, kind) {
     return __awaiter(this, void 0, void 0, function* () {
         const icons = yield nvim.getVar('nvim_typescript#kind_symbols');

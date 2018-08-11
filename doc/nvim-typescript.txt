@@ -230,6 +230,13 @@ Default: 'TS'
     Use this vs setting from deoplete.
 
 
+g:nvim_typescript#server_options           *g:nvim_typescript#server_options*
+Values: List
+Default: '[]'
+
+    Sets options for the typescript server. For example, locale can be set to 
+    French using ['--locale', 'fr'].
+
 
 ===============================================================================
 MAPPINGS                                                  *typescript-mappings*
