@@ -234,8 +234,14 @@ g:nvim_typescript#server_options           *g:nvim_typescript#server_options*
 Values: List
 Default: '[]'
 
-    Sets options for the typescript server. For example, locale can be set to 
+    Sets options for the typescript server. For example, locale can be set to
     French using ['--locale', 'fr'].
+
+g:nvim_typescript#diagnosticsEnable           *g:nvim_typescript#diagnosticsEnable*
+Values: 0 or 1
+Default: 1
+
+    If set to 1, the linting errors will be shown.
 
 
 ===============================================================================
