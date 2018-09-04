@@ -56,24 +56,26 @@ export class DiagnosticProvider {
     ]);
   }
   async unsetSigns(file: string) {
-    const current = this.signStore.find(entry => entry.file === file);
-    if (current && current.signs.length > 0) {
-      return Promise.all(
+    const currentEntry = this.signStore.find(entry => entry.file === file);
+    if (currentEntry && currentEntry.signs.length > 0) {
+      return this.nvim.command(`sign unplace * file=${currentEntry.file}`);
 
-        current.signs.map(async (sign, idx) => {
-          console.warn(`sign unplace ${sign.id} file=${current.file}`);
-
-          await this.nvim.command(`sign unplace ${sign.id} file=${current.file}`);
-
-          this.signStore = this.signStore.map(entry => {
-            if (entry.file === current.file) {
-              entry.signs = []
-            };
-            return entry;
-          });
-        })
-
-      );
+      // return Promise.all(
+      //
+      //   currentEntry.signs.map(async (sign) => {
+      //     console.warn(`sign unplace ${sign.id} file=${currentEntry.file}`);
+      //
+      //     await this.nvim.command(`sign unplace ${sign.id} file=${currentEntry.file}`);
+      //
+      //     this.signStore = this.signStore.map(entry => {
+      //       if (entry.file === currentEntry.file) {
+      //         entry.signs = []
+      //       };
+      //       return entry;
+      //     });
+      //   })
+      //
+      // );
     }
   }
   getSign(file: string, line: number, offset: number): Diagnostic {

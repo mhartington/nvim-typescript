@@ -157,8 +157,8 @@ augroup nvim-typescript "{{{
   endif "}}}
 
   " Core {{{
-  autocmd BufEnter,Filetype typescript,typescriptreact call nvim_typescript#DefaultKeyMap()
-  autocmd BufEnter,Filetype typescript,typescriptreact call TSOnBufEnter()
+  autocmd BufEnter,Filetype typescript,typescript.tsx call nvim_typescript#DefaultKeyMap()
+  autocmd BufEnter,Filetype typescript,typescript.tsx call TSOnBufEnter()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   if get(g:, 'nvim_typescript#signature_complete', 1) "{{{
     autocmd CompleteDone *.ts,*.tsx TSSig
@@ -170,7 +170,7 @@ augroup nvim-typescript "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif ""}}}
   if get(g:, 'nvim_typescript#diagnosticsEnable', 1) "{{{
-    autocmd BufEnter,Filetype typescript,typescriptreact TSGetDiagnostics
+    autocmd BufEnter,Filetype typescript,typescript.tsx TSGetDiagnostics
     autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
     autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
     autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()

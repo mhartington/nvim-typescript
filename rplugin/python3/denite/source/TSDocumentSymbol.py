@@ -12,7 +12,7 @@ class Source(Base):
         self.name = 'TSDocumentSymbol'
         self.kind = 'file'
 
-    def getKind(self,kind):
+    def getKind(self, kind):
         if kind in self.vim.vars["nvim_typescript#kind_symbols"].keys():
             return self.vim.vars["nvim_typescript#kind_symbols"][kind]
         else:
