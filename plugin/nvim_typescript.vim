@@ -10,7 +10,7 @@ let g:nvim_typescript#javascript_support =
 let g:nvim_typescript#vue_support =
       \ get(g:, 'nvim_typescript#vue_support', 0)
 let g:nvim_typescript#server_path =
-      \ get(g:, 'nvim_typescript#_server_path', 'node_modules/.bin/tsserver')
+      \ get(g:, 'nvim_typescript#server_path', 'node_modules/.bin/tsserver')
 let g:nvim_typescript#max_completion_detail =
       \ get(g:, 'nvim_typescript#max_completion_detail', 25)
 let g:nvim_typescript#type_info_on_hold =
