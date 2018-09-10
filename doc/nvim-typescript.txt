@@ -237,7 +237,7 @@ Default: '[]'
     Sets options for the typescript server. For example, locale can be set to
     French using ['--locale', 'fr'].
 
-g:nvim_typescript#diagnosticsEnable           *g:nvim_typescript#diagnosticsEnable*
+g:nvim_typescript#diagnostics_enable     *g:nvim_typescript#diagnostics_enable*
 Values: 0 or 1
 Default: 1
 
