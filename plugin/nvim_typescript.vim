@@ -29,8 +29,8 @@ let g:nvim_typescript#debug_enabled =
       \ get(g:, 'nvim_typescript#debug_enabled', 0)
 let g:nvim_typescript#debug_settings =
       \ get(g:, 'nvim_typescript#debug_settings', {'file': 'nvim-typescript-tsserver.log', 'level': 'normal'})
-let g:nvim_typescript#diagnosticsEnable =
-      \ get(g:, 'nvim_typescript#diagnosticsEnable', 1)
+let g:nvim_typescript#diagnostics_enable =
+      \ get(g:, 'nvim_typescript#diagnostics_enable', 1)
 let g:nvim_typescript#server_options =
       \ get(g:, 'nvim_typescript#server_options', [])
 let g:nvim_typescript#expand_snippet =
@@ -128,7 +128,7 @@ augroup nvim-typescript "{{{
     if get(g:, 'nvim_typescript#follow_dir_change', 1)
       autocmd DirChanged * call TSOnBufSave()
     endif
-    if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
+    if get(g:, 'nvim_typescript#diagnostics_enable', 1)
       autocmd BufEnter,Filetype javascript,javascriptreact TSGetDiagnostics
       autocmd TextChanged *.js,*.jsx TSGetDiagnostics
       autocmd InsertLeave *.js,*.jsx TSGetDiagnostics
@@ -148,7 +148,7 @@ augroup nvim-typescript "{{{
     if get(g:, 'nvim_typescript#type_info_on_hold', 1)
       autocmd CursorHold *.vue TSType
     endif
-    if get(g:, 'nvim_typescript#diagnosticsEnable', 1)
+    if get(g:, 'nvim_typescript#diagnostics_enable', 1)
       autocmd BufEnter,Filetype vue TSGetDiagnostics
       autocmd TextChanged *.vue  TSGetDiagnostics
       autocmd InsertLeave *.vue TSGetDiagnostics
@@ -169,7 +169,7 @@ augroup nvim-typescript "{{{
   if get(g:, 'nvim_typescript#follow_dir_change', 1) "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif ""}}}
-  if get(g:, 'nvim_typescript#diagnosticsEnable', 1) "{{{
+  if get(g:, 'nvim_typescript#diagnostics_enable', 1) "{{{
     autocmd BufEnter,Filetype typescript,typescript.tsx TSGetDiagnostics
     autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
     autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
