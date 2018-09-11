@@ -17,10 +17,10 @@ class Source(Base):
         }, symbols))
 
     def gather_candidates(self, context):
-        responce = self.vim.funcs.TSGetProjectInfoFunc()
-        if responce is None:
+        response = self.vim.funcs.TSGetProjectInfoFunc()
+        if response is None:
             return []
-        candidates = self.convertToCandidate(responce['fileNames'])
+        candidates = self.convertToCandidate(response['fileNames'])
         return list(map(lambda symbol: {
             'word': symbol['text'],
             'action__path': symbol['text']

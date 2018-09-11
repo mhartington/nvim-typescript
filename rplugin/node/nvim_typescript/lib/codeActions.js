@@ -13,9 +13,9 @@ const leadingAndTrailingNewLineRegex = /^\n|\n$/;
 function promptForSelection(options, nvim) {
     return __awaiter(this, void 0, void 0, function* () {
         const changeDescriptions = options.map(change => change.description);
-        const canidates = changeDescriptions.map((change, idx) => `\n[${idx}]: ${change}`);
+        const candidates = changeDescriptions.map((change, idx) => `\n[${idx}]: ${change}`);
         return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
-            const input = yield nvim.call('input', `nvim-ts: Please Select from the following options: \n${canidates} \nplease choose one: `);
+            const input = yield nvim.call('input', `nvim-ts: Please Select from the following options: \n${candidates} \nplease choose one: `);
             if (!input)
                 return rej('Nothing selected');
             if (parseInt(input) > options.length - 1)

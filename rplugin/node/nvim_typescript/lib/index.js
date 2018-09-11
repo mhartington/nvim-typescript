@@ -81,7 +81,7 @@ let TSHost = class TSHost {
             let fixes;
             // No imports
             if (!results.length) {
-                return this.printMsg('No imports canidates were found.');
+                return this.printMsg('No imports candidates were found.');
             }
             else if (results.length === 1) {
                 fixes = results[0].changes;
