@@ -272,21 +272,22 @@ export default class TSHost {
     await this.reloadFile();
     const args = await this.getCommonData();
     const symbolRefRes = await this.client.getSymbolRefs(args);
-    if (symbolRefRes && symbolRefRes.refs.length > 0) {
-      const refList = symbolRefRes.refs;
-      const locationList = refList.map(ref => {
-        return {
-          filename: ref.file,
-          lnum: ref.start.line,
-          col: ref.start.offset,
-          text: trim(ref.lineText)
-        };
-      });
-      createLocList(this.nvim, locationList, 'References');
-    }
-    {
+
+    if (!symbolRefRes || symbolRefRes && symbolRefRes.refs.length === 0) {
       this.printErr('References not found');
+      return;
     }
+
+    const refList = symbolRefRes.refs;
+    const locationList = refList.map(ref => {
+      return {
+        filename: ref.file,
+        lnum: ref.start.line,
+        col: ref.start.offset,
+        text: trim(ref.lineText)
+      };
+    });
+    createLocList(this.nvim, locationList, 'References');
   }
 
   @Command('TSEditConfig')
