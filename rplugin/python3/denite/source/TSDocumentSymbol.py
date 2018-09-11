@@ -39,11 +39,11 @@ class Source(Base):
 
     def gather_candidates(self, context):
         bufname = self.vim.current.buffer.name
-        responce = self.vim.funcs.TSGetDocSymbolsFunc()
-        if responce is None:
+        response = self.vim.funcs.TSGetDocSymbolsFunc()
+        if response is None:
             return []
 
-        candidates = self.convertToCandidate(responce)
+        candidates = self.convertToCandidate(response)
         values = list(map(lambda symbol: {
             'abbr': "{0}\t{1}".format(symbol['kindIcon'], symbol['text']),
             'word': symbol['text'],

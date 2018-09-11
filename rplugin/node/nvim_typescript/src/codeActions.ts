@@ -6,13 +6,13 @@ const leadingAndTrailingNewLineRegex = /^\n|\n$/;
 
 export async function promptForSelection(options: CodeAction[], nvim: Neovim): Promise<any> {
   const changeDescriptions = options.map(change => change.description);
-  const canidates = changeDescriptions.map(
+  const candidates = changeDescriptions.map(
     (change, idx) => `\n[${idx}]: ${change}`
   );
   return new Promise(async (res, rej) => {
     const input = await nvim.call(
       'input',
-      `nvim-ts: Please Select from the following options: \n${canidates} \nplease choose one: `
+      `nvim-ts: Please Select from the following options: \n${candidates} \nplease choose one: `
     );
     if (!input) return rej('Nothing selected');
     if (parseInt(input) > options.length - 1) return rej('Not a valid options');
