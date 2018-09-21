@@ -133,6 +133,9 @@ augroup nvim-typescript "{{{
     if get(g:, 'nvim_typescript#diagnostics_enable', 1)
       autocmd BufEnter,Filetype javascript,javascriptreact TSGetDiagnostics
       autocmd InsertLeave *.js,*.jsx TSGetDiagnostics
+      if (get(g:, 'nvim_typescript#diagnostics_on_change', 1) == 0)
+        autocmd BufWrite *.js,*.jsx TSGetDiagnostics
+      endif
       autocmd CursorMoved *.js,*.jsx call TSEchoMessage()
     endif
     if get(g:, 'nvim_typescript#diagnostics_on_change', 1)
@@ -155,6 +158,9 @@ augroup nvim-typescript "{{{
     if get(g:, 'nvim_typescript#diagnostics_enable', 1)
       autocmd BufEnter,Filetype vue TSGetDiagnostics
       autocmd InsertLeave *.vue TSGetDiagnostics
+      if (get(g:, 'nvim_typescript#diagnostics_on_change', 1) == 0)
+        autocmd BufWrite *.vue TSGetDiagnostics
+      endif
       autocmd CursorMoved *.vue call TSEchoMessage()
     endif
     if get(g:, 'nvim_typescript#diagnostics_on_change', 1)
@@ -178,6 +184,9 @@ augroup nvim-typescript "{{{
   if get(g:, 'nvim_typescript#diagnostics_enable', 1) "{{{
     autocmd BufEnter,Filetype typescript,typescript.tsx TSGetDiagnostics
     autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
+    if (get(g:, 'nvim_typescript#diagnostics_on_change', 1) == 0)
+      autocmd BufWrite *.ts,*.tsx TSGetDiagnostics
+    endif
     autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()
   endif "}}}
   if get(g:, 'nvim_typescript#diagnostics_on_change', 1) "{{{
