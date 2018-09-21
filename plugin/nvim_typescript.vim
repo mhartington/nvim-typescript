@@ -31,6 +31,8 @@ let g:nvim_typescript#debug_settings =
       \ get(g:, 'nvim_typescript#debug_settings', {'file': 'nvim-typescript-tsserver.log', 'level': 'normal'})
 let g:nvim_typescript#diagnostics_enable =
       \ get(g:, 'nvim_typescript#diagnostics_enable', 1)
+let g:nvim_typescript#diagnostics_on_change =
+      \ get(g:, 'nvim_typescript#diagnostics_on_change', 1)
 let g:nvim_typescript#server_options =
       \ get(g:, 'nvim_typescript#server_options', [])
 let g:nvim_typescript#expand_snippet =
@@ -130,9 +132,11 @@ augroup nvim-typescript "{{{
     endif
     if get(g:, 'nvim_typescript#diagnostics_enable', 1)
       autocmd BufEnter,Filetype javascript,javascriptreact TSGetDiagnostics
-      autocmd TextChanged *.js,*.jsx TSGetDiagnostics
       autocmd InsertLeave *.js,*.jsx TSGetDiagnostics
       autocmd CursorMoved *.js,*.jsx call TSEchoMessage()
+    endif
+    if get(g:, 'nvim_typescript#diagnostics_on_change', 1)
+      autocmd TextChanged *.js,*.jsx TSGetDiagnostics
     endif
   endif "}}}
 
@@ -150,9 +154,11 @@ augroup nvim-typescript "{{{
     endif
     if get(g:, 'nvim_typescript#diagnostics_enable', 1)
       autocmd BufEnter,Filetype vue TSGetDiagnostics
-      autocmd TextChanged *.vue  TSGetDiagnostics
       autocmd InsertLeave *.vue TSGetDiagnostics
       autocmd CursorMoved *.vue call TSEchoMessage()
+    endif
+    if get(g:, 'nvim_typescript#diagnostics_on_change', 1)
+      autocmd TextChanged *.vue  TSGetDiagnostics
     endif
   endif "}}}
 
@@ -171,9 +177,11 @@ augroup nvim-typescript "{{{
   endif ""}}}
   if get(g:, 'nvim_typescript#diagnostics_enable', 1) "{{{
     autocmd BufEnter,Filetype typescript,typescript.tsx TSGetDiagnostics
-    autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
     autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
     autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()
+  endif "}}}
+  if get(g:, 'nvim_typescript#diagnostics_on_change', 1) "{{{
+    autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
   endif "}}}
 
   autocmd BufWritePost tsconfig.json TSReloadProject

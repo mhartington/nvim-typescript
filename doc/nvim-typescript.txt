@@ -244,6 +244,13 @@ Default: 1
     If set to 1, the linting errors will be shown.
 
 
+g:nvim_typescript#diagnostics_on_change     *g:nvim_typescript#diagnostics_on_change*
+Values: 0 or 1
+Default: 1
+
+    If set to 1, the linter will run on TextChanged.
+
+
 ===============================================================================
 MAPPINGS                                                  *typescript-mappings*
 
