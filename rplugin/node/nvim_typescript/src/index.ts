@@ -225,11 +225,10 @@ export default class TSHost {
 
         await this.nvim.command(`buffer ${buffNum}`);
         await this.nvim.call('cursor', [renameArgs.line, renameArgs.offset]);
-        this.printMsg(
-          `Replaced ${changeCount} in ${renameResults.locs.length} files`
-        );
+        this.printMsg(`Replaced ${changeCount} in ${renameResults.locs.length} files`);
       }
-    } else {
+    }
+    else {
       this.printErr(renameResults.info.localizedErrorMessage);
     }
   }

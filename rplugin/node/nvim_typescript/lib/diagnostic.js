@@ -34,8 +34,8 @@ class DiagnosticProvider {
                 this.signStore.push({ file, signs: [] });
             current = this.signStore.find(entry => entry.file === file);
             current.signs = this.normalizeSigns(incomingSigns);
-            current.signs.forEach((sign, idx) => __awaiter(this, void 0, void 0, function* () {
-                console.warn(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
+            current.signs.forEach((sign) => __awaiter(this, void 0, void 0, function* () {
+                // console.warn(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
                 yield this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
                 locList.push({
                     filename: current.file,
@@ -47,7 +47,7 @@ class DiagnosticProvider {
                 });
             }));
             yield this.highlightLine(current.file);
-            utils_1.createLocList(this.nvim, locList, 'Errors', false);
+            utils_1.createQuickFixList(this.nvim, locList, 'Errors', false);
         });
     }
     normalizeSigns(signs) {
@@ -67,7 +67,7 @@ class DiagnosticProvider {
         return __awaiter(this, void 0, void 0, function* () {
             const currentEntry = this.signStore.find(entry => entry.file === file);
             if (currentEntry && currentEntry.signs.length > 0) {
-                return this.nvim.command(`sign unplace * file=${currentEntry.file}`);
+                yield this.nvim.command(`sign unplace * file=${currentEntry.file}`);
                 // return Promise.all(
                 //
                 //   currentEntry.signs.map(async (sign) => {

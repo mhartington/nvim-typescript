@@ -34,8 +34,9 @@ function applyCodeFixes(fixes, nvim) {
                     const newText = textChange.newText.replace(leadingAndTrailingNewLineRegex, '');
                     if (textChange.start.offset === 1) {
                         console.warn('OFFSET 1');
+                        const textToArray = newText.split('\n');
                         console.warn(newText, textChange.start.line - 1);
-                        yield nvim.buffer.insert(newText, textChange.start.line - 1);
+                        yield nvim.buffer.insert(textToArray, textChange.start.line - 1);
                     }
                     else if (textChange.newText.match(leadingNewLineRexeg)) {
                         console.warn('ADDING NEW LINE');

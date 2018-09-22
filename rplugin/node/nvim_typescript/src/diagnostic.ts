@@ -29,8 +29,8 @@ export class DiagnosticProvider {
     current = this.signStore.find(entry => entry.file === file);
 
     current.signs = this.normalizeSigns(incomingSigns);
-    current.signs.forEach( async (sign, idx) => {
-      console.warn(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
+    current.signs.forEach( async (sign) => {
+      // console.warn(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
       await this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
       locList.push({
         filename: current.file,
@@ -42,7 +42,7 @@ export class DiagnosticProvider {
       });
     })
     await this.highlightLine(current.file);
-    createLocList(this.nvim, locList, 'Errors', false);
+    createQuickFixList(this.nvim, locList, 'Errors', false);
   }
   normalizeSigns(signs: Diagnostic[]) {
     return signs.map(sign => {
@@ -58,7 +58,7 @@ export class DiagnosticProvider {
   async unsetSigns(file: string) {
     const currentEntry = this.signStore.find(entry => entry.file === file);
     if (currentEntry && currentEntry.signs.length > 0) {
-      return this.nvim.command(`sign unplace * file=${currentEntry.file}`);
+      await this.nvim.command(`sign unplace * file=${currentEntry.file}`);
 
       // return Promise.all(
       //
