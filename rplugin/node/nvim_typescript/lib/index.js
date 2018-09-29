@@ -250,7 +250,7 @@ let TSHost = class TSHost {
                 return;
             }
             const refList = symbolRefRes.refs;
-            const locationList = refList.map(ref => {
+            const list = refList.map(ref => {
                 return {
                     filename: ref.file,
                     lnum: ref.start.line,
@@ -258,7 +258,7 @@ let TSHost = class TSHost {
                     text: utils_1.trim(ref.lineText)
                 };
             });
-            utils_1.createLocList(this.nvim, locationList, 'References');
+            utils_1.createQuickFixList(this.nvim, list, 'References');
         });
     }
     tsEditconfig(self) {

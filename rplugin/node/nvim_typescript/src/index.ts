@@ -12,6 +12,7 @@ import {
   convertEntry,
   getKind,
   createLocList,
+  createQuickFixList,
   printEllipsis
 } from './utils';
 import { writeFileSync, statSync, appendFileSync } from 'fs';
@@ -279,7 +280,7 @@ export default class TSHost {
     }
 
     const refList = symbolRefRes.refs;
-    const locationList = refList.map(ref => {
+    const list  = refList.map(ref => {
       return {
         filename: ref.file,
         lnum: ref.start.line,
@@ -287,7 +288,7 @@ export default class TSHost {
         text: trim(ref.lineText)
       };
     });
-    createLocList(this.nvim, locationList, 'References');
+    createQuickFixList(this.nvim, list , 'References');
   }
 
   @Command('TSEditConfig')
