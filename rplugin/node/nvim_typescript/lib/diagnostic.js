@@ -103,7 +103,7 @@ class DiagnosticProvider {
     clearHighlight(file) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.nvim.buffer.clearHighlight({
-                lineStart: 1,
+                lineStart: 0,
                 lineEnd: -1
             });
         });

@@ -95,7 +95,7 @@ export class DiagnosticProvider {
   }
   async clearHighlight(file: string) {
     await this.nvim.buffer.clearHighlight({
-      lineStart: 1,
+      lineStart: 0,
       lineEnd: -1
     });
   }
