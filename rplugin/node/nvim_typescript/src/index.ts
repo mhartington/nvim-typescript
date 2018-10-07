@@ -12,6 +12,7 @@ import {
   convertEntry,
   getKind,
   createLocList,
+  createQuickFixList,
   printEllipsis
 } from './utils';
 import { writeFileSync, statSync, appendFileSync } from 'fs';
@@ -28,6 +29,7 @@ export default class TSHost {
   private client = TSServer;
   private diagnosticHost = DiagnosticHost;
   private maxCompletion: number;
+  private refsToLocList: boolean;
   private expandSnippet: boolean;
   constructor(nvim) {
     this.nvim = nvim;
@@ -278,7 +280,7 @@ export default class TSHost {
     }
 
     const refList = symbolRefRes.refs;
-    const locationList = refList.map(ref => {
+    const list  = refList.map(ref => {
       return {
         filename: ref.file,
         lnum: ref.start.line,
@@ -286,7 +288,12 @@ export default class TSHost {
         text: trim(ref.lineText)
       };
     });
-    createLocList(this.nvim, locationList, 'References');
+
+    if (this.refsToLocList) {
+      createLocList(this.nvim, list, 'References')
+    } else {
+      createQuickFixList(this.nvim, list, 'References');
+    }
   }
 
   @Command('TSEditConfig')
@@ -707,14 +714,15 @@ export default class TSHost {
       serverPath,
       serverOptions,
       defaultSigns,
-      expandSnippet
+      expandSnippet,
+      refsToLocList
     ] = await Promise.all([
       this.nvim.getVar('nvim_typescript#max_completion_detail'),
       this.nvim.getVar('nvim_typescript#server_path'),
       this.nvim.getVar('nvim_typescript#server_options'),
       this.nvim.getVar('nvim_typescript#default_signs'),
       this.nvim.getVar('nvim_typescript#expand_snippet'),
-
+      this.nvim.getVar('nvim_typescript#refs_to_loc_list'),
     ]);
     this.maxCompletion = parseFloat(maxCompletion as string);
     this.expandSnippet = (expandSnippet as boolean);
@@ -722,6 +730,7 @@ export default class TSHost {
     this.client.serverOptions = serverOptions as string[];
     await this.diagnosticHost.defineSigns(defaultSigns);
     this.client.setTSConfigVersion();
+    this.refsToLocList = (refsToLocList as boolean);
 
     // this.client.on('semanticDiag', res => {
     //   console.log('coming soon...');
