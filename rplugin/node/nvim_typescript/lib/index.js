@@ -258,7 +258,12 @@ let TSHost = class TSHost {
                     text: utils_1.trim(ref.lineText)
                 };
             });
-            utils_1.createQuickFixList(this.nvim, list, 'References');
+            if (this.refsToLocList) {
+                utils_1.createLocList(this.nvim, list, 'References');
+            }
+            else {
+                utils_1.createQuickFixList(this.nvim, list, 'References');
+            }
         });
     }
     tsEditconfig(self) {
@@ -649,12 +654,13 @@ let TSHost = class TSHost {
             this.diagnosticHost.nvim = this.nvim;
             // Borrowed from https://github.com/mhartington/nvim-typescript/pull/143
             // Much cleaner, sorry I couldn't merge the PR!
-            const [maxCompletion, serverPath, serverOptions, defaultSigns, expandSnippet] = yield Promise.all([
+            const [maxCompletion, serverPath, serverOptions, defaultSigns, expandSnippet, refsToLocList] = yield Promise.all([
                 this.nvim.getVar('nvim_typescript#max_completion_detail'),
                 this.nvim.getVar('nvim_typescript#server_path'),
                 this.nvim.getVar('nvim_typescript#server_options'),
                 this.nvim.getVar('nvim_typescript#default_signs'),
                 this.nvim.getVar('nvim_typescript#expand_snippet'),
+                this.nvim.getVar('nvim_typescript#refs_to_loc_list'),
             ]);
             this.maxCompletion = parseFloat(maxCompletion);
             this.expandSnippet = expandSnippet;
@@ -662,6 +668,7 @@ let TSHost = class TSHost {
             this.client.serverOptions = serverOptions;
             yield this.diagnosticHost.defineSigns(defaultSigns);
             this.client.setTSConfigVersion();
+            this.refsToLocList = refsToLocList;
             // this.client.on('semanticDiag', res => {
             //   console.log('coming soon...');
             // });

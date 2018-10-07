@@ -237,6 +237,14 @@ Default: '[]'
     Sets options for the typescript server. For example, locale can be set to
     French using ['--locale', 'fr'].
 
+g:nvim_typescript#refs_to_loc_list           *g:nvim_typescript#refs_to_loc_list*
+Values: 0 or 1
+Default: 0
+
+    By default, a call to :TSRefs sends the references list to the quick-fix
+    window. This makes it send the list to the location-list instead.
+
+
 g:nvim_typescript#diagnostics_enable     *g:nvim_typescript#diagnostics_enable*
 Values: 0 or 1
 Default: 1

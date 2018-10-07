@@ -35,6 +35,8 @@ let g:nvim_typescript#server_options =
       \ get(g:, 'nvim_typescript#server_options', [])
 let g:nvim_typescript#expand_snippet =
       \ get(g:, 'nvim_typescript#expand_snippet', 0)
+let g:nvim_typescript#refs_to_loc_list =
+      \ get(g:, 'nvim_typescript#refs_to_loc_list', 0)
 let g:nvim_typescript#follow_dir_change =
       \ get(g:, 'nvim_typescript#follow_dir_change', 0)
 let s:kind_symbols = {
