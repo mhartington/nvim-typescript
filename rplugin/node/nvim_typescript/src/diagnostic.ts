@@ -1,6 +1,6 @@
 import { Neovim } from 'neovim';
 import { Diagnostic } from 'typescript/lib/protocol';
-import { createLocList, createQuickFixList } from './utils';
+import { createLocList } from './utils';
 
 interface SignStoreSign extends Diagnostic {
   id: number;
@@ -42,7 +42,7 @@ export class DiagnosticProvider {
       });
     })
     await this.highlightLine(current.file);
-    createQuickFixList(this.nvim, locList, 'Errors', false);
+    createLocList(this.nvim, locList, 'Errors', false);
   }
   normalizeSigns(signs: Diagnostic[]) {
     return signs.map(sign => {

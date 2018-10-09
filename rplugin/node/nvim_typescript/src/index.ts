@@ -12,7 +12,8 @@ import {
   convertEntry,
   getKind,
   createLocList,
-  printEllipsis
+  printEllipsis,
+  createQuickFixList
 } from './utils';
 import { writeFileSync, statSync, appendFileSync } from 'fs';
 import { DiagnosticHost } from './diagnostic';
@@ -260,7 +261,7 @@ export default class TSHost {
           signatureHelpItems[0].parameters,
           signatureHelpItems[0].separator
         );
-        // this.printHighlight(params);
+        this.printHighlight(params);
       },
       err => this.printErr(err)
     );
@@ -286,7 +287,8 @@ export default class TSHost {
         text: trim(ref.lineText)
       };
     });
-    createLocList(this.nvim, locationList, 'References');
+    // Uses QuickFix list as refs can span multiple files. QFList is better.
+    createQuickFixList(this.nvim, locationList, 'References');
   }
 
   @Command('TSEditConfig')

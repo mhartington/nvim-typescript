@@ -236,7 +236,7 @@ let TSHost = class TSHost {
                 });
                 console.log(signatureHelpItems);
                 const params = utils_1.getParams(signatureHelpItems[0].parameters, signatureHelpItems[0].separator);
-                // this.printHighlight(params);
+                this.printHighlight(params);
             }, err => this.printErr(err));
         });
     }
@@ -258,7 +258,8 @@ let TSHost = class TSHost {
                     text: utils_1.trim(ref.lineText)
                 };
             });
-            utils_1.createLocList(this.nvim, locationList, 'References');
+            // Uses QuickFix list as refs can span multiple files. QFList is better.
+            utils_1.createQuickFixList(this.nvim, locationList, 'References');
         });
     }
     tsEditconfig(self) {
