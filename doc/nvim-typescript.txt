@@ -191,30 +191,6 @@ Default: 0
     * https://github.com/Shougo/echodoc.vim
 
 
-                                                 *g:nvim_typescript#ts_version*
-g:nvim_typescript#ts_version
-
-    The current version typescript that is supported by this plugin. Version
-    past this may include breaking changes.
-
-
-                               *g:nvim_typescript#loc_list_item_truncate_after*
-g:nvim_typescript#loc_list_item_truncate_after
-Values: Any positive natural number or -1
-Default: 20
-
-    Defines the length of items displayed in the location window after a call
-    to |:TSRefs|.
-
-
-                                          *g:nvim_typescript#tsimport#template*
-g:nvim_typescript#tsimport#template
-Values: String
-Default: 'import { %s } from ''%s'';'
-
-    Defines the template for import statements. The first '%s' will be replaced
-    with the symbol and the second with the symbol module path.
-
 g:nvim_typescript#default_mappings         *g:nvim_typescript#default_mappings*
 Values: 0 or 1
 Default: 0
@@ -312,3 +288,15 @@ A: This plugin does not claim to be better than any other plugin, and is more
    asynchronous and is lag free. Other plugins are not always async or require
    additional plugins that need to be built. If you are using regular Vim, I
    highly suggest Tsuquyomi, especially with Vim 8.
+
+Q: I want to disable automatic diagnostic checks from this plugin and trigger
+   it on save or some other event.
+
+A: Use the *g:nvim_typescript#diagnostics_enable* setting to disable automatic
+   diagnostic checks and manually add the autocmd hooks in your rc file.
+
+   >
+    autocmd BufWrite *.ts,*.tsx TSGetDiagnostics
+   <
+
+   This is not a feature I want to add, but is easy to add yourself.
