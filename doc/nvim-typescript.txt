@@ -292,7 +292,7 @@ A: This plugin does not claim to be better than any other plugin, and is more
 Q: I want to disable automatic diagnostic checks from this plugin and trigger
    it on save or some other event.
 
-A: Use the *g:nvim_typescript#diagnostics_enable* setting to disable automatic
+A: Use the |g:nvim_typescript#diagnostics_enable| setting to disable automatic
    diagnostic checks and manually add the autocmd hooks in your rc file.
 
    >
