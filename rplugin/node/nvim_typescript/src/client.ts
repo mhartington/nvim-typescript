@@ -254,7 +254,7 @@ export class Client extends EventEmitter {
       if (success) {
         this._seqToPromises[seq].resolve(response.body);
       } else {
-        this._seqToPromises[seq].reject(new Error(response.message));
+        this._seqToPromises[seq].reject(response.message);
       }
     } else {
       // If a sequence wasn't specified, it might be a call that returns multiple results

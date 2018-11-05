@@ -1,7 +1,5 @@
-import { execSync } from 'child_process';
 import { Neovim, Autocmd, Command, Function, Plugin } from 'neovim';
 import { fileSync } from 'tmp';
-import protocol, { Diagnostic } from 'typescript/lib/protocol';
 import { TSServer } from './client';
 import {
   trim,
@@ -15,7 +13,7 @@ import {
   printEllipsis,
   createQuickFixList
 } from './utils';
-import { writeFileSync, statSync, appendFileSync } from 'fs';
+import { writeFileSync, statSync } from 'fs';
 import { DiagnosticHost } from './diagnostic';
 import {
   promptForSelection,
@@ -42,14 +40,16 @@ export default class TSHost {
 
   @Command('TSType')
   async getType() {
-    const reloadResults = await this.reloadFile();
+    await this.reloadFile();
     const args = await this.getCommonData();
-    const typeInfo = await this.client.quickInfo(args);
-    if (typeInfo) {
+    try {
+      const typeInfo = await this.client.quickInfo(args);
       await printEllipsis(
         this.nvim,
         typeInfo.displayString.replace(/(\r\n|\n|\r)/gm, '')
       );
+    } catch (err) {
+      console.warn('in catch');
     }
   }
 
@@ -99,7 +99,7 @@ export default class TSHost {
         fixes = res;
       });
     }
-    await applyImports(fixes, this.nvim);
+    await applyCodeFixes(fixes, this.nvim);
   }
 
   @Command('TSSig')
@@ -226,10 +226,11 @@ export default class TSHost {
 
         await this.nvim.command(`buffer ${buffNum}`);
         await this.nvim.call('cursor', [renameArgs.line, renameArgs.offset]);
-        this.printMsg(`Replaced ${changeCount} in ${renameResults.locs.length} files`);
+        this.printMsg(
+          `Replaced ${changeCount} in ${renameResults.locs.length} files`
+        );
       }
-    }
-    else {
+    } else {
       this.printErr(renameResults.info.localizedErrorMessage);
     }
   }
@@ -273,7 +274,7 @@ export default class TSHost {
     const args = await this.getCommonData();
     const symbolRefRes = await this.client.getSymbolRefs(args);
 
-    if (!symbolRefRes || symbolRefRes && symbolRefRes.refs.length === 0) {
+    if (!symbolRefRes || (symbolRefRes && symbolRefRes.refs.length === 0)) {
       this.printErr('References not found');
       return;
     }
@@ -292,7 +293,7 @@ export default class TSHost {
   }
 
   @Command('TSEditConfig')
-  async tsEditconfig(self) {
+  async tsEditconfig() {
     await this.reloadFile();
     const projectInfo = await this.getProjectInfoFunc();
     if (projectInfo) {
@@ -325,7 +326,7 @@ export default class TSHost {
   }
 
   @Function('TSComplete', { sync: true })
-  async tsComplete(args: string ) {
+  async tsComplete(args: string) {
     await this.reloadFile();
     let file = await this.getCurrentFile();
     let cursorPos = await this.nvim.window.cursor;
@@ -344,9 +345,11 @@ export default class TSHost {
     // K, we got our first set of completion data, now lets sort...
     // console.log(completions.length)
     if (completions.length > this.maxCompletion) {
-      let completionRes = await Promise.all(completions.map(async entry => await convertEntry(this.nvim, entry)));
-      await this.nvim.setVar('nvim_typescript#completionRes', completionRes)
-      return completionRes
+      let completionRes = await Promise.all(
+        completions.map(async entry => await convertEntry(this.nvim, entry))
+      );
+      await this.nvim.setVar('nvim_typescript#completionRes', completionRes);
+      return completionRes;
     }
     let entryNames = completions.map(v => v.name);
     let detailedCompletions = await this.client.getCompletionDetails({
@@ -355,8 +358,16 @@ export default class TSHost {
       offset,
       entryNames
     });
-    let completionResDetailed = await Promise.all(detailedCompletions.map(async entry => await convertDetailEntry(this.nvim, entry, this.expandSnippet)));
-    await this.nvim.setVar('nvim_typescript#completionRes', completionResDetailed);
+    let completionResDetailed = await Promise.all(
+      detailedCompletions.map(
+        async entry =>
+          await convertDetailEntry(this.nvim, entry, this.expandSnippet)
+      )
+    );
+    await this.nvim.setVar(
+      'nvim_typescript#completionRes',
+      completionResDetailed
+    );
     return completionResDetailed;
   }
 
@@ -379,8 +390,10 @@ export default class TSHost {
     // K, we got our first set of completion data, now lets sort...
     // console.log(completions.length)
     if (completions.length > this.maxCompletion) {
-      let completionRes = await Promise.all(completions.map(async entry => await convertEntry(this.nvim, entry)));
-      await this.nvim.setVar('nvim_typescript#completion_res', completionRes)
+      let completionRes = await Promise.all(
+        completions.map(async entry => await convertEntry(this.nvim, entry))
+      );
+      await this.nvim.setVar('nvim_typescript#completion_res', completionRes);
     }
     let entryNames = completions.map(v => v.name);
     let detailedCompletions = await this.client.getCompletionDetails({
@@ -389,8 +402,16 @@ export default class TSHost {
       offset,
       entryNames
     });
-    let completionResDetailed = await Promise.all(detailedCompletions.map(async entry => await convertDetailEntry(this.nvim, entry, this.expandSnippet)));
-    await this.nvim.setVar('nvim_typescript#completion_res', completionResDetailed);
+    let completionResDetailed = await Promise.all(
+      detailedCompletions.map(
+        async entry =>
+          await convertDetailEntry(this.nvim, entry, this.expandSnippet)
+      )
+    );
+    await this.nvim.setVar(
+      'nvim_typescript#completion_res',
+      completionResDetailed
+    );
   }
 
   //Display Doc symbols in loclist
@@ -498,22 +519,23 @@ export default class TSHost {
     await this.reloadFile();
     const { file, line, offset } = await this.getCommonData();
     const errorAtCursor = this.diagnosticHost.getSign(file, line, offset);
-
-    const fixes = await this.client.getCodeFixes({
-      file,
-      startLine: errorAtCursor.start.line,
-      startOffset: errorAtCursor.start.offset,
-      endLine: errorAtCursor.end.line,
-      endOffset: errorAtCursor.end.offset,
-      errorCodes: [errorAtCursor.code]
-    });
-    if (fixes.length !== 0) {
-      promptForSelection(fixes, this.nvim).then(
-        async res => await applyCodeFixes(res, this.nvim),
-        rej => this.printErr(rej)
-      );
-    } else {
-      await this.printMsg('No fix');
+    if (errorAtCursor) {
+      const fixes = await this.client.getCodeFixes({
+        file,
+        startLine: errorAtCursor.start.line,
+        startOffset: errorAtCursor.start.offset,
+        endLine: errorAtCursor.end.line,
+        endOffset: errorAtCursor.end.offset,
+        errorCodes: [errorAtCursor.code]
+      });
+      if (fixes.length !== 0) {
+        promptForSelection(fixes, this.nvim).then(
+          async res => await applyCodeFixes(res, this.nvim),
+          rej => this.printErr(rej)
+        );
+      } else {
+        await this.printMsg('No fix');
+      }
     }
   }
 
@@ -715,11 +737,10 @@ export default class TSHost {
       this.nvim.getVar('nvim_typescript#server_path'),
       this.nvim.getVar('nvim_typescript#server_options'),
       this.nvim.getVar('nvim_typescript#default_signs'),
-      this.nvim.getVar('nvim_typescript#expand_snippet'),
-
+      this.nvim.getVar('nvim_typescript#expand_snippet')
     ]);
     this.maxCompletion = parseFloat(maxCompletion as string);
-    this.expandSnippet = (expandSnippet as boolean);
+    this.expandSnippet = expandSnippet as boolean;
     this.client.setServerPath(serverPath as string);
     this.client.serverOptions = serverOptions as string[];
     await this.diagnosticHost.defineSigns(defaultSigns);

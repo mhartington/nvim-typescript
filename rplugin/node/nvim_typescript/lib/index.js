@@ -37,11 +37,14 @@ let TSHost = class TSHost {
     // }
     getType() {
         return __awaiter(this, void 0, void 0, function* () {
-            const reloadResults = yield this.reloadFile();
+            yield this.reloadFile();
             const args = yield this.getCommonData();
-            const typeInfo = yield this.client.quickInfo(args);
-            if (typeInfo) {
+            try {
+                const typeInfo = yield this.client.quickInfo(args);
                 yield utils_1.printEllipsis(this.nvim, typeInfo.displayString.replace(/(\r\n|\n|\r)/gm, ''));
+            }
+            catch (err) {
+                console.warn('in catch');
             }
         });
     }
@@ -91,7 +94,7 @@ let TSHost = class TSHost {
                     fixes = res;
                 });
             }
-            yield codeActions_1.applyImports(fixes, this.nvim);
+            yield codeActions_1.applyCodeFixes(fixes, this.nvim);
         });
     }
     getSig() {
@@ -245,7 +248,7 @@ let TSHost = class TSHost {
             yield this.reloadFile();
             const args = yield this.getCommonData();
             const symbolRefRes = yield this.client.getSymbolRefs(args);
-            if (!symbolRefRes || symbolRefRes && symbolRefRes.refs.length === 0) {
+            if (!symbolRefRes || (symbolRefRes && symbolRefRes.refs.length === 0)) {
                 this.printErr('References not found');
                 return;
             }
@@ -262,7 +265,7 @@ let TSHost = class TSHost {
             utils_1.createQuickFixList(this.nvim, locationList, 'References');
         });
     }
-    tsEditconfig(self) {
+    tsEditconfig() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.reloadFile();
             const projectInfo = yield this.getProjectInfoFunc();
@@ -465,19 +468,21 @@ let TSHost = class TSHost {
             yield this.reloadFile();
             const { file, line, offset } = yield this.getCommonData();
             const errorAtCursor = this.diagnosticHost.getSign(file, line, offset);
-            const fixes = yield this.client.getCodeFixes({
-                file,
-                startLine: errorAtCursor.start.line,
-                startOffset: errorAtCursor.start.offset,
-                endLine: errorAtCursor.end.line,
-                endOffset: errorAtCursor.end.offset,
-                errorCodes: [errorAtCursor.code]
-            });
-            if (fixes.length !== 0) {
-                codeActions_1.promptForSelection(fixes, this.nvim).then((res) => __awaiter(this, void 0, void 0, function* () { return yield codeActions_1.applyCodeFixes(res, this.nvim); }), rej => this.printErr(rej));
-            }
-            else {
-                yield this.printMsg('No fix');
+            if (errorAtCursor) {
+                const fixes = yield this.client.getCodeFixes({
+                    file,
+                    startLine: errorAtCursor.start.line,
+                    startOffset: errorAtCursor.start.offset,
+                    endLine: errorAtCursor.end.line,
+                    endOffset: errorAtCursor.end.offset,
+                    errorCodes: [errorAtCursor.code]
+                });
+                if (fixes.length !== 0) {
+                    codeActions_1.promptForSelection(fixes, this.nvim).then((res) => __awaiter(this, void 0, void 0, function* () { return yield codeActions_1.applyCodeFixes(res, this.nvim); }), rej => this.printErr(rej));
+                }
+                else {
+                    yield this.printMsg('No fix');
+                }
             }
         });
     }
@@ -655,7 +660,7 @@ let TSHost = class TSHost {
                 this.nvim.getVar('nvim_typescript#server_path'),
                 this.nvim.getVar('nvim_typescript#server_options'),
                 this.nvim.getVar('nvim_typescript#default_signs'),
-                this.nvim.getVar('nvim_typescript#expand_snippet'),
+                this.nvim.getVar('nvim_typescript#expand_snippet')
             ]);
             this.maxCompletion = parseFloat(maxCompletion);
             this.expandSnippet = expandSnippet;
@@ -790,7 +795,7 @@ __decorate([
 __decorate([
     neovim_1.Command('TSEditConfig'),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], TSHost.prototype, "tsEditconfig", null);
 __decorate([

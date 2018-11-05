@@ -192,7 +192,7 @@ class Client extends events_1.EventEmitter {
                 this._seqToPromises[seq].resolve(response.body);
             }
             else {
-                this._seqToPromises[seq].reject(new Error(response.message));
+                this._seqToPromises[seq].reject(response.message);
             }
         }
         else {

@@ -26,9 +26,13 @@ export async function applyCodeFixes(fixes: FileCodeEdits[], nvim: Neovim) {
       if (textChange.start.line === textChange.end.line) {
 
         // inserting new text or modifying a line
-        const newText = textChange.newText.replace(leadingAndTrailingNewLineRegex,'');
+        let newText = textChange.newText.replace(leadingAndTrailingNewLineRegex,'');
         if (textChange.start.offset === 1) {
           console.warn('OFFSET 1');
+          let tsVersion = await nvim.call('TSGetVersion');
+          if (tsVersion.major < 3) {
+            newText = newText.replace(/(\.\.\/)*node_modules\//, '');
+          }
           const textToArray = newText.split('\n');
           console.warn(newText, textChange.start.line - 1);
           await nvim.buffer.insert(textToArray, textChange.start.line - 1);
