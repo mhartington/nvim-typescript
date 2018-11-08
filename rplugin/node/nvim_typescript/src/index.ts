@@ -152,10 +152,7 @@ export default class TSHost {
 
       if (buf > 0) {
         const pageNr = await this.nvim.tabpage.number;
-        const pageList: number[] = await this.nvim.call(
-          'tabpagebuflist',
-          pageNr
-        );
+        const pageList: number[] = await this.nvim.call('tabpagebuflist', pageNr);
         const wi = await this.nvim.call(`index`, [pageList, buf]);
         if (wi > 0) {
           await this.nvim.command(`${wi + 1} wincmd w`);
@@ -495,6 +492,7 @@ export default class TSHost {
 
   @Command('TSGetDiagnostics')
   async getDiagnostics() {
+    await this.reloadFile();
     const file = await this.getCurrentFile();
     const sematicErrors = await this.getSematicErrors(file);
     const syntaxErrors = await this.getSyntaxErrors(file);
@@ -549,15 +547,12 @@ export default class TSHost {
   }
 
   async getSematicErrors(file) {
-    await this.reloadFile();
     return await this.client.getSemanticDiagnosticsSync({ file });
   }
   async getSyntaxErrors(file) {
-    await this.reloadFile();
     return await this.client.getSyntacticDiagnosticsSync({ file });
   }
   async getSuggested(file) {
-    await this.reloadFile();
     return await this.client.getSuggestionDiagnosticsSync({ file });
   }
 

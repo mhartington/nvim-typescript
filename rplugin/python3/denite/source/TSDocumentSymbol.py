@@ -30,7 +30,7 @@ class Source(Base):
             if 'childItems' in symbol and len(symbol['childItems']) > 0:
                 for childSymbol in symbol['childItems']:
                     candidates.append({
-                        'text': childSymbol['text'] + ' - ' + symbol['text'],
+                        'text': '{0} - {1}'.format(childSymbol['text'], symbol['text']),
                         'kindIcon': self.getKind(childSymbol['kind']),
                         'lnum': childSymbol['spans'][0]['start']['line'],
                         'col': childSymbol['spans'][0]['start']['offset']
