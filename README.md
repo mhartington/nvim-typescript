@@ -8,7 +8,7 @@ nvim language service plugin for typescript
 
 ## Installation
 
-First make sure you have Neovim 0.2.1 or highter.
+First make sure you have Neovim 0.2.1 or higher.
 This includes the node-host that is required for this plugin.
 
 You will need a global install of the neovim client as well.
@@ -57,7 +57,7 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 ```
 
 If errors occur after installing, make sure to run `./install.sh` in the plugin
-directory.  And try to run `:UpdateRemotePlugins` if you havn't already.
+directory.  And try to run `:UpdateRemotePlugins` if you haven't already.
 
 ## Limitation
 
