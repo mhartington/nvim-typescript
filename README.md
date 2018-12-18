@@ -57,7 +57,7 @@ Then add the following plugins. This example uses Dein.vim, but any plugin manag
 ```
 
 If errors occur after installing, make sure to run `./install.sh` in the plugin
-directory.  And try to run `:UpdateRemotePlugins` if you havn't already.
+directory.  And try to run `:UpdateRemotePlugins` if you haven't already.
 
 ## Limitation
 
