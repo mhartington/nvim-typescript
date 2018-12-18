@@ -1,4 +1,4 @@
-
+" nvim-completion-manager-2 source
 func! ncm2#nvim_typescript#init()
     let scope = ['typescript', 'tsx', 'typescript.tsx', 'typescriptreact']
     if g:nvim_typescript#javascript_support

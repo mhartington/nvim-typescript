@@ -158,7 +158,7 @@ augroup nvim-typescript "{{{
 
   " Core {{{
   autocmd BufEnter,Filetype typescript,typescript.tsx call nvim_typescript#DefaultKeyMap()
-  autocmd BufEnter,Filetype typescript,typescript.tsx call TSOnBufEnter()
+  autocmd BufEnter,Filetype typescript,typescript.tsx  call TSOnBufEnter()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   if get(g:, 'nvim_typescript#signature_complete', 1) "{{{
     autocmd CompleteDone *.ts,*.tsx TSSig

@@ -19,7 +19,7 @@ function! s:check_local_tsserver() abort "{{{
   else
     call health#report_warn('No local server found, using global',
           \"Install typescript locally for more accurate tooling\n".
-          \'$ npm install typescript --save-dev')
+          \'$ npm install typescript@latest --save-dev')
   endif
 endfunction "}}}
 
@@ -33,7 +33,7 @@ function! s:check_global_tsserver() abort "{{{
     call health#report_error('No global server found and no local server',
           \"Install typescript globally or locally\n".
           \"$ npm install -g typescript\n".
-          \'$ npm install typescript --save-dev')
+          \'$ npm install typescript@latest --save-dev')
   endif
 endfunction "}}}
 

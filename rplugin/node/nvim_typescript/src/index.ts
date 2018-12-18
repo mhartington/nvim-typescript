@@ -199,6 +199,7 @@ export default class TSHost {
       }
     }
 
+    let changedFiles = [];
     await this.reloadFile();
     const renameArgs = await this.getCommonData();
     const buffNum = await this.nvim.call('bufnr', '%');
@@ -215,17 +216,22 @@ export default class TSHost {
           await this.nvim.command(`e! ${defFile}`);
           for (let rename of fileLocation.locs) {
             let { line, offset } = rename.start;
+
+
             let substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
             await this.nvim.command(substitutions);
+            //list: Array<{ filename: string; lnum: number; col: number; text: string }>,
+            changedFiles.push({filename: defFile, lnum: line, col: offset, text: `Replaced ${symbol} with ${newName}`})
+
             changeCount += 1;
           }
         }
 
         await this.nvim.command(`buffer ${buffNum}`);
         await this.nvim.call('cursor', [renameArgs.line, renameArgs.offset]);
-        this.printMsg(
-          `Replaced ${changeCount} in ${renameResults.locs.length} files`
-        );
+        createQuickFixList(this.nvim, changedFiles, 'Renames')
+        this.printMsg(`Replaced ${changeCount} in ${renameResults.locs.length} files`);
+
       }
     } else {
       this.printErr(renameResults.info.localizedErrorMessage);

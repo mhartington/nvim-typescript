@@ -190,6 +190,7 @@ let TSHost = class TSHost {
                     newName = input;
                 }
             }
+            let changedFiles = [];
             yield this.reloadFile();
             const renameArgs = yield this.getCommonData();
             const buffNum = yield this.nvim.call('bufnr', '%');
@@ -204,11 +205,14 @@ let TSHost = class TSHost {
                             let { line, offset } = rename.start;
                             let substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
                             yield this.nvim.command(substitutions);
+                            //list: Array<{ filename: string; lnum: number; col: number; text: string }>,
+                            changedFiles.push({ filename: defFile, lnum: line, col: offset, text: `Replaced ${symbol} with ${newName}` });
                             changeCount += 1;
                         }
                     }
                     yield this.nvim.command(`buffer ${buffNum}`);
                     yield this.nvim.call('cursor', [renameArgs.line, renameArgs.offset]);
+                    utils_1.createQuickFixList(this.nvim, changedFiles, 'Renames');
                     this.printMsg(`Replaced ${changeCount} in ${renameResults.locs.length} files`);
                 }
             }
@@ -443,6 +447,7 @@ let TSHost = class TSHost {
     }
     getDiagnostics() {
         return __awaiter(this, void 0, void 0, function* () {
+            yield this.reloadFile();
             const file = yield this.getCurrentFile();
             const sematicErrors = yield this.getSematicErrors(file);
             const syntaxErrors = yield this.getSyntaxErrors(file);
@@ -495,19 +500,16 @@ let TSHost = class TSHost {
     }
     getSematicErrors(file) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.reloadFile();
             return yield this.client.getSemanticDiagnosticsSync({ file });
         });
     }
     getSyntaxErrors(file) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.reloadFile();
             return yield this.client.getSyntacticDiagnosticsSync({ file });
         });
     }
     getSuggested(file) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.reloadFile();
             return yield this.client.getSuggestionDiagnosticsSync({ file });
         });
     }
