@@ -20,6 +20,7 @@ import {
   applyCodeFixes,
   applyImports
 } from './codeActions';
+import protocol from 'typescript/lib/protocol';
 
 @Plugin({ dev: true })
 export default class TSHost {
@@ -178,6 +179,10 @@ export default class TSHost {
     }
   }
 
+  isRenameSuccess(obj: protocol.RenameInfoSuccess | protocol.RenameInfoFailure): obj is protocol.RenameInfoSuccess {
+    return obj.canRename;
+  };
+
   @Command('TSRename', { nargs: '*' })
   async tsRename(args) {
     const symbol = await this.nvim.eval('expand("<cword>")');
@@ -208,8 +213,9 @@ export default class TSHost {
       findInComments: false,
       findInStrings: false
     });
+
     if (renameResults) {
-      if (renameResults.info.canRename) {
+      if (this.isRenameSuccess(renameResults.info)) {
         let changeCount = 0;
         for (let fileLocation of renameResults.locs) {
           let defFile = fileLocation.file;
@@ -217,11 +223,15 @@ export default class TSHost {
           for (let rename of fileLocation.locs) {
             let { line, offset } = rename.start;
 
-
             let substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
             await this.nvim.command(substitutions);
             //list: Array<{ filename: string; lnum: number; col: number; text: string }>,
-            changedFiles.push({filename: defFile, lnum: line, col: offset, text: `Replaced ${symbol} with ${newName}`})
+            changedFiles.push({
+              filename: defFile,
+              lnum: line,
+              col: offset,
+              text: `Replaced ${symbol} with ${newName}`
+            });
 
             changeCount += 1;
           }
@@ -229,11 +239,14 @@ export default class TSHost {
 
         await this.nvim.command(`buffer ${buffNum}`);
         await this.nvim.call('cursor', [renameArgs.line, renameArgs.offset]);
-        createQuickFixList(this.nvim, changedFiles, 'Renames')
-        this.printMsg(`Replaced ${changeCount} in ${renameResults.locs.length} files`);
+        createQuickFixList(this.nvim, changedFiles, 'Renames');
+        this.printMsg(
+          `Replaced ${changeCount} in ${renameResults.locs.length} files`
+        );
 
+        return;
       }
-    } else {
+
       this.printErr(renameResults.info.localizedErrorMessage);
     }
   }
