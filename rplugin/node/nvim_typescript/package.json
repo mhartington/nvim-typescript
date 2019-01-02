@@ -11,10 +11,9 @@
   "author": "Mike Hartington <mikehartington@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^10.0.8",
+    "@types/node": "^10.12.18",
     "@types/tmp": "0.0.33",
-    "tslint": "^5.4.3",
-    "typescript": "^2.8.3"
+    "typescript": "^3.2.2"
   },
   "dependencies": {
     "neovim": "4.2.1",

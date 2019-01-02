@@ -173,6 +173,10 @@ let TSHost = class TSHost {
             }
         });
     }
+    isRenameSuccess(obj) {
+        return obj.canRename;
+    }
+    ;
     tsRename(args) {
         return __awaiter(this, void 0, void 0, function* () {
             const symbol = yield this.nvim.eval('expand("<cword>")');
@@ -196,7 +200,7 @@ let TSHost = class TSHost {
             const buffNum = yield this.nvim.call('bufnr', '%');
             const renameResults = yield this.client.renameSymbol(Object.assign({}, renameArgs, { findInComments: false, findInStrings: false }));
             if (renameResults) {
-                if (renameResults.info.canRename) {
+                if (this.isRenameSuccess(renameResults.info)) {
                     let changeCount = 0;
                     for (let fileLocation of renameResults.locs) {
                         let defFile = fileLocation.file;
@@ -206,7 +210,12 @@ let TSHost = class TSHost {
                             let substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
                             yield this.nvim.command(substitutions);
                             //list: Array<{ filename: string; lnum: number; col: number; text: string }>,
-                            changedFiles.push({ filename: defFile, lnum: line, col: offset, text: `Replaced ${symbol} with ${newName}` });
+                            changedFiles.push({
+                                filename: defFile,
+                                lnum: line,
+                                col: offset,
+                                text: `Replaced ${symbol} with ${newName}`
+                            });
                             changeCount += 1;
                         }
                     }
@@ -214,9 +223,8 @@ let TSHost = class TSHost {
                     yield this.nvim.call('cursor', [renameArgs.line, renameArgs.offset]);
                     utils_1.createQuickFixList(this.nvim, changedFiles, 'Renames');
                     this.printMsg(`Replaced ${changeCount} in ${renameResults.locs.length} files`);
+                    return;
                 }
-            }
-            else {
                 this.printErr(renameResults.info.localizedErrorMessage);
             }
         });
