@@ -124,7 +124,7 @@ class Client extends events_1.EventEmitter {
         return this._makeTssRequest('definition', args);
     }
     getCompletions(args) {
-        return this._makeTssRequest('completions', args);
+        return this._makeTssRequest('completionInfo', args);
     }
     getCompletionDetails(args) {
         return this._makeTssRequest('completionEntryDetails', args);

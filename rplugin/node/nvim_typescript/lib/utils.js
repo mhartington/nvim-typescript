@@ -142,3 +142,18 @@ function printEllipsis(nvim, message) {
     });
 }
 exports.printEllipsis = printEllipsis;
+// reduceByPrefix takes a list of basic complettions and a prefix and eliminates things 
+// that don't match the prefix
+exports.reduceByPrefix = (prefix, c) => {
+    const re = new RegExp(prefix, "i");
+    return c.filter(v => re.test(v.name));
+};
+// for testing rename results to gurantee the object type
+exports.isRenameSuccess = (obj) => obj.canRename;
+// trigger char is for complete requests to the TSServer, there are special completions when the 
+// trigger character is ., ", /, etc..
+const chars = [".", '"', "'", "`", "/", "@", "<"];
+exports.triggerChar = (p) => {
+    const char = p[p.length - 1];
+    return chars.includes(char) ? char : undefined;
+};

@@ -1,4 +1,5 @@
 import { Neovim, Autocmd, Command, Function, Plugin } from 'neovim';
+import * as net from 'net';
 import { fileSync } from 'tmp';
 import { TSServer } from './client';
 import {
@@ -7,11 +8,14 @@ import {
   getParams,
   getCurrentImports,
   convertDetailEntry,
+  reduceByPrefix,
   convertEntry,
   getKind,
   createLocList,
   printEllipsis,
-  createQuickFixList
+  createQuickFixList,
+  isRenameSuccess,
+  triggerChar
 } from './utils';
 import { writeFileSync, statSync } from 'fs';
 import { DiagnosticHost } from './diagnostic';
@@ -22,13 +26,14 @@ import {
 } from './codeActions';
 import protocol from 'typescript/lib/protocol';
 
-@Plugin({ dev: true })
+@Plugin({ dev: false })
 export default class TSHost {
   private nvim: Neovim;
   private client = TSServer;
   private diagnosticHost = DiagnosticHost;
   private maxCompletion: number;
   private expandSnippet: boolean;
+  private socketServer: any;
   constructor(nvim) {
     this.nvim = nvim;
   }
@@ -179,10 +184,6 @@ export default class TSHost {
     }
   }
 
-  isRenameSuccess(obj: protocol.RenameInfoSuccess | protocol.RenameInfoFailure): obj is protocol.RenameInfoSuccess {
-    return obj.canRename;
-  };
-
   @Command('TSRename', { nargs: '*' })
   async tsRename(args) {
     const symbol = await this.nvim.eval('expand("<cword>")');
@@ -215,7 +216,7 @@ export default class TSHost {
     });
 
     if (renameResults) {
-      if (this.isRenameSuccess(renameResults.info)) {
+      if (isRenameSuccess(renameResults.info)) {
         let changeCount = 0;
         for (let fileLocation of renameResults.locs) {
           let defFile = fileLocation.file;
@@ -341,6 +342,56 @@ export default class TSHost {
     }
   }
 
+  async complete(file: string, prefix: string, offset: number, line: number, nvimVar: string) {
+    const currentLine = await this.nvim.getLine();
+    const completeArgs: protocol.CompletionsRequestArgs = {
+      file,
+      line,
+      offset,
+      prefix,
+      triggerCharacter: triggerChar(currentLine),
+      includeInsertTextCompletions: false,
+      includeExternalModuleExports: false
+    }
+
+    let { isMemberCompletion, entries } = await this.client.getCompletions(completeArgs);
+    
+    // - global completions are sorted by TSServer so that `f` will return a wider set than `foo`
+    // - member completions are however returned in a static bunch so that `foo.ba` will return
+    //   all members of foo regardless of the prefix.
+    // - if there n > maxCompletions members of foo then the code will never make it to the detailed 
+    //   completions
+    // - lets run a regex on the completions so that as the user narrows down the range of possibilities
+    //   they will eventually see detailed completions for the member
+
+    const completions = isMemberCompletion && prefix ? reduceByPrefix(prefix, entries) : entries
+    if (completions.length > this.maxCompletion) {
+      let completionRes = await Promise.all(
+        completions.map(async entry => await convertEntry(this.nvim, entry))
+      );
+
+      await this.nvim.setVar(nvimVar, completionRes);
+      return completionRes
+    }
+
+    let detailedCompletions = await this.client.getCompletionDetails({
+      file,
+      line,
+      offset,
+      entryNames: completions.map(v => v.name)
+    });
+
+    let completionResDetailed = await Promise.all(
+      detailedCompletions.map(
+        async entry =>
+          await convertDetailEntry(this.nvim, entry, this.expandSnippet)
+      )
+    );
+
+    await this.nvim.setVar(nvimVar, completionResDetailed);
+    return completionResDetailed;
+  }
+
   @Function('TSComplete', { sync: true })
   async tsComplete(args: string) {
     await this.reloadFile();
@@ -350,41 +401,8 @@ export default class TSHost {
     let prefix = args;
     let offset = cursorPos[1] + 1;
 
-    let completions = await this.client.getCompletions({
-      file,
-      line,
-      offset,
-      prefix,
-      includeInsertTextCompletions: false,
-      includeExternalModuleExports: false
-    });
-    // K, we got our first set of completion data, now lets sort...
-    // console.log(completions.length)
-    if (completions.length > this.maxCompletion) {
-      let completionRes = await Promise.all(
-        completions.map(async entry => await convertEntry(this.nvim, entry))
-      );
-      await this.nvim.setVar('nvim_typescript#completionRes', completionRes);
-      return completionRes;
-    }
-    let entryNames = completions.map(v => v.name);
-    let detailedCompletions = await this.client.getCompletionDetails({
-      file,
-      line,
-      offset,
-      entryNames
-    });
-    let completionResDetailed = await Promise.all(
-      detailedCompletions.map(
-        async entry =>
-          await convertDetailEntry(this.nvim, entry, this.expandSnippet)
-      )
-    );
-    await this.nvim.setVar(
-      'nvim_typescript#completionRes',
-      completionResDetailed
-    );
-    return completionResDetailed;
+    // returns the detailed result as well as sets the vim var
+    return this.complete(file, prefix, offset, line, 'nvim_typescript#completionRes')
   }
 
   @Function('TSDeoplete', { sync: false })
@@ -394,40 +412,9 @@ export default class TSHost {
     let cursorPos = await this.nvim.window.cursor;
     let line = cursorPos[0];
     let [prefix, offset] = args;
-
-    let completions = await this.client.getCompletions({
-      file,
-      line,
-      offset,
-      prefix,
-      includeInsertTextCompletions: false,
-      includeExternalModuleExports: false
-    });
-    // K, we got our first set of completion data, now lets sort...
-    // console.log(completions.length)
-    if (completions.length > this.maxCompletion) {
-      let completionRes = await Promise.all(
-        completions.map(async entry => await convertEntry(this.nvim, entry))
-      );
-      await this.nvim.setVar('nvim_typescript#completion_res', completionRes);
-    }
-    let entryNames = completions.map(v => v.name);
-    let detailedCompletions = await this.client.getCompletionDetails({
-      file,
-      line,
-      offset,
-      entryNames
-    });
-    let completionResDetailed = await Promise.all(
-      detailedCompletions.map(
-        async entry =>
-          await convertDetailEntry(this.nvim, entry, this.expandSnippet)
-      )
-    );
-    await this.nvim.setVar(
-      'nvim_typescript#completion_res',
-      completionResDetailed
-    );
+    
+    // sets the vim var, but doesn't need to return anything
+    this.complete(file, prefix, offset, line, 'nvim_typescript#completion_res')
   }
 
   //Display Doc symbols in loclist
@@ -667,17 +654,17 @@ export default class TSHost {
       includeInsertTextCompletions: false,
       includeExternalModuleExports: false
     });
-    if (data.length === 0) return [];
+    if (data.entries.length === 0) return [];
 
-    if (data.length > this.maxCompletion) {
+    if (data.entries.length > this.maxCompletion) {
       const completions = await Promise.all(
-        data.map(async entry => await convertEntry(this.nvim, entry))
+        data.entries.map(async entry => await convertEntry(this.nvim, entry))
       );
       await this.nvim.call('cm#complete', [info, ctx, startcol, completions]);
       return;
     }
 
-    let entryNames = data.map(v => v.name);
+    let entryNames = data.entries.map(v => v.name);
     const detailedCompletions = await this.client.getCompletionDetails({
       file,
       line,
@@ -710,17 +697,17 @@ export default class TSHost {
       includeInsertTextCompletions: false,
       includeExternalModuleExports: false
     });
-    if (data.length === 0) return [];
+    if (data.entries.length === 0) return [];
 
-    if (data.length > this.maxCompletion) {
+    if (data.entries.length > this.maxCompletion) {
       const completions = await Promise.all(
-        data.map(async entry => await convertEntry(this.nvim, entry))
+        data.entries.map(async entry => await convertEntry(this.nvim, entry))
       );
       await this.nvim.call('ncm2#complete', [ctx, startccol, completions]);
       return;
     }
 
-    let entryNames = data.map(v => v.name);
+    let entryNames = data.entries.map(v => v.name);
     const detailedCompletions = await this.client.getCompletionDetails({
       file,
       line,

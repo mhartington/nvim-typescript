@@ -1,6 +1,7 @@
 import protocol from 'typescript/lib/protocol';
 import { Neovim } from 'neovim';
 import { Client } from './client';
+
 export function trim(s: string) {
   return (s || '').replace(/^\s+|\s+$/g, '');
 }
@@ -150,4 +151,22 @@ export async function printEllipsis(nvim: Neovim, message: string) {
     msg = msg.substring(0, columns - 20) + '...';
   }
   await nvim.outWrite(`nvim-ts: ${msg} \n`);
+}
+
+// reduceByPrefix takes a list of basic complettions and a prefix and eliminates things 
+// that don't match the prefix
+export const reduceByPrefix = (prefix: string, c: ReadonlyArray<protocol.CompletionEntry>) => {
+   const re = new RegExp(prefix, "i")
+   return c.filter(v => re.test(v.name))
+}
+
+// for testing rename results to gurantee the object type
+export const isRenameSuccess = (obj: protocol.RenameInfoSuccess | protocol.RenameInfoFailure): obj is protocol.RenameInfoSuccess => obj.canRename
+
+// trigger char is for complete requests to the TSServer, there are special completions when the 
+// trigger character is ., ", /, etc..
+const chars = [".", '"', "'", "`", "/", "@", "<"]
+export const triggerChar = (p: string): protocol.CompletionsTriggerCharacter | undefined => {
+  const char = p[p.length - 1];
+  return chars.includes(char) ? char as protocol.CompletionsTriggerCharacter : undefined
 }
