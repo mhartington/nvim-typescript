@@ -153,8 +153,8 @@ export class Client extends EventEmitter {
   }
   getCompletions(
     args: protocol.CompletionsRequestArgs
-  ): Promise<protocol.CompletionsResponse['body']> {
-    return this._makeTssRequest('completions', args);
+  ): Promise<protocol.CompletionInfoResponse['body']> {
+    return this._makeTssRequest('completionInfo', args);
   }
   getCompletionDetails(
     args: protocol.CompletionDetailsRequestArgs
