@@ -1,5 +1,4 @@
-import { Neovim, Autocmd, Command, Function, Plugin } from 'neovim';
-import * as net from 'net';
+import { Neovim, Command, Function, Plugin } from 'neovim';
 import { fileSync } from 'tmp';
 import { TSServer } from './client';
 import {
@@ -12,17 +11,17 @@ import {
   convertEntry,
   getKind,
   createLocList,
-  printEllipsis,
+  truncateMsg,
   createQuickFixList,
   isRenameSuccess,
-  triggerChar
+  triggerChar,
+  printHighlight
 } from './utils';
 import { writeFileSync, statSync } from 'fs';
 import { DiagnosticHost } from './diagnostic';
 import {
   promptForSelection,
   applyCodeFixes,
-  applyImports
 } from './codeActions';
 import protocol from 'typescript/lib/protocol';
 
@@ -50,12 +49,16 @@ export default class TSHost {
     const args = await this.getCommonData();
     try {
       const typeInfo = await this.client.quickInfo(args);
-      await printEllipsis(
+
+
+      await printHighlight(
         this.nvim,
-        typeInfo.displayString.replace(/(\r\n|\n|\r)/gm, '')
+        await truncateMsg(this.nvim, typeInfo.displayString),
+        'MoreMsg',
+        'Function'
       );
     } catch (err) {
-      console.warn('in catch');
+      console.warn('in catch', JSON.stringify(err));
     }
   }
 
@@ -64,7 +67,6 @@ export default class TSHost {
     await this.reloadFile();
     const args = await this.getCommonData();
     const typeDefRes = await this.client.getTypeDef(args);
-    console.debug(typeDefRes);
 
     if (typeDefRes && typeDefRes.length > 0) {
       const defFile = typeDefRes[0].file;
@@ -94,7 +96,7 @@ export default class TSHost {
       endOffset: cursorPosition.col,
       errorCodes: [2304]
     });
-    let fixes;
+    let fixes: protocol.FileCodeEdits[];
     // No imports
     if (!results.length) {
       return this.printMsg('No imports candidates were found.');
@@ -115,7 +117,12 @@ export default class TSHost {
 
     const signature = await this.client.quickInfo(args);
     if (signature) {
-      await this.printHighlight(signature.displayString);
+      await printHighlight(
+        this.nvim,
+        signature.displayString,
+        'MoreMsg',
+        'Function'
+      );
     }
   }
 
@@ -133,9 +140,8 @@ export default class TSHost {
   async getDefPreview() {
     const definition = await this.getDefFunc();
     if (definition) {
-      this.nvim.command(
-        `split! +${definition[0].start.line} ${definition[0].file}`
-      );
+      await this.nvim.command(`silent pedit! +${definition[0].start.line} ${definition[0].file}`);
+      await this.nvim.command('wincmd P');
     }
   }
   async getDefFunc() {
@@ -158,7 +164,10 @@ export default class TSHost {
 
       if (buf > 0) {
         const pageNr = await this.nvim.tabpage.number;
-        const pageList: number[] = await this.nvim.call('tabpagebuflist', pageNr);
+        const pageList: number[] = await this.nvim.call(
+          'tabpagebuflist',
+          pageNr
+        );
         const wi = await this.nvim.call(`index`, [pageList, buf]);
         if (wi > 0) {
           await this.nvim.command(`${wi + 1} wincmd w`);
@@ -198,7 +207,7 @@ export default class TSHost {
         `nvim-ts: rename ${symbol} to `
       );
       if (!input) {
-        await this.printErr('Rename canceled');
+        await printHighlight(this.nvim, 'Rename canceled', 'ErrorMsg');
         return;
       } else {
         newName = input;
@@ -247,8 +256,11 @@ export default class TSHost {
 
         return;
       }
-
-      this.printErr(renameResults.info.localizedErrorMessage);
+      printHighlight(
+        this.nvim,
+        renameResults.info.localizedErrorMessage,
+        'ErrorMsg'
+      );
     }
   }
 
@@ -281,7 +293,7 @@ export default class TSHost {
         );
         this.printHighlight(params);
       },
-      err => this.printErr(err)
+      err => printHighlight(this.nvim, err, 'ErrorMsg')
     );
   }
 
@@ -292,7 +304,7 @@ export default class TSHost {
     const symbolRefRes = await this.client.getSymbolRefs(args);
 
     if (!symbolRefRes || (symbolRefRes && symbolRefRes.refs.length === 0)) {
-      this.printErr('References not found');
+      printHighlight(this.nvim, 'References not found', 'ErrorMsg');
       return;
     }
 
@@ -317,14 +329,18 @@ export default class TSHost {
       if (statSync(projectInfo.configFileName).isFile()) {
         this.nvim.command(`e ${projectInfo.configFileName}`);
       } else {
-        this.printErr(`Can't edit config, in an inferred project`);
+        printHighlight(
+          this.nvim,
+          `Can't edit config, in an inferred project`,
+          'ErrorMsg'
+        );
       }
     }
   }
 
   //Omni functions
   @Function('TSOmnicFunc', { sync: true })
-  async getCompletions(args) {
+  async getCompletions(args: [number, string]) {
     if (!!args[0]) {
       let currentLine = await this.nvim.line;
       let [line, col] = await this.getCursorPos();
@@ -342,7 +358,13 @@ export default class TSHost {
     }
   }
 
-  async complete(file: string, prefix: string, offset: number, line: number, nvimVar: string) {
+  async complete(
+    file: string,
+    prefix: string,
+    offset: number,
+    line: number,
+    nvimVar: string
+  ) {
     const currentLine = await this.nvim.getLine();
     const completeArgs: protocol.CompletionsRequestArgs = {
       file,
@@ -352,26 +374,29 @@ export default class TSHost {
       triggerCharacter: triggerChar(currentLine),
       includeInsertTextCompletions: false,
       includeExternalModuleExports: false
-    }
+    };
 
-    let { isMemberCompletion, entries } = await this.client.getCompletions(completeArgs);
-    
+    let { isMemberCompletion, entries } = await this.client.getCompletions(
+      completeArgs
+    );
+
     // - global completions are sorted by TSServer so that `f` will return a wider set than `foo`
     // - member completions are however returned in a static bunch so that `foo.ba` will return
     //   all members of foo regardless of the prefix.
-    // - if there n > maxCompletions members of foo then the code will never make it to the detailed 
+    // - if there n > maxCompletions members of foo then the code will never make it to the detailed
     //   completions
     // - lets run a regex on the completions so that as the user narrows down the range of possibilities
     //   they will eventually see detailed completions for the member
 
-    const completions = isMemberCompletion && prefix ? reduceByPrefix(prefix, entries) : entries
+    const completions =
+      isMemberCompletion && prefix ? reduceByPrefix(prefix, entries) : entries;
     if (completions.length > this.maxCompletion) {
       let completionRes = await Promise.all(
         completions.map(async entry => await convertEntry(this.nvim, entry))
       );
 
       await this.nvim.setVar(nvimVar, completionRes);
-      return completionRes
+      return completionRes;
     }
 
     let detailedCompletions = await this.client.getCompletionDetails({
@@ -402,7 +427,13 @@ export default class TSHost {
     let offset = cursorPos[1] + 1;
 
     // returns the detailed result as well as sets the vim var
-    return this.complete(file, prefix, offset, line, 'nvim_typescript#completionRes')
+    return this.complete(
+      file,
+      prefix,
+      offset,
+      line,
+      'nvim_typescript#completionRes'
+    );
   }
 
   @Function('TSDeoplete', { sync: false })
@@ -412,9 +443,9 @@ export default class TSHost {
     let cursorPos = await this.nvim.window.cursor;
     let line = cursorPos[0];
     let [prefix, offset] = args;
-    
+
     // sets the vim var, but doesn't need to return anything
-    this.complete(file, prefix, offset, line, 'nvim_typescript#completion_res')
+    this.complete(file, prefix, offset, line, 'nvim_typescript#completion_res');
   }
 
   //Display Doc symbols in loclist
@@ -455,7 +486,7 @@ export default class TSHost {
   }
 
   @Command('TSGetWorkspaceSymbols', { nargs: '*' })
-  async getWorkspaceSymbols(args) {
+  async getWorkspaceSymbols(args: any[]) {
     await this.reloadFile();
     const file = await this.getCurrentFile();
     const funcArgs = [...args, file];
@@ -467,7 +498,7 @@ export default class TSHost {
   }
 
   @Function('TSGetWorkspaceSymbolsFunc', { sync: true })
-  async getWorkspaceSymbolsFunc(args) {
+  async getWorkspaceSymbolsFunc(args: any[]) {
     const searchValue = args.length > 0 ? args[0] : '';
     const maxResultCount = 50;
     const results = await this.client.getWorkspaceSymbols({
@@ -514,7 +545,12 @@ export default class TSHost {
     if (buftype !== '') return;
     const errorSign = this.diagnosticHost.getSign(file, line, offset);
     if (errorSign) {
-      await printEllipsis(this.nvim, errorSign.text);
+      await printHighlight(
+        this.nvim,
+        await truncateMsg(this.nvim, errorSign.text),
+        'ErrorMsg'
+      );
+      // await printEllipsis(this.nvim, errorSign.text);
     }
   }
 
@@ -535,7 +571,7 @@ export default class TSHost {
       if (fixes.length !== 0) {
         promptForSelection(fixes, this.nvim).then(
           async res => await applyCodeFixes(res, this.nvim),
-          rej => this.printErr(rej)
+          rej => printHighlight(this.nvim, rej, 'ErrorMsg')
         );
       } else {
         await this.printMsg('No fix');
@@ -590,7 +626,7 @@ export default class TSHost {
   }
 
   @Function('TSGetVersion', { sync: true })
-  tsGetVersion(self, args) {
+  tsGetVersion() {
     return this.client.tsConfigVersion;
   }
 
@@ -603,6 +639,7 @@ export default class TSHost {
     } else {
       const file = await this.getCurrentFile();
       await this.client.openFile({ file });
+      await this.getDiagnostics()
     }
   }
 
@@ -615,16 +652,17 @@ export default class TSHost {
   @Command('TSStart')
   async tsstart() {
     this.client.startServer();
-    this.printMsg(`Server started`);
+    await printHighlight(this.nvim, `Server started`, 'MoreMsg');
     const file = await this.getCurrentFile();
     this.client.openFile({ file });
+    await this.getDiagnostics()
   }
 
   @Command('TSStop')
   async tsstop() {
     if (this.client.serverHandle != null) {
       this.client.stopServer();
-      await this.printMsg(`Server Stopped`);
+      await printHighlight(this.nvim, `Server stopped`, 'ErrorMsg');
     }
   }
 

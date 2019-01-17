@@ -16,7 +16,8 @@ class Source(Base):
         self.max_kind_width = 0
         self.max_menu_width = 0
         self.input_pattern = r'(\.|::)\w*'
-        self.filetypes = ["typescript", "tsx",  "typescript.tsx", "typescriptreact"]
+        self.filetypes = ["typescript", "tsx",
+                          "typescript.tsx", "typescriptreact"]
         if self.vim.vars["nvim_typescript#javascript_support"]:
             self.filetypes.extend(["javascript", "jsx", "javascript.jsx"])
         if self.vim.vars["nvim_typescript#vue_support"]:
@@ -33,7 +34,7 @@ class Source(Base):
 
     def reset_var(self):
         self.vim.vars["nvim_typescript#completion_res"] = []
-    
+
     def gather_candidates(self, context):
         try:
             if context["is_async"]:
@@ -44,7 +45,7 @@ class Source(Base):
                     return res
             else:
                 context["is_async"] = True
-                [offset] = context["complete_position"] + 1,
+                offset = context["complete_position"] + 1,
                 self.reset_var()
                 self.vim.funcs.TSDeoplete(context["complete_str"], offset)
             return []
