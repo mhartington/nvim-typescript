@@ -1,5 +1,5 @@
-import protocol from 'typescript/lib/protocol';
 import { Neovim } from 'neovim';
+import protocol from 'typescript/lib/protocol';
 import { Client } from './client';
 
 export function trim(s: string) {
@@ -71,10 +71,11 @@ export async function convertDetailEntry(
   );
   const word = !!expandSnippet ? `${entry.name}${getAbbr(entry)}` : entry.name;
   const info = entry.documentation.map(d => d.text).join('\n');
+  let kind = await getKind(nvim, entry.kind);
 
   return {
     word: word,
-    kind: entry.kind,
+    kind: kind,
     abbr: entry.name,
     menu: menu,
     info: info
@@ -131,7 +132,7 @@ export async function createQuickFixList(
   return new Promise(async (resolve, reject) => {
     await nvim.call('setqflist', [list, 'r', title]);
     if (autoOpen) {
-      await nvim.command('copen');
+      await nvim.command('botright copen');
     }
     resolve();
   });
