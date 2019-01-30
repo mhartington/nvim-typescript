@@ -89,3 +89,6 @@ There are a few things you'll have to modify in your nvim config in order to be 
 ## TODOS
 
 If there's a feature that you would like to see, feel free to open an issue or send a PR.
+
+
+Like this plugin? Buy me a coffee on [KoFI](http://ko-fi.com/mhartington)

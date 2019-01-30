@@ -1,4 +1,4 @@
-import { Neovim, Command, Function, Plugin } from 'neovim';
+import { Neovim, Command, Function, Plugin, Autocmd } from 'neovim';
 import { fileSync } from 'tmp';
 import { TSServer } from './client';
 import {
@@ -19,10 +19,7 @@ import {
 } from './utils';
 import { writeFileSync, statSync } from 'fs';
 import { DiagnosticHost } from './diagnostic';
-import {
-  promptForSelection,
-  applyCodeFixes,
-} from './codeActions';
+import { promptForSelection, applyCodeFixes } from './codeActions';
 import protocol from 'typescript/lib/protocol';
 
 @Plugin({ dev: false })
@@ -43,20 +40,25 @@ export default class TSHost {
   //   await this.client.getErr({files: [file], delay: 500})
   // }
 
+  @Autocmd('TextChangedP', { pattern: '*', sync: false })
+  async onTextChangedP() {
+    await this.getType();
+  }
+
   @Command('TSType')
   async getType() {
     await this.reloadFile();
     const args = await this.getCommonData();
     try {
       const typeInfo = await this.client.quickInfo(args);
-
-
-      await printHighlight(
-        this.nvim,
-        await truncateMsg(this.nvim, typeInfo.displayString),
-        'MoreMsg',
-        'Function'
-      );
+      if (typeInfo.kind !== '') {
+        await printHighlight(
+          this.nvim,
+          await truncateMsg(this.nvim, typeInfo.displayString),
+          'MoreMsg',
+          'Function'
+        );
+      }
     } catch (err) {
       console.warn('in catch', JSON.stringify(err));
     }
@@ -140,7 +142,9 @@ export default class TSHost {
   async getDefPreview() {
     const definition = await this.getDefFunc();
     if (definition) {
-      await this.nvim.command(`silent pedit! +${definition[0].start.line} ${definition[0].file}`);
+      await this.nvim.command(
+        `silent pedit! +${definition[0].start.line} ${definition[0].file}`
+      );
       await this.nvim.command('wincmd P');
     }
   }
@@ -639,7 +643,7 @@ export default class TSHost {
     } else {
       const file = await this.getCurrentFile();
       await this.client.openFile({ file });
-      await this.getDiagnostics()
+      await this.getDiagnostics();
     }
   }
 
@@ -655,7 +659,7 @@ export default class TSHost {
     await printHighlight(this.nvim, `Server started`, 'MoreMsg');
     const file = await this.getCurrentFile();
     this.client.openFile({ file });
-    await this.getDiagnostics()
+    // await this.getDiagnostics();
   }
 
   @Command('TSStop')

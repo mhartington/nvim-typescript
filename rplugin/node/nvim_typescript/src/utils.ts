@@ -163,7 +163,7 @@ export async function printHighlight(
   await nvim.setOption('ruler', false);
   await nvim.setOption('showcmd', false);
   await nvim.command(
-    `redraws! | echohl ${statusHL} | echon "nvim-ts: " | echohl None | echohl ${messageHL} | echon "${msg}" | echohl None `
+    `redraw | echohl ${statusHL} | echon "nvim-ts: " | echohl None | echohl ${messageHL} | echon "${msg}" | echohl None | redraw`
   );
   await nvim.setOption('ruler', ruler);
   await nvim.setOption('showcmd', showCmd);
