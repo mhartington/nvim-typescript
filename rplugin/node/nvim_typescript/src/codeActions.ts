@@ -23,10 +23,11 @@ export async function promptForSelection(
   });
 }
 
-export async function applyCodeFixes(fixes: FileCodeEdits[], nvim: Neovim) {
+export async function applyCodeFixes(fixes: ReadonlyArray<FileCodeEdits>, nvim: Neovim) {
   // nvim.outWrite(`${JSON.stringify(fixes)} \n`);
+
   for (let fix of fixes) {
-    // applyTextEdits(fix.fileName, fix.textChanges, nvim);
+    let commands = [];
     for (let textChange of fix.textChanges.sort(compare)) {
 
       // SAME LINE EDIT
@@ -44,19 +45,20 @@ export async function applyCodeFixes(fixes: FileCodeEdits[], nvim: Neovim) {
           }
 
           const textToArray = newText.split('\n');
-          await nvim.buffer.insert(textToArray, textChange.start.line - 1);
-        } 
+          // await nvim.buffer.insert(textToArray, textChange.start.line - 1);
+          commands.push(nvim.buffer.insert(textToArray, textChange.start.line - 1))
+        }
 
         // EDIT HAS NEWLINE
         else if (textChange.newText.match(leadingNewLineRexeg)) {
           console.warn("EDIT HAS NEWLINE")
           let textArray = textChange.newText.split('\n').filter(e => e !== "");
-          nvim.outWrite(`${JSON.stringify(textArray)} \n`)
-          await nvim.buffer.insert(textArray, textChange.start.line);
+
+          // await nvim.buffer.insert(textArray, textChange.start.line);
+          commands.push(nvim.buffer.insert(textArray, textChange.start.line))
         }
         // EDIT IS SOMEWHERE IN A LINE
          else {
-          console.warn("EDIT IS IN THE MIDDLE")
 
           let startLine = await nvim.buffer.getLines({
             start: textChange.start.line - 1,
@@ -74,7 +76,7 @@ export async function applyCodeFixes(fixes: FileCodeEdits[], nvim: Neovim) {
           ? true
           : false;
 
-          
+
           let preSpan = startLine[0].substring(0, textChange.start.offset - 1);
           let postSpan = endLine[0].substring(textChange.end.offset - 1);
           let repList = `${preSpan}${textChange.newText}${postSpan}`.split('\n');
@@ -85,21 +87,26 @@ export async function applyCodeFixes(fixes: FileCodeEdits[], nvim: Neovim) {
             if (count <= textChange.end.line) {
 
               if (addingTrailingComma && lineAlreadyHasTrailingComma) {
-                console.warn("LINE HAS A COMMA")                
+                console.warn("LINE HAS A COMMA")
                 return
               }
-              await nvim.buffer.setLines(line, {
+              // await nvim.buffer.setLines(line, {
+              //   start: count - 1,
+              //   end: count,
+              //   strictIndexing: true
+              // });
+              commands.push( nvim.buffer.setLines(line, {
                 start: count - 1,
                 end: count,
                 strictIndexing: true
-              });
+              }));
             } else {
-              await nvim.buffer.insert(line, count);
+              commands.push(nvim.buffer.insert(line, count))
             }
             count += 1;
           });
         }
-      } 
+      }
       // DIFFERENT LINE EDIT
       else {
         // Code fix spans multiple lines
@@ -107,16 +114,24 @@ export async function applyCodeFixes(fixes: FileCodeEdits[], nvim: Neovim) {
         // Need to confirm though
 
         console.log('NOT THE SAME LINE');
-        const text = textChange.newText.split('\n');
-        nvim.outWrite(`${JSON.stringify(text)} \n`);
-        await nvim.buffer.remove(
+        const text = textChange.newText.split('\n').filter(e => e.trim() != '');
+        // await nvim.buffer.remove(
+        //   textChange.start.line - 1,
+        //   textChange.end.line - 1,
+        //   true
+        // );
+        commands.push(nvim.buffer.remove(
           textChange.start.line - 1,
           textChange.end.line - 1,
           true
-        );
-        await nvim.buffer.insert(text, textChange.start.line - 1);
+        ));
+        if(text){
+          // await nvim.buffer.insert(text, textChange.start.line - 1);
+          commands.push(nvim.buffer.insert(text, textChange.start.line - 1));
+        }
       }
     }
+    await nvim.callAtomic(commands);
   }
 }
 
@@ -139,12 +154,12 @@ export async function applyImports(fixes: FileCodeEdits[], nvim: Neovim) {
 
 
         await nvim.buffer.insert(newText, changeLine);
-      } 
+      }
       else if (addingNewLine) {
         console.warn('adding new line');
         await nvim.buffer.insert(newText, changeLine + 1);
-      } 
-      
+      }
+
       else {
         const addingTrailingComma = newText.match(/^,$/) ? true : false;
         const linesToChange = await nvim.buffer.getLines({
@@ -188,9 +203,9 @@ function compare(text1: protocol.CodeEdit, text2: protocol.CodeEdit) {
   if (text1.start.offset !== text2.start.offset) {
     console.warn(text2.start.offset - text1.start.offset);
     return text2.start.offset - text1.start.offset;
-  } 
+  }
     return !isInsert(text1) ? -1 : isInsert(text2) ? 0 : 1;
-  
+
 }
 
 const isInsert = (range: protocol.CodeEdit) =>

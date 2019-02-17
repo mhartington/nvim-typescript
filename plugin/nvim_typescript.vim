@@ -4,6 +4,8 @@ endif
 
 " Some settings {{{
 let g:nvim_typescript#loaded = 1
+let g:airline#extensions#nvim_typescript#enabled =
+      \ get(g:, 'airline#extensions#nvim_typescript#enabled', 1)
 let g:nvim_typescript#completion_res = []
 let g:nvim_typescript#javascript_support =
       \ get(g:, 'nvim_typescript#javascript_support', 0)
@@ -170,7 +172,6 @@ augroup nvim-typescript "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif ""}}}
   if get(g:, 'nvim_typescript#diagnostics_enable', 1) "{{{
-    autocmd BufEnter,Filetype typescript,typescript.tsx TSGetDiagnostics
     autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
     autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
     autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()
@@ -181,7 +182,6 @@ augroup nvim-typescript "{{{
   " Cleanup required to prevent hanging on Windows exit
   autocmd VimLeavePre * TSStop
   "}}}
-
 
 augroup end "}}}
 

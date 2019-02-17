@@ -1,5 +1,6 @@
 import { Neovim, Command, Function, Plugin, Autocmd } from 'neovim';
 import { fileSync } from 'tmp';
+
 import { TSServer } from './client';
 import {
   trim,
@@ -21,6 +22,7 @@ import { writeFileSync, statSync } from 'fs';
 import { DiagnosticHost } from './diagnostic';
 import { promptForSelection, applyCodeFixes } from './codeActions';
 import protocol from 'typescript/lib/protocol';
+// import { debounce } from 'lodash';
 
 @Plugin({ dev: false })
 export default class TSHost {
@@ -29,7 +31,7 @@ export default class TSHost {
   private diagnosticHost = DiagnosticHost;
   private maxCompletion: number;
   private expandSnippet: boolean;
-  private socketServer: any;
+  enableDiagnostics: boolean;
   constructor(nvim) {
     this.nvim = nvim;
   }
@@ -531,15 +533,34 @@ export default class TSHost {
     return await this.client.getProjectInfo({ file, needFileNameList: true });
   }
 
+  @Command('TSOrganizeImports')
+  async organizeImports() {
+    await this.reloadFile()
+    const file = await this.getCurrentFile();
+    const scopes = await this.client.getOrganizedImports({
+      scope: {
+        type: 'file',
+        args: { file }
+      }
+    });
+    if(scopes){
+      applyCodeFixes(scopes, this.nvim);
+    } else {
+      printHighlight(this.nvim, 'No changes needed')
+    }
+  }
+
   @Command('TSGetDiagnostics')
   async getDiagnostics() {
-    await this.reloadFile();
-    const file = await this.getCurrentFile();
-    const sematicErrors = await this.getSematicErrors(file);
-    const syntaxErrors = await this.getSyntaxErrors(file);
-    const res = [...sematicErrors, ...syntaxErrors];
-    await this.diagnosticHost.placeSigns(res, file);
-    await this.handleCursorMoved();
+    if (this.enableDiagnostics) {
+      await this.reloadFile();
+      const file = await this.getCurrentFile();
+      const sematicErrors = await this.getSematicErrors(file);
+      const syntaxErrors = await this.getSyntaxErrors(file);
+      const res = [...sematicErrors, ...syntaxErrors];
+      await this.diagnosticHost.placeSigns(res, file);
+      await this.handleCursorMoved();
+    }
   }
 
   @Function('TSEchoMessage')
@@ -554,7 +575,6 @@ export default class TSHost {
         await truncateMsg(this.nvim, errorSign.text),
         'ErrorMsg'
       );
-      // await printEllipsis(this.nvim, errorSign.text);
     }
   }
 
@@ -581,15 +601,6 @@ export default class TSHost {
         await this.printMsg('No fix');
       }
     }
-  }
-
-  @Function('TSGetErrorCountForFile', { sync: true })
-  async getErrorsForFile() {
-    const file = await this.getCurrentFile();
-    const currentStore = this.diagnosticHost.signStore.find(
-      entry => entry.file === file
-    );
-    return currentStore.signs.length;
   }
 
   async getSematicErrors(file) {
@@ -642,8 +653,13 @@ export default class TSHost {
       await this.tsstart();
     } else {
       const file = await this.getCurrentFile();
-      await this.client.openFile({ file });
-      await this.getDiagnostics();
+      this.client.openFile({ file });
+      if (this.enableDiagnostics) {
+
+        // this.nvim.buffer.listen('lines', debounce(() => this.getDiagnostics(), 500))
+        // this.nvim.buffer.listen('changetick', debounce(() => this.getDiagnostics(), 500))
+        await this.getDiagnostics();
+      }
     }
   }
 
@@ -657,8 +673,9 @@ export default class TSHost {
   async tsstart() {
     this.client.startServer();
     await printHighlight(this.nvim, `Server started`, 'MoreMsg');
-    const file = await this.getCurrentFile();
-    this.client.openFile({ file });
+    await this.onBufEnter();
+    // const file = await this.getCurrentFile();
+    // this.client.openFile({ file });
     // await this.getDiagnostics();
   }
 
@@ -774,14 +791,18 @@ export default class TSHost {
       serverPath,
       serverOptions,
       defaultSigns,
-      expandSnippet
+      expandSnippet,
+      enableDiagnostics
     ] = await Promise.all([
       this.nvim.getVar('nvim_typescript#max_completion_detail'),
       this.nvim.getVar('nvim_typescript#server_path'),
       this.nvim.getVar('nvim_typescript#server_options'),
       this.nvim.getVar('nvim_typescript#default_signs'),
-      this.nvim.getVar('nvim_typescript#expand_snippet')
+      this.nvim.getVar('nvim_typescript#expand_snippet'),
+      this.nvim.getVar('nvim_typescript#diagnostics_enable')
     ]);
+    this.enableDiagnostics = !!enableDiagnostics;
+    // console.warn(this.enableDiagnostics)
     this.maxCompletion = parseFloat(maxCompletion as string);
     this.expandSnippet = expandSnippet as boolean;
     this.client.setServerPath(serverPath as string);
@@ -789,9 +810,10 @@ export default class TSHost {
     await this.diagnosticHost.defineSigns(defaultSigns);
     this.client.setTSConfigVersion();
 
-    // this.client.on('semanticDiag', res => {
-    //   console.log('coming soon...');
-    // });
+    this.client.on('projectLoadingFinished', async () => {
+      console.warn('ready');
+      // console.log('coming soon...');
+    });
   }
 
   // Utils

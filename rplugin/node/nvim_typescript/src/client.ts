@@ -131,95 +131,90 @@ export class Client extends EventEmitter {
 
   // LangServer Commands
   openFile(args: protocol.OpenRequestArgs): Promise<any> {
-    return this._makeTssRequest('open', args);
+    return this._makeTssRequest(protocol.CommandTypes.Open, args);
   }
   reloadProject() {
-    return this._makeTssRequest('reloadProjects', null);
+    return this._makeTssRequest(protocol.CommandTypes.ReloadProjects, null);
   }
   updateFile(
     args: protocol.ReloadRequestArgs
   ): Promise<protocol.ReloadResponse> {
-    return this._makeTssRequest('reload', args);
+    return this._makeTssRequest(protocol.CommandTypes.Reload, args);
   }
   quickInfo(
     args: protocol.FileLocationRequestArgs
   ): Promise<protocol.QuickInfoResponseBody> {
-    return this._makeTssRequest('quickinfo', args);
+    return this._makeTssRequest(protocol.CommandTypes.Quickinfo, args);
   }
   getDef(
     args: protocol.FileLocationRequestArgs
   ): Promise<protocol.DefinitionResponse['body']> {
-    return this._makeTssRequest('definition', args);
+    return this._makeTssRequest(protocol.CommandTypes.Definition, args);
   }
   getCompletions(
     args: protocol.CompletionsRequestArgs
   ): Promise<protocol.CompletionInfoResponse['body']> {
-    return this._makeTssRequest('completionInfo', args);
+    return this._makeTssRequest(protocol.CommandTypes.CompletionInfo, args);
   }
   getCompletionDetails(
     args: protocol.CompletionDetailsRequestArgs
   ): Promise<protocol.CompletionDetailsResponse['body']> {
-    return this._makeTssRequest('completionEntryDetails', args);
+    return this._makeTssRequest(protocol.CommandTypes.CompletionDetails, args);
   }
   getProjectInfo(
     args: protocol.ProjectInfoRequestArgs
   ): Promise<protocol.ProjectInfo> {
-    return this._makeTssRequest('projectInfo', args);
+    return this._makeTssRequest(protocol.CommandTypes.ProjectInfo, args);
   }
   getSymbolRefs(
     args: protocol.FileLocationRequestArgs
   ): Promise<protocol.ReferencesResponse['body']> {
-    return this._makeTssRequest('references', args);
+    return this._makeTssRequest(protocol.CommandTypes.References, args);
   }
   getSignature(
     args: protocol.FileLocationRequestArgs
   ): Promise<protocol.SignatureHelpResponse['body']> {
-    return this._makeTssRequest('signatureHelp', args);
+    return this._makeTssRequest(protocol.CommandTypes.SignatureHelp, args);
   }
   renameSymbol(
     args: protocol.RenameRequestArgs
   ): Promise<protocol.RenameResponseBody> {
-    return this._makeTssRequest('rename', args);
+    return this._makeTssRequest(protocol.CommandTypes.Rename, args);
   }
   getTypeDef(
     args: protocol.FileLocationRequestArgs
   ): Promise<protocol.TypeDefinitionResponse['body']> {
-    return this._makeTssRequest('typeDefinition', args);
+    return this._makeTssRequest(protocol.CommandTypes.TypeDefinition, args);
   }
 
   getDocumentSymbols(
     args: protocol.FileRequestArgs
   ): Promise<protocol.NavTreeResponse['body']> {
-    return this._makeTssRequest('navtree', args);
+    return this._makeTssRequest(protocol.CommandTypes.NavTree, args);
   }
 
   getWorkspaceSymbols(
     args: protocol.NavtoRequestArgs
   ): Promise<protocol.NavtoResponse['body']> {
-    return this._makeTssRequest('navto', args);
+    return this._makeTssRequest(protocol.CommandTypes.Navto, args);
   }
 
   getSemanticDiagnosticsSync(
     args: protocol.SemanticDiagnosticsSyncRequestArgs
   ): Promise<protocol.Diagnostic[]> {
-    return this._makeTssRequest('semanticDiagnosticsSync', args);
+    return this._makeTssRequest(protocol.CommandTypes.SemanticDiagnosticsSync, args);
   }
   getSyntacticDiagnosticsSync(
     args: protocol.SyntacticDiagnosticsSyncRequestArgs
   ): Promise<protocol.Diagnostic[]> {
-    return this._makeTssRequest('syntacticDiagnosticsSync', args);
+    return this._makeTssRequest(protocol.CommandTypes.SyntacticDiagnosticsSync, args);
   }
   getSuggestionDiagnosticsSync(
     args: protocol.SuggestionDiagnosticsSyncRequestArgs
   ): Promise<protocol.Diagnostic[]> {
-    return this._makeTssRequest('suggestionDiagnosticsSync', args);
+    return this._makeTssRequest(protocol.CommandTypes.SuggestionDiagnosticsSync, args);
   }
 
-  getErr(args: protocol.GeterrRequestArgs): Promise<any> {
-    return this._makeTssRequest('geterr', args);
-  }
-
-  // getOutliningSpans(){}
   getCodeFixes(
     args: protocol.CodeFixRequestArgs
   ): Promise<protocol.GetCodeFixesResponse['body']> {
@@ -229,7 +224,11 @@ export class Client extends EventEmitter {
   getSupportedCodeFixes(): Promise<
     protocol.GetSupportedCodeFixesResponse['body']
   > {
-    return this._makeTssRequest('getSupportedCodeFixes', null);
+    return this._makeTssRequest(protocol.CommandTypes.GetSupportedCodeFixes, null);
+  }
+
+  getOrganizedImports(args: protocol.OrganizeImportsRequestArgs): Promise<protocol.OrganizeImportsResponse['body']>{
+    return this._makeTssRequest(protocol.CommandTypes.OrganizeImports, args);
   }
 
   // Server communication
@@ -248,6 +247,7 @@ export class Client extends EventEmitter {
   }
   parseResponse(returnedData: string): void {
     const response = JSON.parse(returnedData);
+    // console.warn(returnedData)
     const seq = response.request_seq;
     const success = response.success;
     if (typeof seq === 'number') {
@@ -261,6 +261,9 @@ export class Client extends EventEmitter {
       // Like 'geterr' - returns both semanticDiag and syntaxDiag
       if (response.type && response.type === 'event') {
         if (response.event && response.event === 'telemetry') {
+        }
+        if (response.event && response.type === 'projectLoadingFinish'){
+          this.emit('projectLoadingFinish', response.body)
         }
         if (response.event && response.event === 'semanticDiag') {
           this.emit('semanticDiag', response.body);

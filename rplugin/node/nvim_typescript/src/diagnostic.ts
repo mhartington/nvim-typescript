@@ -20,6 +20,7 @@ export class DiagnosticProvider {
       await this.nvim.command(`sign define ${name} text=${data.signText} texthl=${data.signTexthl}`)
     }
   }
+
   async placeSigns(incomingSigns: Diagnostic[], file: string) {
     const locList = [];
     await this.clearSigns(file)
@@ -27,8 +28,9 @@ export class DiagnosticProvider {
 
     if (!current) this.signStore.push({ file, signs: [] });
     current = this.signStore.find(entry => entry.file === file);
-
-    current.signs = this.normalizeSigns(incomingSigns);
+    let normSigns = this.normalizeSigns(incomingSigns);
+    current.signs = normSigns;
+    await this.nvim.buffer.setVar('nvim_typescript_diagnostic_info', normSigns);
     current.signs.forEach( async (sign) => {
       // console.warn(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
       await this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
