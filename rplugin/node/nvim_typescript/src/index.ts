@@ -1,28 +1,37 @@
-import { Neovim, Command, Function, Plugin, Autocmd } from 'neovim';
-import { fileSync } from 'tmp';
-
-import { TSServer } from './client';
+import { statSync, writeFileSync } from 'fs';
 import {
-  trim,
-  convertToDisplayString,
-  getParams,
-  getCurrentImports,
-  convertDetailEntry,
-  reduceByPrefix,
-  convertEntry,
-  getKind,
-  createLocList,
-  truncateMsg,
-  createQuickFixList,
-  isRenameSuccess,
-  triggerChar,
-  printHighlight
-} from './utils';
-import { writeFileSync, statSync } from 'fs';
-import { DiagnosticHost } from './diagnostic';
-import { promptForSelection, applyCodeFixes } from './codeActions';
+  Autocmd,
+  Command,
+  Function,
+  Neovim,
+  Plugin,
+  Window
+} from 'neovim';
+import { fileSync } from 'tmp';
 import protocol from 'typescript/lib/protocol';
-// import { debounce } from 'lodash';
+import { TSServer } from './client';
+import { applyCodeFixes, promptForSelection } from './codeActions';
+import { DiagnosticHost } from './diagnostic';
+import {
+  convertDetailEntry,
+  convertEntry,
+  convertToDisplayString,
+  createLocList,
+  createQuickFixList,
+  getCurrentImports,
+  getKind,
+  getParams,
+  isRenameSuccess,
+  printHighlight,
+  reduceByPrefix,
+  triggerChar,
+  trim,
+  truncateMsg,
+  leftpad,
+} from './utils';
+
+import { debounce } from 'lodash';
+import { createFloatingWindow } from './floatingWindow';
 
 @Plugin({ dev: false })
 export default class TSHost {
@@ -32,15 +41,10 @@ export default class TSHost {
   private maxCompletion: number;
   private expandSnippet: boolean;
   enableDiagnostics: boolean;
+  floatingWindow: Window;
   constructor(nvim) {
     this.nvim = nvim;
   }
-
-  // @Command('TSGetErr')
-  // async getErr(){
-  //   const file = await this.getCurrentFile();
-  //   await this.client.getErr({files: [file], delay: 500})
-  // }
 
   @Autocmd('TextChangedP', { pattern: '*', sync: false })
   async onTextChangedP() {
@@ -83,6 +87,7 @@ export default class TSHost {
   @Command('TSImport')
   async tsImport() {
     await this.reloadFile();
+    await printHighlight(this.nvim, 'TSImport is depreciated, please use TSGetCodeFix')
     const file = await this.getCurrentFile();
     const symbol = await this.nvim.call('expand', '<cword>');
     const [line, col] = await this.getCursorPos();
@@ -90,7 +95,7 @@ export default class TSHost {
 
     const currentlyImportedItems = await getCurrentImports(this.client, file);
     if (currentlyImportedItems.includes(symbol)) {
-      await this.printMsg(`${symbol} is already imported`);
+      await printHighlight(this.nvim, `${symbol} is already imported`);
     }
     const results = await this.client.getCodeFixes({
       file,
@@ -103,7 +108,7 @@ export default class TSHost {
     let fixes: protocol.FileCodeEdits[];
     // No imports
     if (!results.length) {
-      return this.printMsg('No imports candidates were found.');
+      return printHighlight(this.nvim, 'No imports candidates were found.');
     } else if (results.length === 1) {
       fixes = results[0].changes;
     } else {
@@ -165,37 +170,7 @@ export default class TSHost {
       const displayString = info.displayString.split('\n');
       const doc = info.documentation.split('\n');
       const message = displayString.concat(doc);
-
-      const buf = await this.nvim.call('bufnr', '__doc__');
-
-      if (buf > 0) {
-        const pageNr = await this.nvim.tabpage.number;
-        const pageList: number[] = await this.nvim.call(
-          'tabpagebuflist',
-          pageNr
-        );
-        const wi = await this.nvim.call(`index`, [pageList, buf]);
-        if (wi > 0) {
-          await this.nvim.command(`${wi + 1} wincmd w`);
-        } else {
-          await this.nvim.command(`sbuffer ${buf}`);
-        }
-      } else {
-        await this.nvim.command('split __doc__');
-      }
-      for (let setting of [
-        'setlocal modifiable',
-        'setlocal noswapfile',
-        'setlocal nonumber',
-        'setlocal buftype=nofile'
-      ]) {
-        await this.nvim.command(setting);
-      }
-      await this.nvim.command('sil normal! ggdG');
-      await this.nvim.command('resize 10');
-      await this.nvim.buffer.insert(message, 0);
-      await this.nvim.command('setlocal nomodifiable');
-      await this.nvim.command('sil normal! gg');
+      await this.printInSplit(message);
     }
   }
 
@@ -233,15 +208,30 @@ export default class TSHost {
     if (renameResults) {
       if (isRenameSuccess(renameResults.info)) {
         let changeCount = 0;
+
         for (let fileLocation of renameResults.locs) {
           let defFile = fileLocation.file;
           await this.nvim.command(`e! ${defFile}`);
+          const commands = [];
+
           for (let rename of fileLocation.locs) {
+            // debugger;
             let { line, offset } = rename.start;
 
-            let substitutions = `${line}substitute/\\%${offset}c${symbol}/${newName}/`;
-            await this.nvim.command(substitutions);
-            //list: Array<{ filename: string; lnum: number; col: number; text: string }>,
+            const editLine = await this.nvim.buffer.getLines({
+              start: line - 1,
+              end: line,
+              strictIndexing: true
+            });
+            const newLine = editLine[0].replace(symbol as string, newName);
+            commands.concat(
+              await this.nvim.buffer.setLines(newLine, {
+                start: line - 1,
+                end: line,
+                strictIndexing: true
+              })
+            );
+
             changedFiles.push({
               filename: defFile,
               lnum: line,
@@ -251,22 +241,29 @@ export default class TSHost {
 
             changeCount += 1;
           }
+          await this.nvim.callAtomic(commands);
         }
 
         await this.nvim.command(`buffer ${buffNum}`);
-        await this.nvim.call('cursor', [renameArgs.line, renameArgs.offset]);
+        await this.nvim.call('cursor', [
+          renameResults.info.triggerSpan.start.line,
+          renameResults.info.triggerSpan.start.offset
+        ]);
+
         createQuickFixList(this.nvim, changedFiles, 'Renames');
-        this.printMsg(
+        printHighlight(
+          this.nvim,
           `Replaced ${changeCount} in ${renameResults.locs.length} files`
         );
 
         return;
+      } else {
+        printHighlight(
+          this.nvim,
+          renameResults.info.localizedErrorMessage,
+          'ErrorMsg'
+        );
       }
-      printHighlight(
-        this.nvim,
-        renameResults.info.localizedErrorMessage,
-        'ErrorMsg'
-      );
     }
   }
 
@@ -292,14 +289,13 @@ export default class TSHost {
             })
           };
         });
-        console.log(signatureHelpItems);
         const params = getParams(
           signatureHelpItems[0].parameters,
           signatureHelpItems[0].separator
         );
-        this.printHighlight(params);
+        printHighlight(this.nvim, params);
       },
-      err => printHighlight(this.nvim, err, 'ErrorMsg')
+      err =>printHighlight(this.nvim, err, 'ErrorMsg')
     );
   }
 
@@ -372,35 +368,42 @@ export default class TSHost {
     nvimVar: string
   ) {
     const currentLine = await this.nvim.getLine();
-    const completeArgs: protocol.CompletionsRequestArgs = {
+    const version = this.client.tsConfigVersion;
+    let completeArgs: protocol.CompletionsRequestArgs = {
       file,
       line,
       offset,
       prefix,
-      triggerCharacter: triggerChar(currentLine),
       includeInsertTextCompletions: false,
       includeExternalModuleExports: false
     };
+    console.warn(this.client.tsConfigVersion);
+    if(this.client.isCurrentVersionHighter(300)){
+      console.warn('in ts 3.x')
+      completeArgs = {...completeArgs, triggerCharacter: triggerChar(currentLine)}
+    }
 
-    let { isMemberCompletion, entries } = await this.client.getCompletions(
-      completeArgs
-    );
+    let completions;
 
-    // - global completions are sorted by TSServer so that `f` will return a wider set than `foo`
-    // - member completions are however returned in a static bunch so that `foo.ba` will return
-    //   all members of foo regardless of the prefix.
-    // - if there n > maxCompletions members of foo then the code will never make it to the detailed
-    //   completions
-    // - lets run a regex on the completions so that as the user narrows down the range of possibilities
-    //   they will eventually see detailed completions for the member
+    if(this.client.isCurrentVersionHighter(300)){
+     console.warn('in ts 3.x')
+      let { isMemberCompletion, entries } = await this.client.getCompletions(completeArgs);
+      // - global completions are sorted by TSServer so that `f` will return a wider set than `foo`
+      // - member completions are however returned in a static bunch so that `foo.ba` will return
+      //   all members of foo regardless of the prefix.
+      // - if there n > maxCompletions members of foo then the code will never make it to the detailed
+      //   completions
+      // - lets run a regex on the completions so that as the user narrows down the range of possibilities
+      //   they will eventually see detailed completions for the member
+      completions = isMemberCompletion && prefix ? reduceByPrefix(prefix, entries) : entries;
+    }
+    else {
+      console.warn('in ts 2.x')
+      completions = await this.client.getCompletions(completeArgs);
+    }
 
-    const completions =
-      isMemberCompletion && prefix ? reduceByPrefix(prefix, entries) : entries;
     if (completions.length > this.maxCompletion) {
-      let completionRes = await Promise.all(
-        completions.map(async entry => await convertEntry(this.nvim, entry))
-      );
-
+      let completionRes = await Promise.all(completions.map(async entry => await convertEntry(this.nvim, entry)));
       await this.nvim.setVar(nvimVar, completionRes);
       return completionRes;
     }
@@ -412,12 +415,7 @@ export default class TSHost {
       entryNames: completions.map(v => v.name)
     });
 
-    let completionResDetailed = await Promise.all(
-      detailedCompletions.map(
-        async entry =>
-          await convertDetailEntry(this.nvim, entry, this.expandSnippet)
-      )
-    );
+    let completionResDetailed = await Promise.all(detailedCompletions.map(async (entry) => await convertDetailEntry(this.nvim, entry, this.expandSnippet)));
 
     await this.nvim.setVar(nvimVar, completionResDetailed);
     return completionResDetailed;
@@ -535,7 +533,7 @@ export default class TSHost {
 
   @Command('TSOrganizeImports')
   async organizeImports() {
-    await this.reloadFile()
+    await this.reloadFile();
     const file = await this.getCurrentFile();
     const scopes = await this.client.getOrganizedImports({
       scope: {
@@ -543,10 +541,10 @@ export default class TSHost {
         args: { file }
       }
     });
-    if(scopes){
-      applyCodeFixes(scopes, this.nvim);
+    if (scopes) {
+      await applyCodeFixes(scopes, this.nvim);
     } else {
-      printHighlight(this.nvim, 'No changes needed')
+      printHighlight(this.nvim, 'No changes needed');
     }
   }
 
@@ -559,23 +557,80 @@ export default class TSHost {
       const syntaxErrors = await this.getSyntaxErrors(file);
       const res = [...sematicErrors, ...syntaxErrors];
       await this.diagnosticHost.placeSigns(res, file);
+      await this.onCursorMoved();
       await this.handleCursorMoved();
     }
   }
 
+  @Function('TSCloseWindow')
+  async onCursorMoved() {
+    if (this.floatingWindow) {
+      try {
+        // this.floatingWindow.close(true);
+        await this.nvim.windowClose(this.floatingWindow, true);
+      } catch (e) {
+        console.warn(e.message);
+      }
+    }
+  }
   @Function('TSEchoMessage')
   async handleCursorMoved() {
+    const buftype = await this.nvim.eval('&buftype');
+    if (buftype !== '') return;
+
+    const { file, line, offset } = await this.getCommonData();
+    const errorSign = this.diagnosticHost.getSign(file, line, offset);
+
+    if (errorSign) {
+      if ('createBuffer' in this.nvim) {
+        this.floatingWindow = await createFloatingWindow(this.nvim, errorSign)
+      } else {
+        await printHighlight(
+          this.nvim,
+          await truncateMsg(this.nvim, errorSign.text),
+          'ErrorMsg'
+        );
+      }
+    }
+  }
+
+  @Command('TSGetErrorFull')
+  async getErrFull() {
     const { file, line, offset } = await this.getCommonData();
     const buftype = await this.nvim.eval('&buftype');
     if (buftype !== '') return;
     const errorSign = this.diagnosticHost.getSign(file, line, offset);
     if (errorSign) {
-      await printHighlight(
-        this.nvim,
-        await truncateMsg(this.nvim, errorSign.text),
-        'ErrorMsg'
-      );
+      await this.printInSplit(errorSign.text, '__error__');
     }
+  }
+
+  async printInSplit(message: string | string[], bufname = '__doc__') {
+    const buf: number = await this.nvim.call('bufnr', bufname);
+
+    if (buf > 0) {
+      const pageNr = await this.nvim.tabpage.number;
+      const pageList: number[] = await this.nvim.call('tabpagebuflist', pageNr);
+      const wi: number = await this.nvim.call(`index`, [pageList, buf]);
+      if (wi > 0) {
+        await this.nvim.command(`${wi + 1} wincmd w`);
+      } else {
+        await this.nvim.command(`sbuffer ${buf}`);
+      }
+    } else {
+      await this.nvim.command('botright 10split __doc__');
+    }
+    await this.nvim.callAtomic([
+      await this.nvim.buffer.setOption('modifiable', true),
+      await this.nvim.command('sil normal! ggdG'),
+      await this.nvim.command('resize 10'),
+      await this.nvim.buffer.setOption('swapfile', false),
+      await this.nvim.window.setOption('number', false),
+      await this.nvim.buffer.setOption('buftype', 'nofile'),
+      await this.nvim.buffer.insert(message, 0),
+      await this.nvim.command('sil normal! gg'),
+      await this.nvim.buffer.setOption('modifiable', false)
+    ]);
   }
 
   @Command('TSGetCodeFix')
@@ -598,10 +653,24 @@ export default class TSHost {
           rej => printHighlight(this.nvim, rej, 'ErrorMsg')
         );
       } else {
-        await this.printMsg('No fix');
+        await printHighlight(this.nvim, 'No fix');
       }
     }
   }
+
+  // @Command('TSFixAll')
+  // async getFixAll(){
+  //   await this.reloadFile();
+  //   const file  = await this.getCurrentFile();
+
+  //   const req = this.client.getCombinedCodeFix({
+  //     scope: {
+  //       type: 'file',
+  //       args: {file}
+  //     },
+  //     fixId:
+  //   })
+  // }
 
   async getSematicErrors(file) {
     return await this.client.getSemanticDiagnosticsSync({ file });
@@ -655,9 +724,10 @@ export default class TSHost {
       const file = await this.getCurrentFile();
       this.client.openFile({ file });
       if (this.enableDiagnostics) {
-
-        // this.nvim.buffer.listen('lines', debounce(() => this.getDiagnostics(), 500))
-        // this.nvim.buffer.listen('changetick', debounce(() => this.getDiagnostics(), 500))
+        await this.nvim.buffer.listen(
+          'lines',
+          debounce(() => this.getDiagnostics(), 500)
+        );
         await this.getDiagnostics();
       }
     }
@@ -783,7 +853,7 @@ export default class TSHost {
 
   async init() {
     this.diagnosticHost.nvim = this.nvim;
-
+    // this.log(`${this.nvim.channel_id}`)
     // Borrowed from https://github.com/mhartington/nvim-typescript/pull/143
     // Much cleaner, sorry I couldn't merge the PR!
     const [
@@ -792,15 +862,18 @@ export default class TSHost {
       serverOptions,
       defaultSigns,
       expandSnippet,
-      enableDiagnostics
+      enableDiagnostics,
+      channelID
     ] = await Promise.all([
       this.nvim.getVar('nvim_typescript#max_completion_detail'),
       this.nvim.getVar('nvim_typescript#server_path'),
       this.nvim.getVar('nvim_typescript#server_options'),
       this.nvim.getVar('nvim_typescript#default_signs'),
       this.nvim.getVar('nvim_typescript#expand_snippet'),
-      this.nvim.getVar('nvim_typescript#diagnostics_enable')
+      this.nvim.getVar('nvim_typescript#diagnostics_enable'),
+      this.nvim.apiInfo
     ]);
+    await this.nvim.setVar('nvim_typescript#channel_id', channelID[0]);
     this.enableDiagnostics = !!enableDiagnostics;
     // console.warn(this.enableDiagnostics)
     this.maxCompletion = parseFloat(maxCompletion as string);
@@ -810,25 +883,22 @@ export default class TSHost {
     await this.diagnosticHost.defineSigns(defaultSigns);
     this.client.setTSConfigVersion();
 
+    this.nvim.on('changedtick', () => printHighlight(this.nvim,'test'));
     this.client.on('projectLoadingFinished', async () => {
       console.warn('ready');
       // console.log('coming soon...');
     });
+
+    // this.nvim.on('notification', async (method, args)=> {
+    //   console.warn(method)
+    // });
   }
 
   // Utils
   // TODO: Extract to own file
   // Started, see utils.ts
-  async printErr(message: string) {
-    await this.nvim.errWrite(`nvim-ts: ${message} \n`);
-  }
   async printMsg(message: string) {
     await this.nvim.outWrite(`nvim-ts: ${message} \n`);
-  }
-  async printHighlight(message) {
-    await this.nvim.command(
-      `redraws! | echom "nvim-ts: " | echohl Function | echon "${message}" | echohl None`
-    );
   }
   async log(message: any) {
     await this.nvim.outWrite(`${message} \n`);
@@ -838,12 +908,12 @@ export default class TSHost {
     return new Promise(async (resolve, reject) => {
       const file = await this.getCurrentFile();
       const contents = (await this.nvim.buffer.lines).join('\n');
-      console.debug('FILE', file);
       const temp = fileSync();
       writeFileSync(temp.name, contents, 'utf8');
       return this.client
         .updateFile({ file, tmpfile: temp.name })
-        .then(res => resolve(res));
+        .then(res => resolve(res))
+        .then(() => temp.removeCallback())
     });
   }
   async getCurrentFile(): Promise<string> {

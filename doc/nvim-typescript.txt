@@ -11,8 +11,7 @@ CONTENTS                                                  *typescript-contents*
   4. Variables....................................|typescript-variables|
   5. Mappings.....................................|typescript-mappings|
   7. Functions....................................|typescript-functions|
-  8. Settings.....................................|typescript-settings|
-  9. Troubleshooting..............................|typescript-troubleshooting|
+  8. Troubleshooting..............................|typescript-troubleshooting|
 
 ===============================================================================
 INTRO                                                        *typescript-intro*
@@ -50,7 +49,7 @@ npm install -g neovim
 In you install Deoplete as well, make sure you also have the python3 bindings
 to Neovim. >
 
-pip3 install neovim
+pip3 install pynvim
 
 
 Then run `UpdateRemotePlugins`.
@@ -67,8 +66,8 @@ COMMANDS                                                  *typescript-commands*
                                                                 *:TSDefPreview*
 :TSDefPreview
 
-    Open the definition file for the symbol under the cursor but in a split
-    below.
+    Open the definition file for the symbol under the cursor but in a preview
+    window
 
                                                                       *:TSRefs*
 :TSRefs
@@ -80,19 +79,17 @@ COMMANDS                                                  *typescript-commands*
 :TSDoc
 
     Prints the documentation for the symbol under the cursor and displays it in
-    a split.
+    a split below.
 
                                                                      *:TSStart*
 :TSStart
 
     Starts the typescript client. This is called automatically.
 
-
                                                                       *:TSStop*
 :TSStop
 
     Stops the typescript client
-
 
                                                                    *:TSRestart*
 :TSRestart
@@ -111,12 +108,10 @@ COMMANDS                                                  *typescript-commands*
     if no arg is passed, user will be prompted.
 
 
-                                                                    *:TSImport*
-:TSImport
+                                                                *:TSGetCodeFix*
+:TSGetCodeFix
 
-    Tries to import the module in which the symbol under the cursor
-    is defined.
-
+    Gets a fix for an error under the cursor.
 
                                                                    *:TSTypeDef*
 :TSTypeDef
@@ -127,6 +122,16 @@ COMMANDS                                                  *typescript-commands*
 :TSEditConfig
 
     Opens the config file for the current file.
+
+                                                           *:TSOrganizeImports*
+:TSOrganizeImports
+
+    Organizes imports for the current file.
+
+                                                             *TSGetDiagnostics*
+:TSGetDiagnostics
+
+    Get any syntax or semantic errors for the current file.
 
 ===============================================================================
 VARIABLES                                                *typescript-variables*

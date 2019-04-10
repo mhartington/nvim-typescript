@@ -154,7 +154,8 @@ export class Client extends EventEmitter {
   getCompletions(
     args: protocol.CompletionsRequestArgs
   ): Promise<protocol.CompletionInfoResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.CompletionInfo, args);
+    let requestCmd  = this.isCurrentVersionHighter(300) ? protocol.CommandTypes.CompletionInfo : protocol.CommandTypes.Completions;
+    return this._makeTssRequest(requestCmd, args);
   }
   getCompletionDetails(
     args: protocol.CompletionDetailsRequestArgs
@@ -225,6 +226,10 @@ export class Client extends EventEmitter {
     protocol.GetSupportedCodeFixesResponse['body']
   > {
     return this._makeTssRequest(protocol.CommandTypes.GetSupportedCodeFixes, null);
+  }
+
+  getCombinedCodeFix(args: protocol.GetCombinedCodeFixRequestArgs): Promise<protocol.GetCombinedCodeFixResponse['body']> {
+    return this._makeTssRequest(protocol.CommandTypes.GetCombinedCodeFix, args);
   }
 
   getOrganizedImports(args: protocol.OrganizeImportsRequestArgs): Promise<protocol.OrganizeImportsResponse['body']>{

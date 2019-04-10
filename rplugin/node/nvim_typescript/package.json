@@ -13,10 +13,10 @@
   "devDependencies": {
     "@types/node": "^10.12.18",
     "@types/tmp": "0.0.33",
-    "typescript": "^3.2.2"
+    "typescript": "3.4.0-rc"
   },
   "dependencies": {
-    "neovim": "4.2.1",
+    "neovim": "4.5.0",
     "tmp": "0.0.33"
   }
 }

@@ -19,10 +19,6 @@ let g:nvim_typescript#type_info_on_hold =
       \ get(g:, 'nvim_typescript#type_info_on_hold', 0)
 let g:nvim_typescript#signature_complete =
       \ get(g:, 'nvim_typescript#signature_complete', 0)
-let g:nvim_typescript#loc_list_item_truncate_after =
-      \ get(g:, 'nvim_typescript#loc_list_item_truncate_after', 20)
-let g:nvim_typescript#tsimport#template =
-      \ get(g:, 'nvim_typescript#tsimport#template', 'import { %s } from ''%s'';')
 let g:nvim_typescript#default_mappings =
       \ get(g:, 'nvim_typescript#default_mappings', 0)
 let g:nvim_typescript#completion_mark =
@@ -103,6 +99,10 @@ let g:nvim_typescript#default_signs =
       \}
       \])
 
+
+hi nvimtypescriptPopupNormal term=None guifg=#eeeeee guibg=#333333 ctermfg=255 ctermbg=234
+hi nvimtypescriptEndOfBuffer term=None guifg=#333333 guibg=#333333 ctermfg=234 ctermbg=234
+
 "}}}
 
 augroup nvim-typescript "{{{
@@ -131,9 +131,9 @@ augroup nvim-typescript "{{{
       autocmd DirChanged * call TSOnBufSave()
     endif
     if get(g:, 'nvim_typescript#diagnostics_enable', 1)
-      autocmd BufEnter,Filetype javascript,javascriptreact TSGetDiagnostics
-      autocmd TextChanged *.js,*.jsx TSGetDiagnostics
-      autocmd InsertLeave *.js,*.jsx TSGetDiagnostics
+      " autocmd BufEnter,Filetype javascript,javascriptreact TSGetDiagnostics
+      " autocmd TextChanged *.js,*.jsx TSGetDiagnostics
+      " autocmd InsertLeave *.js,*.jsx TSGetDiagnostics
       autocmd CursorMoved *.js,*.jsx call TSEchoMessage()
     endif
   endif "}}}
@@ -172,9 +172,8 @@ augroup nvim-typescript "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif ""}}}
   if get(g:, 'nvim_typescript#diagnostics_enable', 1) "{{{
-    autocmd TextChanged *.ts,*.tsx TSGetDiagnostics
-    autocmd InsertLeave *.ts,*.tsx TSGetDiagnostics
-    autocmd CursorMoved *.ts,*.tsx call TSEchoMessage()
+    autocmd CursorMoved,CursorMovedI,InsertLeave *.ts,*.tsx call TSCloseWindow()
+    autocmd CursorHold,CursorHoldI *.ts,*.tsx call TSEchoMessage()
   endif "}}}
 
   autocmd BufWritePost tsconfig.json TSReloadProject

@@ -1,6 +1,7 @@
 import { Neovim } from 'neovim';
 import protocol from 'typescript/lib/protocol';
 import { Client } from './client';
+import { OpenWindowOptions } from 'neovim/lib/api/Neovim';
 
 export function trim(s: string) {
   return (s || '').replace(/^\s+|\s+$/g, '');
@@ -18,7 +19,7 @@ export function convertToDisplayString(displayParts?: any[]) {
 export function getParams(
   members: Array<{ text: string; documentation: string }>,
   separator: string
-) {
+): string {
   let ret = '';
   members.forEach((member, idx) => {
     if (idx === members.length - 1) {
@@ -26,8 +27,8 @@ export function getParams(
     } else {
       ret += member.text + separator;
     }
-    return ret;
   });
+  return ret;
 }
 
 export async function getCurrentImports(client: Client, file: string) {
@@ -97,7 +98,7 @@ export async function getKind(nvim: any, kind: string): Promise<any> {
 }
 
 function toTitleCase(str: string) {
-  return str.replace(/\w\S*/g, function (txt) {
+  return str.replace(/\w\S*/g, function(txt) {
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
   });
 }
@@ -138,18 +139,19 @@ export async function createQuickFixList(
   });
 }
 
-export async function truncateMsg(nvim: Neovim, message: string): Promise<string> {
+export async function truncateMsg(
+  nvim: Neovim,
+  message: string
+): Promise<string> {
   /**
    * Print as much of msg as possible without triggering "Press Enter"
    * Inspired by neomake, which is in turn inspired by syntastic.
    */
   const columns = (await nvim.getOption('columns')) as number;
-  let msg = message.replace(/(\r\n|\n|\r|\t)/gm, ' ')
+  let msg = message.replace(/(\r\n|\n|\r|\t)/gm, ' ');
   if (msg.length > columns - 9) return msg.substring(0, columns - 11) + '…';
-  return msg
+  return msg;
 }
-
-
 
 export async function printHighlight(
   nvim: Neovim,
@@ -169,7 +171,7 @@ export async function printHighlight(
   await nvim.setOption('showcmd', showCmd);
 }
 
-// reduceByPrefix takes a list of basic complettions and a prefix and eliminates things
+// ReduceByPrefix takes a list of basic complettions and a prefix and eliminates things
 // that don't match the prefix
 export const reduceByPrefix = (
   prefix: string,
@@ -195,3 +197,11 @@ export const triggerChar = (
     ? (char as protocol.CompletionsTriggerCharacter)
     : undefined;
 };
+
+export function leftpad(str: string, len: number, ch = ' ') {
+  var pad = '';
+  while (pad.length < len) {
+    pad += ch;
+  }
+  return pad + str;
+}

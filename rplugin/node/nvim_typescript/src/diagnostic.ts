@@ -20,7 +20,6 @@ export class DiagnosticProvider {
       await this.nvim.command(`sign define ${name} text=${data.signText} texthl=${data.signTexthl}`)
     }
   }
-
   async placeSigns(incomingSigns: Diagnostic[], file: string) {
     const locList = [];
     await this.clearSigns(file)
@@ -126,5 +125,4 @@ export class DiagnosticProvider {
     }
   }
 }
-
 export const DiagnosticHost = new DiagnosticProvider();

@@ -4,6 +4,7 @@
     "declaration": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    // "incremental": true,
     "allowUnreachableCode": false,
     "lib": ["es2017", "dom"],
     "module": "commonjs",
