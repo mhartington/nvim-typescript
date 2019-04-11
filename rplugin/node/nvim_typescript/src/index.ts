@@ -907,7 +907,11 @@ export default class TSHost {
   async reloadFile(): Promise<any> {
     return new Promise(async (resolve, reject) => {
       const file = await this.getCurrentFile();
-      const contents = (await this.nvim.buffer.lines).join('\n');
+      const buffer = await this.nvim.buffer;
+      const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
+
+      const contents = bufContent.join('\n');
+
       const temp = fileSync();
       writeFileSync(temp.name, contents, 'utf8');
       return this.client

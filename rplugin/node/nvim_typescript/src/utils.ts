@@ -148,7 +148,8 @@ export async function truncateMsg(
    * Inspired by neomake, which is in turn inspired by syntastic.
    */
   const columns = (await nvim.getOption('columns')) as number;
-  let msg = message.replace(/(\r\n|\n|\r|\t)/gm, ' ');
+  let msg = message.replace(/(\r\n|\n|\r|\t|\s+)/gm, ' ').trim();
+  console.warn(msg)
   if (msg.length > columns - 9) return msg.substring(0, columns - 11) + '…';
   return msg;
 }
