@@ -69,7 +69,7 @@ If you happened to build something and would love to make a PR, I would be more 
 If something you do add happens to get merged (most likely it will :grin: ) you'll get a collaborator request. This has worked out very well in the Node community and I want it to happen here. This is as much my code as it is your code.
 
 See:
-- [this site](http://openopensource.org)
+- [this site](https://openopensource.github.io/)
 - [this talk](https://youtu.be/wIUkWpg9FDY?t=5m10s)
 
 ## Debugging
