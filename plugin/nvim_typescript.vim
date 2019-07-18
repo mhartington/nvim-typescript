@@ -84,7 +84,7 @@ let g:nvim_typescript#default_signs =
       \  }
       \},
       \{
-      \  'TSinformation': {
+      \  'TSsuggestion': {
       \   'texthl': 'SpellBad',
       \   'signText': '•',
       \   'signTexthl': 'NeomakeInfoSign'
@@ -99,9 +99,7 @@ let g:nvim_typescript#default_signs =
       \}
       \])
 
-
-hi nvimtypescriptPopupNormal term=None guifg=#eeeeee guibg=#333333 ctermfg=255 ctermbg=234
-hi nvimtypescriptEndOfBuffer term=None guifg=#333333 guibg=#333333 ctermfg=234 ctermbg=234
+hi default link nvimtypescriptPopupNormal Pmenu
 
 "}}}
 
@@ -121,9 +119,9 @@ augroup nvim-typescript "{{{
     autocmd BufEnter,Filetype javascript,javascriptreact call nvim_typescript#DefaultKeyMap()
     autocmd BufEnter,Filetype javascript,javascriptreact call TSOnBufEnter()
     autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
-    if get(g:, 'nvim_typescript#signature_complete', 1)
-       autocmd CompleteDone *.js,*.jsx TSSig
-    endif
+    " if get(g:, 'nvim_typescript#signature_complete', 1)
+    "    autocmd CompleteDone *.js,*.jsx TSSig
+    " endif
     if get(g:, 'nvim_typescript#type_info_on_hold', 1)
       autocmd CursorHold *.js,*.jsx TSType
     endif
@@ -131,10 +129,8 @@ augroup nvim-typescript "{{{
       autocmd DirChanged * call TSOnBufSave()
     endif
     if get(g:, 'nvim_typescript#diagnostics_enable', 1)
-      " autocmd BufEnter,Filetype javascript,javascriptreact TSGetDiagnostics
-      " autocmd TextChanged *.js,*.jsx TSGetDiagnostics
-      " autocmd InsertLeave *.js,*.jsx TSGetDiagnostics
-      autocmd CursorMoved *.js,*.jsx call TSEchoMessage()
+      autocmd CursorMoved,CursorMovedI,InsertLeave *.js,*.jsx call TSCloseWindow()
+      autocmd CursorHold,CursorHoldI *.js,*.jsx call TSEchoMessage()
     endif
   endif "}}}
 
@@ -143,10 +139,10 @@ augroup nvim-typescript "{{{
     autocmd BufEnter,Filetype vue call nvim_typescript#DefaultKeyMap()
     autocmd BufEnter,Filetype vue call TSOnBufEnter()
     autocmd BufWritePost *.vue call TSOnBufSave()
-    if get(g:, 'nvim_typescript#signature_complete', 1)
-       autocmd CompleteDone,Filetype vue TSSig
-     autocmd CompleteDone *.vue TSSig
-    endif
+    " if get(g:, 'nvim_typescript#signature_complete', 1)
+    "    autocmd CompleteDone,Filetype vue TSSig
+    "  autocmd CompleteDone *.vue TSSig
+    " endif
     if get(g:, 'nvim_typescript#type_info_on_hold', 1)
       autocmd CursorHold *.vue TSType
     endif
@@ -162,9 +158,9 @@ augroup nvim-typescript "{{{
   autocmd BufEnter,Filetype typescript,typescript.tsx call nvim_typescript#DefaultKeyMap()
   autocmd BufEnter,Filetype typescript,typescript.tsx  call TSOnBufEnter()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
-  if get(g:, 'nvim_typescript#signature_complete', 1) "{{{
-    autocmd CompleteDone *.ts,*.tsx TSSig
-  endif "}}}
+  " if get(g:, 'nvim_typescript#signature_complete', 1) "{{{
+  "   autocmd CompleteDone *.ts,*.tsx TSSig
+  " endif "}}}
   if get(g:, 'nvim_typescript#type_info_on_hold', 1) "{{{
     autocmd CursorHold *.ts,*.tsx TSType
   endif "}}}

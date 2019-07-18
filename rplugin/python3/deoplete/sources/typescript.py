@@ -15,7 +15,9 @@ class Source(Base):
         self.max_abbr_width = 0
         self.max_kind_width = 0
         self.max_menu_width = 0
-        self.input_pattern = r'(\.|::)\w*'
+        # self.input_pattern = r'.'
+        self.input_pattern = r'\.|\"\\|\s|\/|\@'
+        # self.input_pattern = r'(\.|::)\w*'
         self.filetypes = ["typescript", "tsx",
                           "typescript.tsx", "typescriptreact"]
         if self.vim.vars["nvim_typescript#javascript_support"]:
@@ -45,9 +47,10 @@ class Source(Base):
                     return res
             else:
                 context["is_async"] = True
-                offset = context["complete_position"] + 1,
+                offset = context["complete_position"] + 1
+                prefix = context["complete_str"]
                 self.reset_var()
-                self.vim.funcs.TSDeoplete(context["complete_str"], offset)
+                self.vim.funcs.TSDeoplete(prefix, offset)
             return []
-        except:
+        except BaseException:
             return []

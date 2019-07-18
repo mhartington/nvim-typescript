@@ -13,9 +13,11 @@
   "devDependencies": {
     "@types/node": "^10.12.18",
     "@types/tmp": "0.0.33",
-    "typescript": "3.4.0-rc"
+    "typescript": "3.4.0-rc",
+    "@types/lodash": "4.14.129"
   },
   "dependencies": {
+    "lodash": "4.17.11",
     "neovim": "4.5.0",
     "tmp": "0.0.33"
   }

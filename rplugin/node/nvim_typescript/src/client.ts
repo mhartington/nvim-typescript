@@ -1,4 +1,4 @@
-import { spawn, ChildProcess, execSync } from 'child_process';
+import { spawn, ChildProcess, execSync, SpawnOptions } from 'child_process';
 import { normalize } from 'path';
 import { EventEmitter } from 'events';
 import { existsSync } from 'fs';
@@ -38,41 +38,25 @@ export class Client extends EventEmitter {
   // Start the Proc
   startServer() {
     // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
-    if (platform() === 'win32') {
-      this.serverHandle = spawn(
-        'cmd',
-        [
-          '/c',
-          this.serverPath,
-          ...this.serverOptions,
-          `--disableAutomaticTypingAcquisition`
-        ],
-        {
-          stdio: 'pipe',
-          cwd: this._cwd,
-          env: this._env,
-          // detached must be false for windows to avoid child window
-          // https://nodejs.org/api/child_process.html#child_process_options_detached
-          detached: false,
-          shell: false
-        }
-      );
-    } else {
-      this.serverHandle = spawn(
-        this.serverPath,
-        [
-          ...this.serverOptions,
-          `--disableAutomaticTypingAcquisition`
-        ],
-        {
-          stdio: 'pipe',
-          cwd: this._cwd,
-          env: this._env,
-          detached: true,
-          shell: false
-        }
-      );
+    let args = [...this.serverOptions, '--disableAutomaticTypingAcquisition']
+    let options: SpawnOptions = {
+      stdio: 'pipe',
+      cwd: this._cwd,
+      env: this._env,
+      detached: true,
+      shell: false
     }
+    let cmd = this.serverPath;
+    if (platform() === 'win32') {
+      // detached must be false for windows to avoid child window
+      // https://nodejs.org/api/child_process.html#child_process_options_detached
+      options.detached = false;
+      args = ['/c', this.serverPath, ...args];
+      cmd = 'cmd';
+    }
+
+    this.serverHandle = spawn(cmd, args, options);
+
 
     this._rl = createInterface({
       input: this.serverHandle.stdout,
@@ -121,7 +105,7 @@ export class Client extends EventEmitter {
     };
   }
 
-  isCurrentVersionHighter(val) {
+  isCurrentVersionHighter(val: number) {
     const local =
       this.tsConfigVersion.major * 100 +
       this.tsConfigVersion.minor * 10 +
@@ -154,7 +138,7 @@ export class Client extends EventEmitter {
   getCompletions(
     args: protocol.CompletionsRequestArgs
   ): Promise<protocol.CompletionInfoResponse['body']> {
-    let requestCmd  = this.isCurrentVersionHighter(300) ? protocol.CommandTypes.CompletionInfo : protocol.CommandTypes.Completions;
+    let requestCmd = this.isCurrentVersionHighter(300) ? protocol.CommandTypes.CompletionInfo : protocol.CommandTypes.Completions;
     return this._makeTssRequest(requestCmd, args);
   }
   getCompletionDetails(
@@ -222,6 +206,13 @@ export class Client extends EventEmitter {
     return this._makeTssRequest(protocol.CommandTypes.GetCodeFixes, args);
   }
 
+  getApplicableRefactors(
+    args: protocol.GetApplicableRefactorsRequestArgs
+  ): Promise<protocol.GetApplicableRefactorsResponse['body']> {
+
+    return this._makeTssRequest(protocol.CommandTypes.GetApplicableRefactors, args);
+  }
+
   getSupportedCodeFixes(): Promise<
     protocol.GetSupportedCodeFixesResponse['body']
   > {
@@ -232,7 +223,7 @@ export class Client extends EventEmitter {
     return this._makeTssRequest(protocol.CommandTypes.GetCombinedCodeFix, args);
   }
 
-  getOrganizedImports(args: protocol.OrganizeImportsRequestArgs): Promise<protocol.OrganizeImportsResponse['body']>{
+  getOrganizedImports(args: protocol.OrganizeImportsRequestArgs): Promise<protocol.OrganizeImportsResponse['body']> {
     return this._makeTssRequest(protocol.CommandTypes.OrganizeImports, args);
   }
 
@@ -245,7 +236,7 @@ export class Client extends EventEmitter {
       command: commandName,
       arguments: args
     };
-    const ret = this.createDeferredPromise<T>();
+    const ret = this.createDeferredPromise();
     this._seqToPromises[seq] = ret;
     this.serverHandle.stdin.write(JSON.stringify(payload) + EOL);
     return ret.promise;
@@ -257,6 +248,7 @@ export class Client extends EventEmitter {
     const success = response.success;
     if (typeof seq === 'number') {
       if (success) {
+        // console.warn(JSON.stringify(response))
         this._seqToPromises[seq].resolve(response.body);
       } else {
         this._seqToPromises[seq].reject(response.message);
@@ -267,8 +259,8 @@ export class Client extends EventEmitter {
       if (response.type && response.type === 'event') {
         if (response.event && response.event === 'telemetry') {
         }
-        if (response.event && response.type === 'projectLoadingFinish'){
-          this.emit('projectLoadingFinish', response.body)
+        if (response.event && response.event === 'projectLoadingFinish') {
+          this.emit('projectLoadingFinish')
         }
         if (response.event && response.event === 'semanticDiag') {
           this.emit('semanticDiag', response.body);
@@ -276,7 +268,7 @@ export class Client extends EventEmitter {
       }
     }
   }
-  createDeferredPromise<T>(): any {
+  createDeferredPromise(): any {
     let resolve: Function;
     let reject: Function;
     const promise = new Promise((res, rej) => {

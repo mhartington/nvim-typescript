@@ -1,4 +1,4 @@
-import { Neovim, Buffer } from 'neovim';
+import { Neovim } from 'neovim';
 import { FileCodeEdits, CodeAction, CodeEdit } from 'typescript/lib/protocol';
 
 const leadingNewLineRexeg = /^\n/;
@@ -8,7 +8,7 @@ export async function promptForSelection(
   options: CodeAction[],
   nvim: Neovim
 ): Promise<any> {
-  // await nvim.outWrite(`${JSON.stringify(options)} \n`);
+  // console.warn(JSON.stringify(options))
   const changeDescriptions = options.map(change => change.description);
   const candidates = changeDescriptions.map(
     (change, idx) => `\n[${idx}]: ${change}`
@@ -104,24 +104,6 @@ export async function applyCodeFixes(
   }
 }
 
-const compare = (text1: protocol.CodeEdit, text2: protocol.CodeEdit) => {
-  if (text1.start.line !== text2.start.line) {
-    return text2.start.line - text1.start.line;
-  }
-
-  if (text1.start.offset !== text2.start.offset) {
-    return text2.start.offset - text1.start.offset;
-  }
-  return !isInsert(text1) ? -1 : isInsert(text2) ? 0 : 1;
-};
-
-const isInsert = (range: protocol.CodeEdit) => {
-  return (
-    range.start.line === range.end.line &&
-    range.start.offset === range.end.offset
-  );
-};
-
 const sameLineInsertEdit = async (fix: CodeEdit, nvim: Neovim) => {
   let newText = fix.newText.replace(leadingAndTrailingNewLineRegex, '');
   let tsVersion = await nvim.call('TSGetVersion');
@@ -133,17 +115,15 @@ const sameLineInsertEdit = async (fix: CodeEdit, nvim: Neovim) => {
   return [nvim.buffer.insert(textToArray, fix.start.line - 1)];
 };
 const sameLineNewLinesEdit = (fix: CodeEdit, nvim: Neovim) => {
-  let textArray = fix.newText.split('\n').filter(e => e !== '');
+  const textArray = fix.newText.split('\n').filter(e => e !== '');
 
   return [nvim.buffer.insert(textArray, fix.start.line)];
 };
-
 const spanLineEdit = (fix: CodeEdit, nvim: Neovim): Array<any> => {
   // Code fix spans multiple lines
   // Chances are this is removing text.
   // Need to confirm though
   const commands = [];
-  console.log('NOT THE SAME LINE');
   const text = fix.newText.split('\n').filter(e => e.trim() != '');
   commands.push(nvim.buffer.remove(fix.start.line - 1, fix.end.line - 1, true));
   if (text) commands.push(nvim.buffer.insert(text, fix.start.line - 1));

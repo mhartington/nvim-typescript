@@ -1,7 +1,6 @@
 import { Neovim } from 'neovim';
 import protocol from 'typescript/lib/protocol';
 import { Client } from './client';
-import { OpenWindowOptions } from 'neovim/lib/api/Neovim';
 
 export function trim(s: string) {
   return (s || '').replace(/^\s+|\s+$/g, '');
@@ -108,8 +107,8 @@ export async function createLocList(
   list: Array<{ filename: string; lnum: number; col: number; text: string }>,
   title: string,
   autoOpen = true
-) {
-  return new Promise(async (resolve, reject) => {
+): Promise<any> {
+  return new Promise(async (resolve: any): Promise<any> => {
     await nvim.call('setloclist', [0, list, 'r', title]);
     if (autoOpen) {
       await nvim.command('lwindow');
@@ -129,8 +128,8 @@ export async function createQuickFixList(
   }>,
   title: string,
   autoOpen = true
-) {
-  return new Promise(async (resolve, reject) => {
+): Promise<any> {
+  return new Promise(async (resolve: any, reject: any): Promise<any> => {
     await nvim.call('setqflist', [list, 'r', title]);
     if (autoOpen) {
       await nvim.command('botright copen');
@@ -149,7 +148,6 @@ export async function truncateMsg(
    */
   const columns = (await nvim.getOption('columns')) as number;
   let msg = message.replace(/(\r\n|\n|\r|\t|\s+)/gm, ' ').trim();
-  console.warn(msg)
   if (msg.length > columns - 9) return msg.substring(0, columns - 11) + '…';
   return msg;
 }
@@ -159,7 +157,7 @@ export async function printHighlight(
   message: string | Promise<string>,
   statusHL = 'None',
   messageHL = 'NormalNC'
-) {
+): Promise<any> {
   const ruler = (await nvim.getOption('ruler')) as boolean;
   const showCmd = (await nvim.getOption('showcmd')) as boolean;
   const msg = (message as string).replace(/\"/g, '\\"');
@@ -174,10 +172,7 @@ export async function printHighlight(
 
 // ReduceByPrefix takes a list of basic complettions and a prefix and eliminates things
 // that don't match the prefix
-export const reduceByPrefix = (
-  prefix: string,
-  c: ReadonlyArray<protocol.CompletionEntry>
-) => {
+export const reduceByPrefix = ( prefix: string, c: ReadonlyArray<protocol.CompletionEntry> ): protocol.CompletionEntry[] => {
   const re = new RegExp(prefix, 'i');
   return c.filter(v => re.test(v.name));
 };
@@ -199,10 +194,16 @@ export const triggerChar = (
     : undefined;
 };
 
-export function leftpad(str: string, len: number, ch = ' ') {
-  var pad = '';
-  while (pad.length < len) {
-    pad += ch;
+export function leftpad(str: string, len: number, padRight = false, ch = ' ') {
+  var lpad = '';
+  var rpad = '';
+  while (lpad.length < len) {
+    lpad += ch;
   }
-  return pad + str;
+  if(padRight){
+    while (rpad.length < len) {
+      rpad += ch;
+    }
+  }
+  return lpad + str + rpad;
 }
