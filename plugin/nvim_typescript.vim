@@ -116,8 +116,9 @@ augroup nvim-typescript "{{{
 
   " Regular JS support {{{
   if get(g:, 'nvim_typescript#javascript_support', 1)
-    autocmd BufEnter,Filetype javascript,javascriptreact call nvim_typescript#DefaultKeyMap()
-    autocmd BufEnter,Filetype javascript,javascriptreact call TSOnBufEnter()
+
+    autocmd BufEnter *.js,*.jsx  call nvim_typescript#DefaultKeyMap()
+    autocmd BufEnter *.js,*.jsx  call TSOnBufEnter()
     autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
     " if get(g:, 'nvim_typescript#signature_complete', 1)
     "    autocmd CompleteDone *.js,*.jsx TSSig
@@ -136,8 +137,9 @@ augroup nvim-typescript "{{{
 
   " Vue Support {{{
   if get(g:, 'nvim_typescript#vue_support', 1)
-    autocmd BufEnter,Filetype vue call nvim_typescript#DefaultKeyMap()
-    autocmd BufEnter,Filetype vue call TSOnBufEnter()
+
+    autocmd BufEnter *.vue  call nvim_typescript#DefaultKeyMap()
+    autocmd BufEnter *.vue  call TSOnBufEnter()
     autocmd BufWritePost *.vue call TSOnBufSave()
     " if get(g:, 'nvim_typescript#signature_complete', 1)
     "    autocmd CompleteDone,Filetype vue TSSig
@@ -147,16 +149,14 @@ augroup nvim-typescript "{{{
       autocmd CursorHold *.vue TSType
     endif
     if get(g:, 'nvim_typescript#diagnostics_enable', 1)
-      autocmd BufEnter,Filetype vue TSGetDiagnostics
-      autocmd TextChanged *.vue  TSGetDiagnostics
-      autocmd InsertLeave *.vue TSGetDiagnostics
-      autocmd CursorMoved *.vue call TSEchoMessage()
+      autocmd CursorMoved,CursorMovedI,InsertLeave *.vue call TSCloseWindow()
+      autocmd CursorHold,CursorHoldI *.vue call TSEchoMessage()
     endif
   endif "}}}
 
   " Core {{{
-  autocmd BufEnter,Filetype typescript,typescript.tsx call nvim_typescript#DefaultKeyMap()
-  autocmd BufEnter,Filetype typescript,typescript.tsx  call TSOnBufEnter()
+  autocmd BufEnter *.ts,*.tsx  call nvim_typescript#DefaultKeyMap()
+  autocmd BufEnter *.ts,*.tsx  call TSOnBufEnter()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   " if get(g:, 'nvim_typescript#signature_complete', 1) "{{{
   "   autocmd CompleteDone *.ts,*.tsx TSSig

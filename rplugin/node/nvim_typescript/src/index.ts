@@ -299,7 +299,7 @@ export default class TSHost {
     nvimVar: string
   ) {
     // console.warn(prefix, offset, line)
-    this.doingCompletion = true
+    // this.doingCompletion = true
     const currentLine = await this.nvim.call('nvim_get_current_line')
     // console.warn(currentLine)
     let completeArgs: protocol.CompletionsRequestArgs = {
@@ -332,7 +332,7 @@ export default class TSHost {
       completions = await this.client.getCompletions(completeArgs);
     }
 
-    if (completions.length > this.maxCompletion || completions.length > 0) {
+    if (completions.length > this.maxCompletion) {
       // console.warn(JSON.stringify(completions))
       let completionRes = await Promise.all(completions.map(async (entry: protocol.CompletionEntry) => await convertEntry(this.nvim, entry)));
       await this.nvim.setVar(nvimVar, completionRes);
@@ -513,10 +513,10 @@ export default class TSHost {
   @Command('TSGetDiagnostics')
   async getDiagnostics() {
     if (this.enableDiagnostics) {
-      // console.warn('Doing Completion', this.doingCompletion)
-      const file = await this.getCurrentFile();
       if(this.doingCompletion === false){
+        console.warn('DOING DiagnosticHost')
         await this.reloadFile();
+        const file = await this.getCurrentFile();
         const sematicErrors = await this.getSematicErrors(file);
         const syntaxErrors = await this.getSyntaxErrors(file);
         const suggestionErrors = await this.getSuggested(file);
@@ -715,8 +715,8 @@ export default class TSHost {
       this.client.openFile({ file });
       if (this.enableDiagnostics) {
         await this.onCursorMoved();
-        await this.nvim.buffer.listen('lines', debounce(() => { this.getDiagnostics() }, 500));
         await this.getDiagnostics();
+        await this.nvim.buffer.listen('lines', debounce(() => this.getDiagnostics(), 500));
       }
     }
   }

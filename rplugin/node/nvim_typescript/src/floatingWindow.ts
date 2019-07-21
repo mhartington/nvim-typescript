@@ -3,10 +3,7 @@ import { leftpad } from './utils';
 import { OpenWindowOptions } from 'neovim/lib/api/Neovim';
 
 const col = async (nvim: Neovim) => await nvim.window.width
-const createBuffer = async (nvim: Neovim) => {
-  console.warn("HERE?")
-  return await nvim.createBuffer(false, false)
-};
+const createBuffer = async (nvim: Neovim) =>  await nvim.createBuffer(false, false);
 const processHoverText = (symbol: protocol.QuickInfoResponseBody) => {
   console.warn("SYMBOL", JSON.stringify(symbol));
   const text = symbol.displayString.split(/\r|\n/g).map(e => leftpad(e, 1, true));
@@ -93,25 +90,25 @@ const getWindowPos = async (nvim: Neovim, width: number, height: number, errorSt
   };
 };
 const setBuffer = async (window: Window, buffer: Buffer, text: string[]) => {
-  // return Promise.all([
-  await window.setOption('winhl', 'Normal:nvimTypescriptPopupNormal,EndOfBuffer:nvimTypescriptEndOfBuffer')
-  await buffer.setOption('filetype', 'nvimtypescriptpopup')
-  await buffer.setOption('buftype', 'nofile')
-  await buffer.setOption('bufhidden', 'wipe')
-  await window.setOption('relativenumber', false)
-  await window.setOption('signcolumn', 'no')
-  await window.setOption('number', false)
-  await window.setOption('cursorline', false)
-  await window.setOption('wrap', true)
-  await window.setOption('foldenable', false)
-  await window.setOption('spell', false)
-  await window.setOption('listchars', '')
+  return Promise.all([
+   window.setOption('winhl', 'Normal:nvimTypescriptPopupNormal,EndOfBuffer:nvimTypescriptEndOfBuffer'),
+   buffer.setOption('filetype', 'nvimtypescriptpopup'),
+   buffer.setOption('buftype', 'nofile'),
+   buffer.setOption('bufhidden', 'wipe'),
+   window.setOption('relativenumber', false),
+   window.setOption('signcolumn', 'no'),
+   window.setOption('number', false),
+   window.setOption('cursorline', false),
+   window.setOption('wrap', true),
+   window.setOption('foldenable', false),
+   window.setOption('spell', false),
+   window.setOption('listchars', ''),
 
-  await buffer.setLines(text, { start: 0, end: -1, strictIndexing: false })
-  await buffer.clearNamespace({ nsId: -1 })
-  await buffer.setOption('modified', false)
-  await buffer.setOption('modifiable', false)
-  // ]);
+   buffer.setLines(text, { start: 0, end: -1, strictIndexing: false }),
+   buffer.clearNamespace({ nsId: -1 }),
+   buffer.setOption('modified', false),
+   buffer.setOption('modifiable', false),
+  ]);
 };
 export const createFloatingWindow = async (nvim: Neovim, symbol: protocol.Diagnostic): Promise<Window> => {
   const buffer = (await createBuffer(nvim)) as Buffer;
@@ -138,8 +135,6 @@ export const createFloatingWindow = async (nvim: Neovim, symbol: protocol.Diagno
   return floatingWindow;
 };
 export const createHoverWindow = async (nvim: Neovim, symbol: protocol.QuickInfoResponseBody): Promise<Window> => {
-
-  debugger
   const buffer = (await createBuffer(nvim)) as Buffer;
   console.warn("AM HERE?")
   const text: string[] = processHoverText(symbol);
