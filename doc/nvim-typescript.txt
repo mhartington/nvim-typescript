@@ -224,6 +224,12 @@ Default: 1
 
     If set to 1, the linting errors will be shown.
 
+g:nvim_typescript#quiet_startup     *g:nvim_typescript#quiet_startup*
+Values: 0 or 1
+Default: 0
+
+    If set to 1, the "starting server" and "server started" messages won't
+    be shown.
 
 ===============================================================================
 MAPPINGS                                                  *typescript-mappings*

@@ -29,6 +29,8 @@ let g:nvim_typescript#debug_settings =
       \ get(g:, 'nvim_typescript#debug_settings', {'file': 'nvim-typescript-tsserver.log', 'level': 'normal'})
 let g:nvim_typescript#diagnostics_enable =
       \ get(g:, 'nvim_typescript#diagnostics_enable', 1)
+let g:nvim_typescript#quiet_startup =
+      \ get(g:, 'nvim_typescript#quiet_startup', 0)
 let g:nvim_typescript#server_options =
       \ get(g:, 'nvim_typescript#server_options', [])
 let g:nvim_typescript#expand_snippet =
