@@ -18,6 +18,7 @@ export default class TSHost {
   private maxCompletion: number;
   private expandSnippet: boolean;
   enableDiagnostics: boolean;
+  quietStartup: boolean;
 
   private completionChangeEvent: CompletionChangeEvent;
   private completedItem: CompletionItem;
@@ -729,8 +730,10 @@ export default class TSHost {
   // Life cycle events
   @Command('TSStart')
   async tsstart() {
-    await printHighlight(this.nvim, `Starting Server...`, 'Question');
     await this.init();
+    if (!this.quietStartup) {
+      await printHighlight(this.nvim, `Starting Server...`, 'Question');
+    }
     this.client.startServer();
     await this.onBufEnter();
   }
@@ -851,6 +854,7 @@ export default class TSHost {
       defaultSigns,
       expandSnippet,
       enableDiagnostics,
+      quietStartup,
       channelID
     ] = await Promise.all([
       this.nvim.getVar('nvim_typescript#max_completion_detail'),
@@ -859,10 +863,12 @@ export default class TSHost {
       this.nvim.getVar('nvim_typescript#default_signs'),
       this.nvim.getVar('nvim_typescript#expand_snippet'),
       this.nvim.getVar('nvim_typescript#diagnostics_enable'),
+      this.nvim.getVar('nvim_typescript#quiet_startup'),
       this.nvim.apiInfo
     ]);
     await this.nvim.setVar('nvim_typescript#channel_id', channelID[0]);
     this.enableDiagnostics = !!enableDiagnostics;
+    this.quietStartup = !!quietStartup;
     // console.warn(this.enableDiagnostics)
     this.maxCompletion = parseFloat(maxCompletion as string);
     this.expandSnippet = expandSnippet as boolean;
@@ -873,7 +879,9 @@ export default class TSHost {
 
     // this.nvim.on('changedtick', () => printHighlight(this.nvim,'test'));
     this.client.on('projectLoadingFinish', async () => {
-      await printHighlight(this.nvim, `Server started`, 'MoreMsg');
+      if (!this.quietStartup) {
+          await printHighlight(this.nvim, `Server started`, 'MoreMsg');
+      }
     });
 
     // this.nvim.on('notification', async (method, args)=> {
