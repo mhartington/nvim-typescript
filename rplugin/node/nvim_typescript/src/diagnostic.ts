@@ -63,17 +63,17 @@ class DiagnosticProvider {
       return { ...sign, id: this.signID++ };
     });
   }
-  async clearSigns(current) {
+  async clearSigns(current: {file: string, signs: SignStoreSign[]}) {
     // this.clearHighlight(current);
     await this.unsetSigns(current)
   }
-  async unsetSigns(currentEntry) {
+  async unsetSigns(current: {file: string, signs: SignStoreSign[]}) {
     console.warn('CALLING UNSET SIGNS')
-    if (currentEntry && currentEntry.signs.length > 0) {
+    if (current.signs.length > 0) {
       await Promise.all(
-        currentEntry.signs
+        current.signs
           .map((sign: SignStoreSign) => this.clearHighlight(sign))
-          .map(async (sign: SignStoreSign) => await this.nvim.call('sign_unplace', [name, { id: sign.id, buffer: currentEntry.file }]))
+          .map(async(sign: SignStoreSign) => await this.nvim.call('sign_unplace', [name, { buffer: current.file }]))
         // .map(async (sign) => await this.nvim.command(`sign unplace ${sign.id} file=${currentEntry.file}`))
         // .filter(() => false)
       )
@@ -106,7 +106,7 @@ class DiagnosticProvider {
       return sign;
     }
   }
-  async highlightLine(current) {
+  async highlightLine(current: {file: string, signs: SignStoreSign[]}) {
     await Promise.all([
       current.signs.map(async sign => {
         let hlGroup = this.getSignHighlight(sign);

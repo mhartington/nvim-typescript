@@ -132,9 +132,9 @@ augroup nvim-typescript "{{{
       autocmd DirChanged * call TSOnBufSave()
     endif
     if get(g:, 'nvim_typescript#diagnostics_enable', 1)
-      autocmd CursorMoved,CursorMovedI,InsertLeave *.js,*.jsx call TSCloseWindow()
       autocmd CursorHold,CursorHoldI *.js,*.jsx call TSEchoMessage()
     endif
+    autocmd CursorMoved,CursorMovedI,InsertLeave *.js,*.jsx call TSCloseWindow()
   endif "}}}
 
   " Vue Support {{{
@@ -151,9 +151,9 @@ augroup nvim-typescript "{{{
       autocmd CursorHold *.vue TSType
     endif
     if get(g:, 'nvim_typescript#diagnostics_enable', 1)
-      autocmd CursorMoved,CursorMovedI,InsertLeave *.vue call TSCloseWindow()
       autocmd CursorHold,CursorHoldI *.vue call TSEchoMessage()
     endif
+    autocmd CursorMoved,CursorMovedI,InsertLeave *.vue call TSCloseWindow()
   endif "}}}
 
   " Core {{{
@@ -170,10 +170,10 @@ augroup nvim-typescript "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif ""}}}
   if get(g:, 'nvim_typescript#diagnostics_enable', 1) "{{{
-    autocmd CursorMoved,CursorMovedI,InsertLeave *.ts,*.tsx call TSCloseWindow()
     autocmd CursorHold,CursorHoldI *.ts,*.tsx call TSEchoMessage()
   endif "}}}
 
+  autocmd CursorMoved,CursorMovedI,InsertLeave *.ts,*.tsx call TSCloseWindow()
   autocmd BufWritePost tsconfig.json TSReloadProject
   autocmd User CmSetup call cm#sources#typescript#register()
   " Cleanup required to prevent hanging on Windows exit

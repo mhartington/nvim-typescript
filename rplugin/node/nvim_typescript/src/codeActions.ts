@@ -8,7 +8,6 @@ export async function promptForSelection(
   options: CodeAction[],
   nvim: Neovim
 ): Promise<any> {
-  // console.warn(JSON.stringify(options))
   const changeDescriptions = options.map(change => change.description);
   const candidates = changeDescriptions.map(
     (change, idx) => `\n[${idx}]: ${change}`
