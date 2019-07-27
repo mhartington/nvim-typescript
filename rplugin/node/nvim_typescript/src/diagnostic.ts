@@ -19,8 +19,8 @@ class DiagnosticProvider {
       defaults.map(async (sign: any) => {
         let name = Object.keys(sign)[0];
         let data = sign[name];
-        // await this.nvim.command(`sign define ${name} text=${data.signText} texthl=${data.signTexthl}`)
-        await this.nvim.call('sign_define', [name, { text: data.signText, texthl: data.signTexthl }]);
+        await this.nvim.command(`sign define ${name} text=${data.signText} texthl=${data.signTexthl}`)
+        // await this.nvim.call('sign_define', [name, { text: data.signText, texthl: data.signTexthl }]);
       })
     );
   }
