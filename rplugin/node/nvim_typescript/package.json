@@ -11,14 +11,20 @@
   "author": "Mike Hartington <mikehartington@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^10.12.18",
-    "@types/tmp": "0.0.33",
-    "typescript": "3.4.0-rc",
-    "@types/lodash": "4.14.129"
+    "@types/chokidar": "2.1.3",
+    "@types/lodash": "4.14.136",
+    "@types/node": "12.6.8",
+    "@types/tmp": "0.1.0",
+    "@types/watch": "1.0.1",
+    "typescript": "3.4.0-rc"
   },
   "dependencies": {
-    "lodash": "4.17.11",
+    "chokidar": "3.0.2",
+    "lodash": "4.17.15",
     "neovim": "4.5.0",
-    "tmp": "0.0.33"
+    "nsfw": "1.2.5",
+    "tmp": "0.1.0",
+    "watch": "1.0.2",
+    "watchr": "4.1.0"
   }
 }

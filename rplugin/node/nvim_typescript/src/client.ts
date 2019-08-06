@@ -24,6 +24,7 @@ export class Client extends EventEmitter {
     minor: number;
     patch: number;
   } = null;
+  private getErrRes = [];
   // Get server, set server
   getServerPath() {
     return this.serverPath;
@@ -36,55 +37,60 @@ export class Client extends EventEmitter {
   }
 
   // Start the Proc
-  startServer() {
-    // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
-    let args = [...this.serverOptions, '--disableAutomaticTypingAcquisition']
-    let options: SpawnOptions = {
-      stdio: 'pipe',
-      cwd: this._cwd,
-      env: this._env,
-      detached: true,
-      shell: false
-    }
-    let cmd = this.serverPath;
-    if (platform() === 'win32') {
-      // detached must be false for windows to avoid child window
-      // https://nodejs.org/api/child_process.html#child_process_options_detached
-      options.detached = false;
-      args = ['/c', this.serverPath, ...args];
-      cmd = 'cmd';
-    }
-
-    this.serverHandle = spawn(cmd, args, options);
-
-
-    this._rl = createInterface({
-      input: this.serverHandle.stdout,
-      output: this.serverHandle.stdin,
-      terminal: false
-    });
-
-    this.serverHandle.stderr.on('data', (data, err) => {
-      console.error('Error from tss: ' + data);
-    });
-
-    this.serverHandle.on('error', data => {
-      console.log(`ERROR Event: ${data}`);
-    });
-
-    this.serverHandle.on('exit', data => {
-      console.log(`exit Event: ${data}`);
-    });
-
-    this.serverHandle.on('close', data => {
-      console.log(`Close Event: ${data}`);
-    });
-
-    this._rl.on('line', msg => {
-      if (msg.indexOf('{') === 0) {
-        this.parseResponse(msg);
+  startServer(): Promise<void> {
+    return new Promise((res) => {
+      // _env['TSS_LOG'] = "-logToFile true -file ./server.log"
+      let args = [...this.serverOptions, '--disableAutomaticTypingAcquisition']
+      let options: SpawnOptions = {
+        stdio: 'pipe',
+        cwd: this._cwd,
+        env: this._env,
+        detached: true,
+        shell: false
       }
-    });
+      let cmd = this.serverPath;
+      if (platform() === 'win32') {
+        // detached must be false for windows to avoid child window
+        // https://nodejs.org/api/child_process.html#child_process_options_detached
+        options.detached = false;
+        args = ['/c', this.serverPath, ...args];
+        cmd = 'cmd';
+      }
+
+      this.serverHandle = spawn(cmd, args, options);
+
+
+      this._rl = createInterface({
+        input: this.serverHandle.stdout,
+        output: this.serverHandle.stdin,
+        terminal: false
+      });
+
+      this.serverHandle.stderr.on('data', (data: string, _err: any) => {
+        console.error('Error from tss: ' + data);
+      });
+
+      this.serverHandle.on('error', data => {
+        console.log(`ERROR Event: ${data}`);
+      });
+
+      this.serverHandle.on('exit', data => {
+        console.log(`exit Event: ${data}`);
+      });
+
+      this.serverHandle.on('close', data => {
+        console.log(`Close Event: ${data}`);
+      });
+
+      this._rl.on('line', (msg: string) => {
+        if (msg.indexOf('{') === 0) {
+          this.parseResponse(msg);
+        }
+      });
+      return res();
+
+    })
+
   }
   stopServer() {
     this.serverHandle.kill('SIGINT');
@@ -116,6 +122,9 @@ export class Client extends EventEmitter {
   // LangServer Commands
   openFile(args: protocol.OpenRequestArgs): Promise<any> {
     return this._makeTssRequest(protocol.CommandTypes.Open, args);
+  }
+  closeFile(args: protocol.FileRequestArgs): Promise<any> {
+    return this._makeTssRequest(protocol.CommandTypes.Close, args);
   }
   reloadProject() {
     return this._makeTssRequest(protocol.CommandTypes.ReloadProjects, null);
@@ -227,8 +236,15 @@ export class Client extends EventEmitter {
     return this._makeTssRequest(protocol.CommandTypes.OrganizeImports, args);
   }
 
+  getProjectError(args: protocol.GeterrForProjectRequestArgs): void {
+    this._makeTssRequest(protocol.CommandTypes.GeterrForProject, args)
+  }
+  getEditsForFileRename(args: protocol.GetEditsForFileRenameRequestArgs): Promise<protocol.GetEditsForFileRenameResponse['body']> {
+    return this._makeTssRequest(protocol.CommandTypes.GetEditsForFileRename, args)
+  }
+
   // Server communication
-  _makeTssRequest<T>(commandName: string, args: any): Promise<T> {
+  _makeTssRequest<T>(commandName: string, args?: any): Promise<T> {
     const seq = this._seqNumber++;
     const payload = {
       seq,
@@ -259,14 +275,24 @@ export class Client extends EventEmitter {
       if (response.type && response.type === 'event') {
         if (response.event && response.event === 'telemetry') {
         }
+        if (response.event && response.event === 'projectsUpdatedInBackground') {
+          console.warn('projectsUpdatedInBackground: ', JSON.stringify(response.body))
+        }
         if (response.event && response.event === 'projectLoadingFinish') {
           this.emit('projectLoadingFinish')
         }
-        if (response.event && response.event === 'semanticDiag') {
-          this.emit('semanticDiag', response.body);
+        if (response.event && (response.event === 'semanticDiag' || response.event === 'syntaxDiag' || response.event === 'suggestionDiag')) {
+          this.getErrRes.push(response.body);
+        }
+        if (response.event && response.event === 'requestCompleted') {
+          this.getErrCompleted()
         }
       }
     }
+  }
+  getErrCompleted() {
+    this.emit('getErrCompleted', this.getErrRes)
+    this.getErrRes = [];
   }
   createDeferredPromise(): any {
     let resolve: Function;

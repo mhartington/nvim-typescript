@@ -29,8 +29,7 @@ function! airline#extensions#nvim_typescript#init(ext) "{{{
 endfunction "}}}
 
 function! airline#extensions#nvim_typescript#apply(...) "{{{
-
-  if get(g:, 'nvim_typescript_diagnostic_info', 1)
+  if get(g:, 'nvim_typescript#diagnostics_enable',  1)
         \&&  &filetype == "typescript"
         \|| &filetype == "typescript.tsx"
     let w:airline_section_warning = get(w:, 'airline_section_warning', g:airline_section_warning)

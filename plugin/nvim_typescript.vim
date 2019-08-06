@@ -121,6 +121,7 @@ augroup nvim-typescript "{{{
 
     autocmd BufEnter *.js,*.jsx  call nvim_typescript#DefaultKeyMap()
     autocmd BufEnter *.js,*.jsx  call TSOnBufEnter()
+    autocmd BufUnload *.js,*.jsx  call TSOnBufLeave(expand('%:p'))
     autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
     " if get(g:, 'nvim_typescript#signature_complete', 1)
     "    autocmd CompleteDone *.js,*.jsx TSSig
@@ -143,6 +144,7 @@ augroup nvim-typescript "{{{
     autocmd BufEnter *.vue  call nvim_typescript#DefaultKeyMap()
     autocmd BufEnter *.vue  call TSOnBufEnter()
     autocmd BufWritePost *.vue call TSOnBufSave()
+    autocmd BufUnload *.vue  call TSOnBufLeave(expand('%:p'))
     " if get(g:, 'nvim_typescript#signature_complete', 1)
     "    autocmd CompleteDone,Filetype vue TSSig
     "  autocmd CompleteDone *.vue TSSig
@@ -159,6 +161,7 @@ augroup nvim-typescript "{{{
   " Core {{{
   autocmd BufEnter *.ts,*.tsx  call nvim_typescript#DefaultKeyMap()
   autocmd BufEnter *.ts,*.tsx  call TSOnBufEnter()
+  autocmd BufUnload *.ts,*.tsx  call TSOnBufLeave(expand('%:p'))
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   " if get(g:, 'nvim_typescript#signature_complete', 1) "{{{
   "   autocmd CompleteDone *.ts,*.tsx TSSig

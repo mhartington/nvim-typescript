@@ -108,13 +108,15 @@ export async function createLocList(
   title: string,
   autoOpen = true
 ): Promise<any> {
-  return new Promise(async (resolve: any): Promise<any> => {
-    await nvim.call('setloclist', [0, list, 'r', title]);
-    if (autoOpen) {
-      await nvim.command('lwindow');
+  return new Promise(
+    async (resolve: any): Promise<any> => {
+      await nvim.call('setloclist', [0, list, 'r', title]);
+      if (autoOpen) {
+        await nvim.command('lwindow');
+      }
+      resolve();
     }
-    resolve();
-  });
+  );
 }
 
 export async function createQuickFixList(
@@ -124,18 +126,15 @@ export async function createQuickFixList(
     lnum: number;
     col: number;
     text: string;
-    code?: number;
+    nr?: number;
+    type?: string;
   }>,
   title: string,
   autoOpen = true
 ): Promise<any> {
-  return new Promise(async (resolve: any, reject: any): Promise<any> => {
-    await nvim.call('setqflist', [list, 'r', title]);
-    if (autoOpen) {
-      await nvim.command('botright copen');
-    }
-    resolve();
-  });
+    const qfList =  await nvim.call('setqflist', [list, 'r', title]);
+    console.warn("test: ", JSON.stringify(qfList))
+    if (autoOpen) await nvim.command('botright copen');
 }
 
 export async function truncateMsg(
@@ -172,7 +171,10 @@ export async function printHighlight(
 
 // ReduceByPrefix takes a list of basic complettions and a prefix and eliminates things
 // that don't match the prefix
-export const reduceByPrefix = ( prefix: string, c: ReadonlyArray<protocol.CompletionEntry> ): protocol.CompletionEntry[] => {
+export const reduceByPrefix = (
+  prefix: string,
+  c: ReadonlyArray<protocol.CompletionEntry>
+): protocol.CompletionEntry[] => {
   const re = new RegExp(prefix, 'i');
   return c.filter(v => re.test(v.name));
 };
@@ -200,10 +202,25 @@ export function leftpad(str: string, len: number, padRight = false, ch = ' ') {
   while (lpad.length < len) {
     lpad += ch;
   }
-  if(padRight){
+  if (padRight) {
     while (rpad.length < len) {
       rpad += ch;
     }
   }
   return lpad + str + rpad;
+}
+
+export function processErrors(res: Array<{file: string; diagnostics: protocol.Diagnostic[]}>) {
+  return res
+    .filter(e => !!e.diagnostics.length)
+    .filter(e => !e.file.includes('node_module'))
+    .flatMap(({ file, diagnostics }) =>
+      diagnostics.map((o: protocol.Diagnostic) => ({
+        filename: file,
+        lnum: o.start.line,
+        col: o.start.offset,
+        text: o.text,
+        type: o.category[0].toUpperCase()
+      }))
+    );
 }
