@@ -14,7 +14,12 @@
     "@types/lodash": "4.14.136",
     "@types/node": "12.6.8",
     "@types/tmp": "0.1.0",
+<<<<<<< HEAD
     "typescript": "3.4.0-rc"
+=======
+    "@types/watch": "1.0.1",
+    "typescript": "3.5.3"
+>>>>>>> init
   },
   "dependencies": {
     "lodash": "4.17.15",

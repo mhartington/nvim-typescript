@@ -6,7 +6,7 @@ import protocol from 'typescript/lib/protocol';
 import { TSServer } from './client';
 import { applyCodeFixes, promptForSelection } from './codeActions';
 import { DiagnosticHost } from './diagnostic';
-import { createFloatingWindow, createHoverWindow } from './floatingWindow';
+import { createFloatingWindow, updateFloatingWindow } from './floatingWindow';
 import { CompletionChangeEvent, CompletionItem } from './types';
 import { convertDetailEntry, convertEntry, createLocList, createQuickFixList, getKind, isRenameSuccess, printHighlight, reduceByPrefix, triggerChar, trim, truncateMsg, processErrors } from './utils';
 // import { watch } from 'chokidar'
@@ -26,9 +26,10 @@ export default class TSHost {
 
   private completionChangeEvent: CompletionChangeEvent;
   private completedItem: CompletionItem;
-  floatingWindow: Window[] = [];
+  floatingWindow: Window = null;
   doingCompletion = false;
   suggestionsEnabled: any;
+  updateTime: number;
   constructor(public nvim: Neovim) { }
 
   // @Autocmd('TextChangedP', { pattern: '*', sync: true })
@@ -63,13 +64,17 @@ export default class TSHost {
     try {
       const typeInfo = await this.client.quickInfo(args);
       if (Object.getOwnPropertyNames(typeInfo).length > 0) {
-        try {
-          const window = await createHoverWindow(this.nvim, typeInfo)
-          this.floatingWindow.push(window);
+        // try {
+        if (!this.floatingWindow) {
+          this.floatingWindow = await createFloatingWindow(this.nvim, typeInfo, 'Type')
+        } else {
+          this.floatingWindow = await updateFloatingWindow(this.nvim, this.floatingWindow, typeInfo, 'Type');
         }
-        catch (e) {
-          await printHighlight(this.nvim, await truncateMsg(this.nvim, typeInfo.displayString), 'MoreMsg', 'Function');
-        }
+        // }
+        // catch (e) {
+        //   console.warn("ERROR", e)
+        //   await printHighlight(this.nvim, await truncateMsg(this.nvim, typeInfo.displayString), 'MoreMsg', 'Function');
+        // }
       }
     } catch (err) {
       // console.warn('in catch', JSON.stringify(err));
@@ -541,8 +546,9 @@ export default class TSHost {
 
   @Function('TSCloseWindow')
   async onCursorMoved() {
-    if (this.floatingWindow.length > 0) {
-      await Promise.all([...this.floatingWindow.map(async window => await this.nvim.windowClose(window, true)), this.floatingWindow = []])
+    if (this.floatingWindow) {
+      await this.floatingWindow.close(true);
+      this.floatingWindow = null;
     }
   }
   @Function('TSEchoMessage')
@@ -552,16 +558,23 @@ export default class TSHost {
 
     const { file, line, offset } = await this.getCommonData();
     const errorSign = this.diagnosticHost.getSign(file, line, offset);
-    // console.warn(JSON.stringify(errorSign))
 
     if (errorSign) {
-      try {
-        const window = await createFloatingWindow(this.nvim, errorSign)
-        this.floatingWindow.push(window);
-      } catch (e) {
-        await printHighlight(this.nvim, await truncateMsg(this.nvim, errorSign.text), 'ErrorMsg');
-      }
+      (debounce(async () => {
+        try {
+          if (!this.floatingWindow) {
+            this.floatingWindow = await createFloatingWindow(this.nvim, errorSign, 'Error')
+
+          } else {
+            this.floatingWindow = await updateFloatingWindow(this.nvim, this.floatingWindow, errorSign, 'Error')
+          }
+        }
+        catch (e) {
+          await printHighlight(this.nvim, await truncateMsg(this.nvim, errorSign.text), 'ErrorMsg');
+        }
+      }, this.updateTime + 200))()
     }
+
   }
 
   @Command('TSGetErrorFull')
@@ -746,7 +759,7 @@ export default class TSHost {
       if (this.enableDiagnostics) {
         await this.onCursorMoved();
         await this.getDiagnostics();
-        await this.nvim.buffer.listen('lines', debounce(() => this.getDiagnostics(), 500));
+        this.nvim.buffer.listen('lines', debounce((() => this.getDiagnostics()), this.updateTime))
       }
     }
   }
@@ -955,7 +968,8 @@ export default class TSHost {
       enableDiagnostics,
       quietStartup,
       channelID,
-      suggestionsEnabled
+      suggestionsEnabled,
+      redrawTime
     ] = await Promise.all([
       this.nvim.getVar('nvim_typescript#max_completion_detail'),
       this.nvim.getVar('nvim_typescript#server_path'),
@@ -966,7 +980,10 @@ export default class TSHost {
       this.nvim.getVar('nvim_typescript#quiet_startup'),
       this.nvim.apiInfo,
       this.nvim.getVar('nvim_typescript#suggestions_enabled')
+      this.nvim.getOption('redrawtime') as Promise<number>,
     ]);
+
+    this.updateTime = redrawTime;
     await this.nvim.setVar('nvim_typescript#channel_id', channelID[0]);
     this.enableDiagnostics = !!enableDiagnostics;
     this.quietStartup = !!quietStartup;
