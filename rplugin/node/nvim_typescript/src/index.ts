@@ -62,12 +62,12 @@ export default class TSHost {
     try {
       const typeInfo = await this.client.quickInfo(args);
       if (Object.getOwnPropertyNames(typeInfo).length > 0) {
-        try{
-            const window = await createHoverWindow(this.nvim, typeInfo)
-            this.floatingWindow.push(window);
+        try {
+          const window = await createHoverWindow(this.nvim, typeInfo)
+          this.floatingWindow.push(window);
         }
-        catch(e){
-          await printHighlight( this.nvim, await truncateMsg(this.nvim, typeInfo.displayString), 'MoreMsg', 'Function');
+        catch (e) {
+          await printHighlight(this.nvim, await truncateMsg(this.nvim, typeInfo.displayString), 'MoreMsg', 'Function');
         }
       }
     } catch (err) {
@@ -471,6 +471,7 @@ export default class TSHost {
 
   @Function('TSGetWorkspaceSymbolsFunc', { sync: true })
   async getWorkspaceSymbolsFunc(args: any[]) {
+
     const searchValue = args.length > 0 ? args[0] : '';
     const maxResultCount = 50;
     const results = await this.client.getWorkspaceSymbols({
@@ -553,8 +554,8 @@ export default class TSHost {
       try {
         const window = await createFloatingWindow(this.nvim, errorSign)
         this.floatingWindow.push(window);
-      } catch(e) {
-        await printHighlight( this.nvim, await truncateMsg(this.nvim, errorSign.text), 'ErrorMsg');
+      } catch (e) {
+        await printHighlight(this.nvim, await truncateMsg(this.nvim, errorSign.text), 'ErrorMsg');
       }
     }
   }
@@ -736,7 +737,7 @@ export default class TSHost {
       const file = await this.getCurrentFile();
       const buffer = await this.nvim.buffer;
       const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
-      const fileContent =bufContent.join('\n');
+      const fileContent = bufContent.join('\n');
       this.client.openFile({ file, fileContent });
       if (this.enableDiagnostics) {
         await this.onCursorMoved();
@@ -753,7 +754,10 @@ export default class TSHost {
 
   @Function('TSOnBufLeave')
   async onBufLeave(arg: [string]) {
-    await this.client.closeFile({ file: arg[0] });
+    const [file] = arg;
+    if (file) {
+      await this.client.closeFile({ file });
+    }
   }
 
   // Life cycle events

@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-from .base import Base
+from denite.base.source import Base
 
 
 class Source(Base):

@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 from operator import itemgetter
-from .base import Base
+from denite.base.source import Base
 
 
 class Source(Base):
