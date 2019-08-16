@@ -735,10 +735,10 @@ export default class TSHost {
     }
     else {
       const file = await this.getCurrentFile();
-      const buffer = await this.nvim.buffer;
-      const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
-      const fileContent = bufContent.join('\n');
-      this.client.openFile({ file, fileContent });
+      // const buffer = await this.nvim.buffer;
+      // const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
+      // const fileContent = bufContent.join('\n');
+      this.client.openFile({ file });
       if (this.enableDiagnostics) {
         await this.onCursorMoved();
         await this.getDiagnostics();

@@ -39,7 +39,7 @@ endfunction "}}}
 
 function! s:check_required_node_for_nvim_typescript() abort "{{{
   call health#report_start('Check for node bindings')
-  if has('nvim-0.4.0')
+  if has('nvim-0.3.8')
     call health#report_ok('node bindings found')
   else
     call health#report_error('node bindings were not found', [
