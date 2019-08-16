@@ -47,12 +47,12 @@ class DiagnosticProvider {
 
     // Set buffer var for airline
     await this.nvim.buffer.setVar('nvim_typescript_diagnostic_info', current.signs);
-
+    console.warn(JSON.stringify(await this.nvim.buffer.getVar('nvim_typescript_diagnostic_info')))
     // console.warn("NOW SETTING SIGN")
     await Promise.all(
       current.signs.map(async sign => {
-        // await this.nvim.call('sign_place', [sign.id, name, `TS${sign.category}`, current.file, { lnum: sign.start.line, priority: 90 }]);
-        await this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
+        await this.nvim.call('sign_place', [sign.id, name, `TS${sign.category}`, current.file, { lnum: sign.start.line, priority: 90 }]);
+        // await this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
         locList.push({ filename: current.file, lnum: sign.start.line, col: sign.start.offset, text: sign.text, code: sign.code, type: sign.category[0].toUpperCase() });
       })
     )
@@ -61,22 +61,20 @@ class DiagnosticProvider {
     createLocList(this.nvim, locList, 'Errors', false);
   }
   normalizeSigns(signs: Diagnostic[]) {
-    return signs.map(sign => {
-      return { ...sign, id: this.signID++ };
-    });
+    return signs.map(sign => ({ ...sign, id: this.signID++ }));
   }
-  async clearSigns(current: {file: string, signs: SignStoreSign[]}) {
+  async clearSigns(current: { file: string, signs: SignStoreSign[] }) {
     // this.clearHighlight(current);
     await this.unsetSigns(current)
   }
-  async unsetSigns(current: {file: string, signs: SignStoreSign[]}) {
+  async unsetSigns(current: { file: string, signs: SignStoreSign[] }) {
     console.warn('CALLING UNSET SIGNS')
     if (current.signs.length > 0) {
       await Promise.all(
         current.signs
           .map((sign: SignStoreSign) => this.clearHighlight(sign))
-          // .map(async(sign: SignStoreSign) => await this.nvim.call('sign_unplace', [name, { buffer: current.file }]))
-        .map(async (sign) => await this.nvim.command(`sign unplace ${sign.id} file=${current.file}`))
+          .map(async (_sign: SignStoreSign) => await this.nvim.call('sign_unplace', [name, { buffer: current.file }]))
+        // .map(async (sign) => await this.nvim.command(`sign unplace ${sign.id} file=${current.file}`))
         // .filter(() => false)
       )
 
@@ -108,7 +106,7 @@ class DiagnosticProvider {
       return sign;
     }
   }
-  async highlightLine(current: {file: string, signs: SignStoreSign[]}) {
+  async highlightLine(current: { file: string, signs: SignStoreSign[] }) {
     await Promise.all([
       current.signs.map(async sign => {
         let hlGroup = this.getSignHighlight(sign);

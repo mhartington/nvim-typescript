@@ -5,7 +5,7 @@
   "main": "./lib/index.js",
   "scripts": {
     "build": "tsc --pretty -p tsconfig.json",
-    "watch": "tsc --pretty -p tsconfig.json --watch true"
+    "watch": "tsc --pretty -p tsconfig.json --watch"
   },
   "keywords": [],
   "author": "Mike Hartington <mikehartington@gmail.com>",

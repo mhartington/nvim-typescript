@@ -181,15 +181,11 @@ export class Client extends EventEmitter {
     return this._makeTssRequest(protocol.CommandTypes.TypeDefinition, args);
   }
 
-  getDocumentSymbols(
-    args: protocol.FileRequestArgs
-  ): Promise<protocol.NavTreeResponse['body']> {
+  getDocumentSymbols(args: protocol.FileRequestArgs): Promise<protocol.NavTreeResponse['body']> {
     return this._makeTssRequest(protocol.CommandTypes.NavTree, args);
   }
 
-  getWorkspaceSymbols(
-    args: protocol.NavtoRequestArgs
-  ): Promise<protocol.NavtoResponse['body']> {
+  getWorkspaceSymbols( args: protocol.NavtoRequestArgs): Promise<protocol.NavtoResponse['body']> {
     return this._makeTssRequest(protocol.CommandTypes.Navto, args);
   }
 
@@ -222,9 +218,7 @@ export class Client extends EventEmitter {
     return this._makeTssRequest(protocol.CommandTypes.GetApplicableRefactors, args);
   }
 
-  getSupportedCodeFixes(): Promise<
-    protocol.GetSupportedCodeFixesResponse['body']
-  > {
+  getSupportedCodeFixes(): Promise< protocol.GetSupportedCodeFixesResponse['body'] > {
     return this._makeTssRequest(protocol.CommandTypes.GetSupportedCodeFixes, null);
   }
 

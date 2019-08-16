@@ -10,6 +10,7 @@
     "moduleResolution": "node",
     "sourceMap": false,
     "target": "esNext",
-    "outDir": "./lib"
+    "outDir": "./lib",
+    "incremental": false
   }
 }

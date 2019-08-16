@@ -27,11 +27,10 @@ function! airline#extensions#nvim_typescript#init(ext) "{{{
 
   call a:ext.add_statusline_func('airline#extensions#nvim_typescript#apply')
 endfunction "}}}
-
 function! airline#extensions#nvim_typescript#apply(...) "{{{
-  if get(g:, 'nvim_typescript#diagnostics_enable',  1)
-        \&&  &filetype == "typescript"
-        \|| &filetype == "typescript.tsx"
+  if get(g:, 'nvim_typescript#diagnostics_enable', 1)
+        \ && &filetype == "typescript"
+        \ || &filetype == "typescript.tsx"
     let w:airline_section_warning = get(w:, 'airline_section_warning', g:airline_section_warning)
     let w:airline_section_warning .= '%{airline#extensions#nvim_typescript#get_warning()}'
 
