@@ -28,6 +28,7 @@ export default class TSHost {
   private completedItem: CompletionItem;
   floatingWindow: Window[] = [];
   doingCompletion = false;
+  suggestionsEnabled: any;
   constructor(public nvim: Neovim) { }
 
   // @Autocmd('TextChangedP', { pattern: '*', sync: true })
@@ -526,8 +527,11 @@ export default class TSHost {
         const file = await this.getCurrentFile();
         const sematicErrors = await this.getSematicErrors(file);
         const syntaxErrors = await this.getSyntaxErrors(file);
-        const suggestionErrors = await this.getSuggested(file);
-        const res = [...sematicErrors, ...syntaxErrors, ...suggestionErrors];
+        let res = [...sematicErrors, ...syntaxErrors];
+        if(this.suggestionsEnabled){
+          const suggestionErrors = await this.getSuggested(file);
+          res = [...res, ...suggestionErrors];
+        }
         await this.diagnosticHost.placeSigns(res, file);
         await this.onCursorMoved();
         await this.handleCursorMoved();
@@ -950,7 +954,8 @@ export default class TSHost {
       expandSnippet,
       enableDiagnostics,
       quietStartup,
-      channelID
+      channelID,
+      suggestionsEnabled
     ] = await Promise.all([
       this.nvim.getVar('nvim_typescript#max_completion_detail'),
       this.nvim.getVar('nvim_typescript#server_path'),
@@ -959,7 +964,8 @@ export default class TSHost {
       this.nvim.getVar('nvim_typescript#expand_snippet'),
       this.nvim.getVar('nvim_typescript#diagnostics_enable'),
       this.nvim.getVar('nvim_typescript#quiet_startup'),
-      this.nvim.apiInfo
+      this.nvim.apiInfo,
+      this.nvim.getVar('nvim_typescript#suggestions_enabled')
     ]);
     await this.nvim.setVar('nvim_typescript#channel_id', channelID[0]);
     this.enableDiagnostics = !!enableDiagnostics;
@@ -969,6 +975,7 @@ export default class TSHost {
     this.expandSnippet = expandSnippet as boolean;
     this.client.setServerPath(serverPath as string);
     this.client.serverOptions = serverOptions as string[];
+    this.suggestionsEnabled = suggestionsEnabled;
     await this.diagnosticHost.defineSigns(defaultSigns);
     this.client.setTSConfigVersion();
 

@@ -42,7 +42,9 @@ class DiagnosticProvider {
 
     // Normalize signs
     const normSigns = this.normalizeSigns(incomingSigns);
+
     current.signs = normSigns;
+
     // Set buffer var for airline
     await this.nvim.buffer.setVar('nvim_typescript_diagnostic_info', current.signs);
 
