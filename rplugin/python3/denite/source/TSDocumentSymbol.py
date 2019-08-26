@@ -21,20 +21,21 @@ class Source(Base):
     def convertToCandidate(self, symbols):
         candidates = []
         for symbol in symbols['childItems']:
-            candidates.append({
-                'text':  symbol['text'],
-                'kindIcon': self.getKind(symbol['kind']),
-                'lnum':  symbol['spans'][0]['start']['line'],
-                'col':  symbol['spans'][0]['start']['offset']
-            })
-            if 'childItems' in symbol and len(symbol['childItems']) > 0:
-                for childSymbol in symbol['childItems']:
-                    candidates.append({
-                        'text': '{0} - {1}'.format(childSymbol['text'], symbol['text']),
-                        'kindIcon': self.getKind(childSymbol['kind']),
-                        'lnum': childSymbol['spans'][0]['start']['line'],
-                        'col': childSymbol['spans'][0]['start']['offset']
-                    })
+            if symbol['kind'] is not 'alias':
+                candidates.append({
+                    'text':  symbol['text'],
+                    'kindIcon': self.getKind(symbol['kind']),
+                    'lnum':  symbol['spans'][0]['start']['line'],
+                    'col':  symbol['spans'][0]['start']['offset']
+                })
+                if 'childItems' in symbol and len(symbol['childItems']) > 0:
+                    for childSymbol in symbol['childItems']:
+                        candidates.append({
+                            'text': '\t {0} - {1}'.format(childSymbol['text'], symbol['text']),
+                            'kindIcon': self.getKind(childSymbol['kind']),
+                            'lnum': childSymbol['spans'][0]['start']['line'],
+                            'col': childSymbol['spans'][0]['start']['offset']
+                        })
         return candidates
 
     def gather_candidates(self, context):
