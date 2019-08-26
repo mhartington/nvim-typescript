@@ -15,11 +15,15 @@
     "@types/node": "12.6.8",
     "@types/tmp": "0.1.0",
 <<<<<<< HEAD
+<<<<<<< HEAD
     "typescript": "3.4.0-rc"
 =======
     "@types/watch": "1.0.1",
     "typescript": "3.5.3"
 >>>>>>> init
+=======
+    "typescript": "3.4.5"
+>>>>>>> finalize
   },
   "dependencies": {
     "lodash": "4.17.15",

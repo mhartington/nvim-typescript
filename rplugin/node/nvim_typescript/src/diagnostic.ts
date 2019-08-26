@@ -47,7 +47,6 @@ class DiagnosticProvider {
 
     // Set buffer var for airline
     await this.nvim.buffer.setVar('nvim_typescript_diagnostic_info', current.signs);
-    console.warn(JSON.stringify(await this.nvim.buffer.getVar('nvim_typescript_diagnostic_info')))
     // console.warn("NOW SETTING SIGN")
     await Promise.all(
       current.signs.map(async sign => {
@@ -68,19 +67,19 @@ class DiagnosticProvider {
     await this.unsetSigns(current)
   }
   async unsetSigns(current: { file: string, signs: SignStoreSign[] }) {
-    console.warn('CALLING UNSET SIGNS')
+    // console.warn('CALLING UNSET SIGNS')
     if (current.signs.length > 0) {
       await Promise.all(
         current.signs
-          .map((sign: SignStoreSign) => this.clearHighlight(sign))
-          .map(async (_sign: SignStoreSign) => await this.nvim.call('sign_unplace', [name, { buffer: current.file }]))
-        // .map(async (sign) => await this.nvim.command(`sign unplace ${sign.id} file=${current.file}`))
+          .map(async (sign: SignStoreSign) => await this.clearHighlight(sign))
+          .map(async () => await this.nvim.call('sign_unplace', [name, { buffer: current.file }]))
+        // .map(async (sign) => await this.nvim.command(`sign unplace file=${current.file}`))
         // .filter(() => false)
       )
 
     }
   }
-  getSign(file: string, line: number, offset: number): Diagnostic {
+  getSign(file: string, line: number, offset: number): SignStoreSign {
     const current = this.signStore.find(entry => entry.file === file);
     if (current) {
       let signs = current.signs;
@@ -95,16 +94,15 @@ class DiagnosticProvider {
       }
     }
   }
-  clearHighlight(sign: SignStoreSign) {
-    console.warn('CALLING CLEAR HIGHLIGHT: ', JSON.stringify(sign))
-    if (sign) {
-      this.nvim.buffer.clearNamespace({
-        nsId: this.namespaceId,
-        lineStart: sign.start.line - 1,
-        lineEnd: sign.end.line,
-      })
-      return sign;
-    }
+  async clearHighlight(sign: SignStoreSign) {
+    // console.warn('CALLING CLEAR HIGHLIGHT: ', JSON.stringify(sign))
+    const buffer = await this.nvim.buffer;
+    buffer.clearNamespace({
+      nsId: this.namespaceId,
+      lineStart: sign.start.line - 1,
+      lineEnd: sign.end.line,
+    })
+    return sign;
   }
   async highlightLine(current: { file: string, signs: SignStoreSign[] }) {
     await Promise.all([
@@ -128,6 +126,10 @@ class DiagnosticProvider {
         return data.texthl;
       }
     }
+  }
+  async clearAllHighlights(file: string){
+    const current = this.signStore.find(entry => entry.file === file);
+    await Promise.all(current.signs.map(async sign => await this.clearHighlight(sign)));
   }
 }
 export const DiagnosticHost = new DiagnosticProvider();

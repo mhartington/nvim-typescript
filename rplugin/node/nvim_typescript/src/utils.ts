@@ -106,7 +106,7 @@ export async function createLocList(
   nvim: Neovim,
   list: Array<{ filename: string; lnum: number; col: number; text: string }>,
   title: string,
-  autoOpen = true
+  autoOpen = false
 ): Promise<any> {
   return new Promise(
     async (resolve: any): Promise<any> => {
@@ -130,7 +130,7 @@ export async function createQuickFixList(
     type?: string;
   }>,
   title: string,
-  autoOpen = true
+  autoOpen = false
 ): Promise<any> {
     const qfList =  await nvim.call('setqflist', [list, 'r', title]);
     console.warn("test: ", JSON.stringify(qfList))

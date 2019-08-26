@@ -7,13 +7,8 @@ import { TSServer } from './client';
 import { applyCodeFixes, promptForSelection } from './codeActions';
 import { DiagnosticHost } from './diagnostic';
 import { createFloatingWindow, updateFloatingWindow } from './floatingWindow';
-import { CompletionChangeEvent, CompletionItem } from './types';
+// import { CompletionChangeEvent, CompletionItem } from './types';
 import { convertDetailEntry, convertEntry, createLocList, createQuickFixList, getKind, isRenameSuccess, printHighlight, reduceByPrefix, triggerChar, trim, truncateMsg, processErrors } from './utils';
-// import { watch } from 'chokidar'
-// import {createMonitor} from 'watch'
-
-// var nsfw = require('nsfw');
-// var watchr = require('watchr')
 
 @Plugin({ dev: false })
 export default class TSHost {
@@ -23,7 +18,7 @@ export default class TSHost {
   private expandSnippet: boolean;
   enableDiagnostics: boolean;
   quietStartup: boolean;
-
+  openFiles = [];
   // private completionChangeEvent: CompletionChangeEvent;
   // private completedItem: CompletionItem;
 
@@ -31,7 +26,6 @@ export default class TSHost {
   doingCompletion = false;
   suggestionsEnabled: any;
   updateTime: number;
-  openFiles: string[] = [];
   constructor(public nvim: Neovim) { }
 
   // @Autocmd('TextChangedP', { pattern: '*', sync: true })
@@ -40,22 +34,22 @@ export default class TSHost {
   // //   await this.tssig();
   // }
 
-  @Autocmd('CompleteChanged', { pattern: '*', sync: true })
-  async stopDiag() {
-    // this.completionChangeEvent = await this.nvim.getVvar('event') as CompletionChangeEvent;
-    // console.warn(JSON.stringify(this.completionChangeEvent));
+  // @Autocmd('CompleteChanged', { pattern: '*' })
+  // async stopDiag() {
+  //   // this.completionChangeEvent = await this.nvim.getVvar('event') as CompletionChangeEvent;
+  //   // console.warn(JSON.stringify(this.completionChangeEvent));
 
-    // console.warn('COMPLETION START')
-    this.doingCompletion = true
-    await this.closeFloatingWindow();
-  }
+  //   console.warn('COMPLETION START')
+  //   // this.doingCompletion = true
+  //   await this.onCursorMoved();
+  // }
 
   @Autocmd('CompleteDone', { pattern: '*', sync: true })
   async onCompleteDone() {
     // this.completedItem = await this.nvim.getVvar('completed_item') as CompletionItem;
     // console.warn(JSON.stringify(this.completedItem));
 
-    // console.warn("COMPLECTION DONE")
+    console.warn("COMPLECTION DONE")
     this.doingCompletion = false
     this.getDiagnostics()
   }
@@ -185,9 +179,7 @@ export default class TSHost {
           const commands = [];
 
           for (let rename of fileLocation.locs) {
-            // debugger;
             let { line, offset } = rename.start;
-
             const editLine = await this.nvim.buffer.getLines({
               start: line - 1,
               end: line,
@@ -211,6 +203,7 @@ export default class TSHost {
 
             changeCount += 1;
           }
+          console.warn(JSON.stringify(commands))
           await this.nvim.callAtomic(commands);
         }
 
@@ -220,7 +213,7 @@ export default class TSHost {
           renameResults.info.triggerSpan.start.offset
         ]);
 
-        await createQuickFixList(this.nvim, changedFiles, 'Renames', true);
+        await createQuickFixList(this.nvim, changedFiles, 'Renames', false);
         await printHighlight(this.nvim, `Replaced ${changeCount} in ${renameResults.locs.length} files`);
         await this.getDiagnostics();
 
@@ -307,17 +300,11 @@ export default class TSHost {
     }
   }
 
-  async complete(
-    file: string,
-    prefix: string,
-    offset: number,
-    line: number,
-    nvimVar: string
-  ) {
+  async complete( file: string, prefix: string, offset: number, line: number, nvimVar: string) {
     // console.warn(prefix, offset, line)
-    // this.doingCompletion = true
+    this.doingCompletion = true
+    await this.closeFloatingWindow();
     const currentLine = await this.nvim.call('nvim_get_current_line')
-    await this.handleCursorMoved();
     // console.warn(currentLine)
     let completeArgs: protocol.CompletionsRequestArgs = {
       file,
@@ -462,7 +449,9 @@ export default class TSHost {
   async getdocsymbolsFunc() {
     await this.reloadFile();
     const file = await this.getCurrentFile();
-    return await this.client.getDocumentSymbols({ file });
+    const symbols =  await this.client.getDocumentSymbols({ file });
+    console.warn(JSON.stringify(symbols))
+    return symbols;
   }
 
   @Command('TSGetWorkspaceSymbols', { nargs: '*' })
@@ -528,8 +517,8 @@ export default class TSHost {
   @Command('TSGetDiagnostics')
   async getDiagnostics() {
     if (this.enableDiagnostics) {
+      // console.warn("GETTING DiagnosticHost")
       if (this.doingCompletion === false) {
-        console.warn('DOING DiagnosticHost')
         await this.reloadFile();
         const file = await this.getCurrentFile();
         const sematicErrors = await this.getSematicErrors(file);
@@ -550,7 +539,7 @@ export default class TSHost {
   closeFloatingWindow() {
     if (!!this.floatingWindow) {
       return this.floatingWindow.close(true).then(
-        () => this.floatingWindow = null,
+        () => {this.floatingWindow = null; return;},
         (err) => console.warn('there was an err', err)
       );
     }
@@ -626,6 +615,18 @@ export default class TSHost {
     const { file, line, offset } = await this.getCommonData();
     const errorAtCursor = this.diagnosticHost.getSign(file, line, offset);
     if (errorAtCursor) {
+
+      // scope: {
+      //   type: 'file',
+      //   args: { file }
+      // }
+      // const combinedFixes = await this.client.getCombinedCodeFix(
+      //   {
+      //   scope: { type: 'file', args: {file} },
+      //   fixId: {}});
+      //   console.warn('COMBO FIXES: ', JSON.stringify(combinedFixes))
+
+
       const fixes = await this.client.getCodeFixes({
         file,
         startLine: errorAtCursor.start.line,
@@ -635,16 +636,14 @@ export default class TSHost {
         errorCodes: [errorAtCursor.code]
       });
       if (fixes.length !== 0) {
-        promptForSelection(fixes, this.nvim).then(
-          async res => await applyCodeFixes(res, this.nvim),
-          rej => printHighlight(this.nvim, rej, 'ErrorMsg')
-        );
+        const promptSel = await promptForSelection(fixes,this.nvim);
+        await this.diagnosticHost.clearAllHighlights(file)
+        await applyCodeFixes(promptSel, this.nvim)
       } else {
         await printHighlight(this.nvim, 'No fix');
       }
     }
   }
-
 
   @Command('TSBuild')
   async buildProject() {
@@ -653,7 +652,6 @@ export default class TSHost {
     const file = await this.getCurrentFile();
     await this.client.getProjectError({ file, delay: 0 })
   }
-
   async processProjectErrorRes(res: any[]) {
     const fmtErrors = processErrors(res)
     try {
@@ -787,6 +785,7 @@ export default class TSHost {
   async onBufLeave(arg: [string]) {
     const [file] = arg;
     if (file) {
+      this.openFiles = this.openFiles.filter(e => e != file);
       await this.client.closeFile({ file });
     }
   }
@@ -798,16 +797,45 @@ export default class TSHost {
     if (!this.quietStartup) {
       await printHighlight(this.nvim, `Starting Server...`, 'Question');
     }
-    await this.client.startServer();
+    this.client.startServer();
     await this.onBufEnter();
-    await this.createWatcher()
+    // await this.createWatcher()
   }
   async createWatcher() {
-    console.warn('nothing yet')
     // const dir = await this.nvim.call('getcwd');
     // const { fileNames } = await this.getProjectInfoFunc()
 
 
+// [
+//   {
+//     "action": 0, // nsfw.actions.CREATED
+//     "directory": "/home/nsfw/watchDir",
+//     "file": "folder"
+//   },
+//   {
+//     "action": 1, // nsfw.actions.DELETED
+//     "directory": "home/nsfw/watchDir/testFolder",
+//     "file": "test.ext"
+//   },
+//   {
+//     "action": 2, // nsfw.actions.MODIFIED
+//     "directory": "/home/nsfw/watchDir",
+//     "file": "file1.ext"
+//   },
+//   {
+//     "action": 3, // nsfw.actions.RENAMED
+//     "directory": "home/nsfw/watchDir",
+//     "oldFile": "oldname.ext",
+//     "newDirectory": "home/nsfw/watchDir/otherDirectory"
+//     "newFile": "newname.ext"
+//   }
+// ]
+// nsfw.actions = {
+//   CREATED: 0,
+//   DELETED: 1,
+//   MODIFIED: 2,
+//   RENAMED: 3
+// };
     // const watcher = await nsfw(dir, (events) => {
     //     console.warn(JSON.stringify(events))
     // })
@@ -833,7 +861,7 @@ export default class TSHost {
 
 
     // const watcher = watch('', {
-    //   ignored: ['node_modules/**', '.git/**'],
+    //   ignored: ['node_modules/**', '.git/**', '*.log'],
     //   ignoreInitial: true,
     //   cwd: dir,
     //   persistent: true,

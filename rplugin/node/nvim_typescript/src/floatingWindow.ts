@@ -5,6 +5,7 @@ import { OpenWindowOptions } from 'neovim/lib/api/Neovim';
 let windowRef: Window = null;
 const col = async (nvim: Neovim) => await nvim.window.width
 const createBuffer = async (nvim: Neovim) => await nvim.createBuffer(false, false);
+
 const processHoverText = (symbol: protocol.QuickInfoResponseBody) => {
   const text = symbol.displayString.split(/\r|\n/g).map(e => leftpad(e, 1, true));
   let sepLength = text[0].length;
@@ -38,7 +39,6 @@ const processHoverText = (symbol: protocol.QuickInfoResponseBody) => {
   }
   return text;
 }
-
 const processErrorText = (symbol: protocol.Diagnostic) => {
   return symbol.text.split('\n').map((e: string, idx: number) => {
     if (idx === 0) {
@@ -162,7 +162,7 @@ export const updateFloatingWindow = async (nvim: Neovim, window: Window, symbol:
   if (checkArrays(refText, text)) {
     return window
   }
-  let newText;
+  let newText: string[];
   if (type === 'Error') {
     newText = [...refText, sep, ...text];
   } else {
