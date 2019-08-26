@@ -231,6 +231,15 @@ Default: 0
     If set to 1, the "starting server" and "server started" messages won't
     be shown.
 
+                                      	 *g:nvim_typescript#suggestions_enabled*
+g:nvim_typescript#suggestions_enabled
+Values: 0 or 1
+Default: 1
+
+    Enables display of suggestions as well as errors. If set to 1, you will
+    be shown hints even for typescript errors that have been disabled in your
+    tsconfig.json.
+
 ===============================================================================
 MAPPINGS                                                  *typescript-mappings*
 

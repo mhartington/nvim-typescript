@@ -42,7 +42,15 @@ class DiagnosticProvider {
 
     // Normalize signs
     const normSigns = this.normalizeSigns(incomingSigns);
-    current.signs = normSigns;
+
+    // Strip out suggetions if they are not enabled
+    const suggestionsEnabled = await this.nvim.getVar('nvim_typescript#suggestions_enabled');
+    if (suggestionsEnabled) {
+      current.signs = normSigns;
+    } else {
+      current.signs = normSigns.filter(sign => sign.category !== 'suggestion');
+    }
+
     // Set buffer var for airline
     await this.nvim.buffer.setVar('nvim_typescript_diagnostic_info', current.signs);
 
