@@ -1,5 +1,4 @@
-import { statSync, writeFileSync } from 'fs';
-import { debounce } from 'lodash';
+import { statSync, writeFileSync } from 'fs';import { debounce } from 'lodash';
 import { Autocmd, Command, Function, Neovim, Plugin, Window } from 'neovim';
 import { fileSync } from 'tmp';
 import protocol from 'typescript/lib/protocol';
@@ -536,14 +535,14 @@ export default class TSHost {
   }
 
   @Function('TSCloseWindow')
-  closeFloatingWindow() {
+  async closeFloatingWindow() {
     if (!!this.floatingWindow) {
-      return this.floatingWindow.close(true).then(
-        () => {this.floatingWindow = null; return;},
-        (err) => console.warn('there was an err', err)
-      );
+      await this.floatingWindow.close(true)
+      .catch(err => { throw new Error(`There was an error, ${err}`) })
+      this.floatingWindow = null;
     }
   }
+
   @Function('TSEchoMessage')
   async handleCursorMoved() {
     const buftype = await this.nvim.eval('&buftype');
@@ -769,8 +768,10 @@ export default class TSHost {
           await this.getDiagnostics();
           this.nvim.buffer.listen('lines', debounce((() => this.getDiagnostics()), this.updateTime))
         }
+      } else {
+          await this.closeFloatingWindow();
+          await this.getDiagnostics();
       }
-
       console.warn("OPENED FILES", JSON.stringify(this.openFiles))
     }
   }
@@ -1073,11 +1074,7 @@ export default class TSHost {
   async getCursorPos(): Promise<[number, number]> {
     return await this.nvim.window.cursor;
   }
-  async getCommonData(): Promise<{
-    file: string;
-    line: number;
-    offset: number;
-  }> {
+  async getCommonData(): Promise<{ file: string; line: number; offset: number; }> {
     let file = await this.getCurrentFile();
     let cursorPos = await this.getCursorPos();
     return {
