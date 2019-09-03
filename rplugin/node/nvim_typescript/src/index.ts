@@ -1,4 +1,5 @@
-import { statSync, writeFileSync } from 'fs';import { debounce } from 'lodash';
+import { statSync, writeFileSync } from 'fs';
+import { debounce } from 'lodash';
 import { Autocmd, Command, Function, Neovim, Plugin, Window } from 'neovim';
 import { fileSync } from 'tmp';
 import protocol from 'typescript/lib/protocol';
@@ -518,18 +519,19 @@ export default class TSHost {
     if (this.enableDiagnostics) {
       // console.warn("GETTING DiagnosticHost")
       if (this.doingCompletion === false) {
-        await this.reloadFile();
+        this.reloadFile();
         const file = await this.getCurrentFile();
+        console.warn("FILE", file)
         const sematicErrors = await this.getSematicErrors(file);
-        const syntaxErrors = await this.getSyntaxErrors(file);
-        let res = [...sematicErrors, ...syntaxErrors];
-        if(this.suggestionsEnabled){
-          const suggestionErrors = await this.getSuggested(file);
-          res = [...res, ...suggestionErrors];
-        }
-        await this.diagnosticHost.placeSigns(res, file);
-        await this.closeFloatingWindow();
-        await this.handleCursorMoved();
+        // const syntaxErrors = await this.getSyntaxErrors(file);
+        // let res = [...sematicErrors, ...syntaxErrors];
+        // if(this.suggestionsEnabled){
+        //   const suggestionErrors = await this.getSuggested(file);
+        //   res = [...res, ...suggestionErrors];
+        // }
+        // await this.diagnosticHost.placeSigns(res, file);
+        // await this.closeFloatingWindow();
+        // await this.handleCursorMoved();
       }
     }
   }
@@ -704,6 +706,7 @@ export default class TSHost {
   }
 
   async getSematicErrors(file: string) {
+    debugger;
     return await this.client.getSemanticDiagnosticsSync({ file });
   }
   async getSyntaxErrors(file: string) {
@@ -749,28 +752,33 @@ export default class TSHost {
   @Function('TSOnBufEnter')
   async onBufEnter(arg?: [string]) {
     if (this.client.serverHandle == null) {
-      await this.tsstart();
+      await this.tsstart()
     }
     else {
       const file = await this.getCurrentFile();
+      console.warn('FILE', JSON.stringify(file))
       if (arg && arg[0] !== file) {
         console.warn('Current buffer no longer file that triggered BufEnter');
         return;
       }
       if (!this.openFiles.includes(file)) {
+        console.warn("MADE IT HERE")
         this.openFiles.push(file);
         const buffer = await this.nvim.buffer;
         const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
         const fileContent = bufContent.join('\n');
         this.client.openFile({ file, fileContent });
+        console.warn('k, here ')
         if (this.enableDiagnostics) {
-          await this.closeFloatingWindow();
-          await this.getDiagnostics();
-          this.nvim.buffer.listen('lines', debounce((() => this.getDiagnostics()), this.updateTime))
+          // await this.closeFloatingWindow();
+          // await this.getDiagnostics();
+          // console.warn(debounce)
+          // this.nvim.buffer.listen('lines', debounce((() => this.getDiagnostics()), this.updateTime))
         }
+
       } else {
           await this.closeFloatingWindow();
-          await this.getDiagnostics();
+          // await this.getDiagnostics();
       }
       console.warn("OPENED FILES", JSON.stringify(this.openFiles))
     }
@@ -798,10 +806,11 @@ export default class TSHost {
     if (!this.quietStartup) {
       await printHighlight(this.nvim, `Starting Server...`, 'Question');
     }
-    this.client.startServer();
+    this.client.startServer().catch(e => console.warn('error in ts start: ', JSON.stringify(e)));
     await this.onBufEnter();
     // await this.createWatcher()
   }
+
   async createWatcher() {
     // const dir = await this.nvim.call('getcwd');
     // const { fileNames } = await this.getProjectInfoFunc()
@@ -1053,7 +1062,6 @@ export default class TSHost {
   }
 
   async reloadFile(): Promise<any> {
-    return new Promise(async (resolve) => {
       const file = await this.getCurrentFile();
       const buffer = await this.nvim.buffer;
       const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
@@ -1062,11 +1070,9 @@ export default class TSHost {
 
       const temp = fileSync();
       writeFileSync(temp.name, contents, 'utf8');
-      return this.client
-        .updateFile({ file, tmpfile: temp.name })
-        .then(res => resolve(res))
-        .then(() => temp.removeCallback())
-    });
+      await this.client.updateFile({file, tmpfile: temp.name});
+      temp.removeCallback()
+      return;
   }
   async getCurrentFile(): Promise<string> {
     return await this.nvim.buffer.name;
