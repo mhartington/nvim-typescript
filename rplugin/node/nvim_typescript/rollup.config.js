@@ -7,17 +7,17 @@ export default {
   plugins: [
     resolve(),
     typescript(),
-    // terser({
-    //   sourcemap: true,
-    //   output: { comments: false },
-    //   // compress: {
-    //   //   keep_infinity: true,
-    //   //   pure_getters: true,
-    //   //   passes: 10
-    //   // },
-    //   ecma: 5,
-    //   warnings: true
-    // })
+    terser({
+      sourcemap: true,
+      output: { comments: false },
+      compress: {
+        keep_infinity: true,
+        pure_getters: true,
+        passes: 10
+      },
+      ecma: 5,
+      warnings: true
+    })
   ],
   external: [
     'fs',

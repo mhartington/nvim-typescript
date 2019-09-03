@@ -117,9 +117,9 @@ export class Client extends EventEmitter {
 
   // LangServer Commands
   //
-  openFile(args: protocol.OpenRequestArgs) { this._makeNoResponseRequest('open', args); }
-  closeFile(args: protocol.FileRequestArgs)  { this._makeNoResponseRequest('close', args); }
-  reloadProject() { this._makeNoResponseRequest('reloadProject', null); }
+  openFile(args: protocol.OpenRequestArgs) { return this._makeTssRequest('open', args); }
+  closeFile(args: protocol.FileRequestArgs)  { return this._makeTssRequest('close', args); }
+  reloadProject() { return this._makeTssRequest('reloadProject', null); }
 
   updateFile( args: protocol.ReloadRequestArgs): Promise<protocol.ReloadResponse> { return this._makeTssRequest('reload', args); }
   quickInfo( args: protocol.FileLocationRequestArgs): Promise<protocol.QuickInfoResponseBody> { return this._makeTssRequest('quickinfo', args); }

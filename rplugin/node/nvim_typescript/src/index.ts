@@ -300,7 +300,7 @@ export default class TSHost {
     }
   }
 
-  async complete( file: string, prefix: string, offset: number, line: number, nvimVar: string) {
+  async complete(file: string, prefix: string, offset: number, line: number, nvimVar: string) {
     // console.warn(prefix, offset, line)
     this.doingCompletion = true
     await this.closeFloatingWindow();
@@ -449,7 +449,7 @@ export default class TSHost {
   async getdocsymbolsFunc() {
     await this.reloadFile();
     const file = await this.getCurrentFile();
-    const symbols =  await this.client.getDocumentSymbols({ file });
+    const symbols = await this.client.getDocumentSymbols({ file });
     console.warn(JSON.stringify(symbols))
     return symbols;
   }
@@ -523,15 +523,15 @@ export default class TSHost {
         const file = await this.getCurrentFile();
         console.warn("FILE", file)
         const sematicErrors = await this.getSematicErrors(file);
-        // const syntaxErrors = await this.getSyntaxErrors(file);
-        // let res = [...sematicErrors, ...syntaxErrors];
-        // if(this.suggestionsEnabled){
-        //   const suggestionErrors = await this.getSuggested(file);
-        //   res = [...res, ...suggestionErrors];
-        // }
-        // await this.diagnosticHost.placeSigns(res, file);
-        // await this.closeFloatingWindow();
-        // await this.handleCursorMoved();
+        const syntaxErrors = await this.getSyntaxErrors(file);
+        let res = [...sematicErrors, ...syntaxErrors];
+        if (this.suggestionsEnabled) {
+          const suggestionErrors = await this.getSuggested(file);
+          res = [...res, ...suggestionErrors];
+        }
+        await this.diagnosticHost.placeSigns(res, file);
+        await this.closeFloatingWindow();
+        await this.handleCursorMoved();
       }
     }
   }
@@ -540,7 +540,7 @@ export default class TSHost {
   async closeFloatingWindow() {
     if (!!this.floatingWindow) {
       await this.floatingWindow.close(true)
-      .catch(err => { throw new Error(`There was an error, ${err}`) })
+        .catch(err => { throw new Error(`There was an error, ${err}`) })
       this.floatingWindow = null;
     }
   }
@@ -637,7 +637,7 @@ export default class TSHost {
         errorCodes: [errorAtCursor.code]
       });
       if (fixes.length !== 0) {
-        const promptSel = await promptForSelection(fixes,this.nvim);
+        const promptSel = await promptForSelection(fixes, this.nvim);
         await this.diagnosticHost.clearAllHighlights(file)
         await applyCodeFixes(promptSel, this.nvim)
       } else {
@@ -770,15 +770,16 @@ export default class TSHost {
         this.client.openFile({ file, fileContent });
         console.warn('k, here ')
         if (this.enableDiagnostics) {
-          // await this.closeFloatingWindow();
-          // await this.getDiagnostics();
-          // console.warn(debounce)
-          // this.nvim.buffer.listen('lines', debounce((() => this.getDiagnostics()), this.updateTime))
+          await this.closeFloatingWindow();
+          await this.getDiagnostics();
+          this.nvim.buffer.listen('lines', debounce((() => this.getDiagnostics()), this.updateTime))
         }
 
       } else {
-          await this.closeFloatingWindow();
-          // await this.getDiagnostics();
+        await this.closeFloatingWindow();
+        // if (this.enableDiagnostics) {
+        await this.getDiagnostics();
+        // }
       }
       console.warn("OPENED FILES", JSON.stringify(this.openFiles))
     }
@@ -816,36 +817,36 @@ export default class TSHost {
     // const { fileNames } = await this.getProjectInfoFunc()
 
 
-// [
-//   {
-//     "action": 0, // nsfw.actions.CREATED
-//     "directory": "/home/nsfw/watchDir",
-//     "file": "folder"
-//   },
-//   {
-//     "action": 1, // nsfw.actions.DELETED
-//     "directory": "home/nsfw/watchDir/testFolder",
-//     "file": "test.ext"
-//   },
-//   {
-//     "action": 2, // nsfw.actions.MODIFIED
-//     "directory": "/home/nsfw/watchDir",
-//     "file": "file1.ext"
-//   },
-//   {
-//     "action": 3, // nsfw.actions.RENAMED
-//     "directory": "home/nsfw/watchDir",
-//     "oldFile": "oldname.ext",
-//     "newDirectory": "home/nsfw/watchDir/otherDirectory"
-//     "newFile": "newname.ext"
-//   }
-// ]
-// nsfw.actions = {
-//   CREATED: 0,
-//   DELETED: 1,
-//   MODIFIED: 2,
-//   RENAMED: 3
-// };
+    // [
+    //   {
+    //     "action": 0, // nsfw.actions.CREATED
+    //     "directory": "/home/nsfw/watchDir",
+    //     "file": "folder"
+    //   },
+    //   {
+    //     "action": 1, // nsfw.actions.DELETED
+    //     "directory": "home/nsfw/watchDir/testFolder",
+    //     "file": "test.ext"
+    //   },
+    //   {
+    //     "action": 2, // nsfw.actions.MODIFIED
+    //     "directory": "/home/nsfw/watchDir",
+    //     "file": "file1.ext"
+    //   },
+    //   {
+    //     "action": 3, // nsfw.actions.RENAMED
+    //     "directory": "home/nsfw/watchDir",
+    //     "oldFile": "oldname.ext",
+    //     "newDirectory": "home/nsfw/watchDir/otherDirectory"
+    //     "newFile": "newname.ext"
+    //   }
+    // ]
+    // nsfw.actions = {
+    //   CREATED: 0,
+    //   DELETED: 1,
+    //   MODIFIED: 2,
+    //   RENAMED: 3
+    // };
     // const watcher = await nsfw(dir, (events) => {
     //     console.warn(JSON.stringify(events))
     // })
@@ -1062,17 +1063,17 @@ export default class TSHost {
   }
 
   async reloadFile(): Promise<any> {
-      const file = await this.getCurrentFile();
-      const buffer = await this.nvim.buffer;
-      const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
+    const file = await this.getCurrentFile();
+    const buffer = await this.nvim.buffer;
+    const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
 
-      const contents = bufContent.join('\n');
+    const contents = bufContent.join('\n');
 
-      const temp = fileSync();
-      writeFileSync(temp.name, contents, 'utf8');
-      await this.client.updateFile({file, tmpfile: temp.name});
-      temp.removeCallback()
-      return;
+    const temp = fileSync();
+    writeFileSync(temp.name, contents, 'utf8');
+    this.client.updateFile({ file, tmpfile: temp.name });
+    temp.removeCallback()
+    return;
   }
   async getCurrentFile(): Promise<string> {
     return await this.nvim.buffer.name;
