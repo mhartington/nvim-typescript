@@ -128,13 +128,13 @@ export class Client extends EventEmitter {
     let requestCmd = this.isCurrentVersionHighter(300) ? 'completionInfo' : 'completions';
     return this._makeTssRequest(requestCmd, args);
   }
-  getCompletionDetails(args: protocol.CompletionDetailsRequestArgs): Promise<protocol.CompletionDetailsResponse['body']> { return this._makeTssRequest('completionDetails', args); }
+  getCompletionDetails(args: protocol.CompletionDetailsRequestArgs): Promise<protocol.CompletionDetailsResponse['body']> { return this._makeTssRequest('completionEntryDetails', args); }
   getProjectInfo(args: protocol.ProjectInfoRequestArgs): Promise<protocol.ProjectInfo> { return this._makeTssRequest('projectInfo', args); }
   getSymbolRefs(args: protocol.FileLocationRequestArgs): Promise<protocol.ReferencesResponse['body']> { return this._makeTssRequest('references', args); }
   getSignature(args: protocol.FileLocationRequestArgs): Promise<protocol.SignatureHelpResponse['body']> { return this._makeTssRequest('signatureHelp', args); }
   renameSymbol(args: protocol.RenameRequestArgs): Promise<protocol.RenameResponseBody> { return this._makeTssRequest('rename', args); }
   getTypeDef(args: protocol.FileLocationRequestArgs): Promise<protocol.TypeDefinitionResponse['body']> { return this._makeTssRequest('typeDefinition', args); }
-  getDocumentSymbols(args: protocol.FileRequestArgs): Promise<protocol.NavTreeResponse['body']> { return this._makeTssRequest('navTree', args); }
+  getDocumentSymbols(args: protocol.FileRequestArgs): Promise<protocol.NavTreeResponse['body']> { return this._makeTssRequest('navtree', args); }
   getWorkspaceSymbols(args: protocol.NavtoRequestArgs): Promise<protocol.NavtoResponse['body']> { return this._makeTssRequest('navto', args); }
   getSemanticDiagnosticsSync(args: protocol.SemanticDiagnosticsSyncRequestArgs): Promise<protocol.Diagnostic[]> { return this._makeTssRequest('semanticDiagnosticsSync', args); }
   getSyntacticDiagnosticsSync(args: protocol.SyntacticDiagnosticsSyncRequestArgs): Promise<protocol.Diagnostic[]> { return this._makeTssRequest('syntacticDiagnosticsSync', args); }
@@ -177,7 +177,7 @@ export class Client extends EventEmitter {
   }
   parseResponse(returnedData: string): void {
     const response = JSON.parse(returnedData);
-    console.warn(returnedData)
+    // console.warn(returnedData)
     const seq = response.request_seq;
     const success = response.success;
     if (typeof seq === 'number') {

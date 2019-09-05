@@ -336,24 +336,31 @@ export default class TSHost {
       completions = await this.client.getCompletions(completeArgs);
     }
 
-    if (completions.length > this.maxCompletion) {
-      // console.warn(JSON.stringify(completions))
-      let completionRes = await Promise.all(completions.map(async (entry: protocol.CompletionEntry) => await convertEntry(this.nvim, entry)));
-      await this.nvim.setVar(nvimVar, completionRes);
-      return completionRes;
+    if (completions.length > 0) {
+      if (completions.length > this.maxCompletion) {
+        let completionRes = await Promise.all(completions.map(async (entry: protocol.CompletionEntry) => await convertEntry(this.nvim, entry)));
+        await this.nvim.setVar(nvimVar, completionRes);
+        return completionRes;
+      } else {
+        const entryNames = completions.map(v => v.name)
+        let detailedCompletions = await this.client.getCompletionDetails({
+          file,
+          line,
+          offset,
+          entryNames
+        });
+        console.warn(JSON.stringify(detailedCompletions))
+        let completionResDetailed = await Promise.all(detailedCompletions.map(async (entry) => await convertDetailEntry(this.nvim, entry, this.expandSnippet)));
+
+        await this.nvim.setVar(nvimVar, completionResDetailed);
+        return completionResDetailed;
+      }
+
+
+    } else {
+      await this.nvim.setVar(nvimVar, []);
+      return []
     }
-
-    let detailedCompletions = await this.client.getCompletionDetails({
-      file,
-      line,
-      offset,
-      entryNames: completions.map((v: { name: any; }) => v.name)
-    });
-
-    let completionResDetailed = await Promise.all(detailedCompletions.map(async (entry) => await convertDetailEntry(this.nvim, entry, this.expandSnippet)));
-
-    await this.nvim.setVar(nvimVar, completionResDetailed);
-    return completionResDetailed;
   }
 
   //Omni functions

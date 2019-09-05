@@ -70,7 +70,7 @@ export async function convertDetailEntry(
     ''
   );
   const word = !!expandSnippet ? `${entry.name}${getAbbr(entry)}` : entry.name;
-  const info = entry.documentation.map(d => d.text).join('\n');
+  const info = entry.documentation ? entry.documentation.map(d => d.text).join('\n') : '';
   let kind = await getKind(nvim, entry.kind);
 
   return {

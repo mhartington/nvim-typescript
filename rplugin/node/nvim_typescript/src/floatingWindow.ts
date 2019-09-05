@@ -53,19 +53,23 @@ const processErrorText = (symbol: protocol.Diagnostic) => {
 const popupWindowSize = async (nvim: Neovim, contents: string[]): Promise<[number, number]> => {
   let width = 0;
   let colsize = await col(nvim);
-  let max_width = Math.min(colsize, 80)
+  let max_width = Math.min(colsize, 20)
+  let max_height= 20;
   let height = 0;
   for (let line of contents) {
     let lw = line.length;
     if (lw > width) {
       if (lw > max_width) {
-        height += lw / max_width + 2;
         width = max_width;
       }
       width = lw;
     }
     height += 1;
+    if(height > max_height){
+      height = max_height;
+    }
   }
+
   return [Math.round(width), Math.round(height)];
 };
 const getWindowPos = async (nvim: Neovim, width: number, height: number, errorStart: protocol.Location): Promise<any> => {
@@ -118,7 +122,6 @@ const lockBuffer = async (window: Window, buffer: Buffer) => {
     buffer.setOption('modifiable', false),
   ]);
 };
-
 const unlockBuffer = async (buffer: Buffer) => {
   return Promise.all([
     buffer.setOption('modifiable', true),
@@ -135,20 +138,17 @@ export const createFloatingWindow = async (nvim: Neovim, symbol: any, type: "Err
   }
   const [width, height] = await popupWindowSize(nvim, text);
   const windowPos = await getWindowPos(nvim, width, height, symbol.start);
-  const options: OpenWindowOptions = { ...windowPos, height, width, focusable: false };
+  const options: OpenWindowOptions = { ...windowPos, height, width, focusable: true };
   await buffer.setLines(text, { start: 0, end: -1, strictIndexing: false })
   const floatingWindow = (await nvim.openWindow(
     buffer,
     false,
     options
   )) as Window;
-
   await lockBuffer(floatingWindow, buffer);
   windowRef = floatingWindow;
   return floatingWindow;
 };
-
-
 export const updateFloatingWindow = async (nvim: Neovim, window: Window, symbol: any, type: "Error" | "Type"): Promise<Window> => {
   const refText = await windowRef.buffer.lines
   let text: string[];
