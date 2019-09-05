@@ -165,7 +165,7 @@ augroup nvim-typescript "{{{
   autocmd BufEnter *.ts,*.tsx  call nvim_typescript#DefaultKeyMap()
   autocmd BufEnter *.ts,*.tsx  call TSOnBufEnter(expand('%:p'))
   autocmd BufUnload *.ts,*.tsx  call TSOnBufLeave(expand('%:p'))
-  autocmd BufLeave *.ts,*tsx call TSCloseWindow()
+  autocmd BufUnload *.ts,*tsx call TSCloseWindow()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   " if get(g:, 'nvim_typescript#signature_complete', 1) "{{{
   "   autocmd CompleteDone *.ts,*.tsx TSSig
