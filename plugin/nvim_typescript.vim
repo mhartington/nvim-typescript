@@ -122,7 +122,7 @@ augroup nvim-typescript "{{{
   if get(g:, 'nvim_typescript#javascript_support', 1)
 
     autocmd BufEnter *.js,*.jsx  call nvim_typescript#DefaultKeyMap()
-    autocmd BufEnter *.js,*.jsx  call TSOnBufEnter()
+    autocmd BufEnter *.js,*.jsx  call TSOnBufEnter(expand('<afile>'))
     autocmd BufUnload *.js,*.jsx  call TSOnBufLeave(expand('%:p'))
     autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
     " if get(g:, 'nvim_typescript#signature_complete', 1)
@@ -144,7 +144,7 @@ augroup nvim-typescript "{{{
   if get(g:, 'nvim_typescript#vue_support', 1)
 
     autocmd BufEnter *.vue  call nvim_typescript#DefaultKeyMap()
-    autocmd BufEnter *.vue  call TSOnBufEnter()
+    autocmd BufEnter *.vue  call TSOnBufEnter(expand('<afile>'))
     autocmd BufWritePost *.vue call TSOnBufSave()
     autocmd BufUnload *.vue  call TSOnBufLeave(expand('%:p'))
     " if get(g:, 'nvim_typescript#signature_complete', 1)
@@ -162,7 +162,7 @@ augroup nvim-typescript "{{{
 
   " Core {{{
   autocmd BufEnter *.ts,*.tsx  call nvim_typescript#DefaultKeyMap()
-  autocmd BufEnter *.ts,*.tsx  call TSOnBufEnter()
+  autocmd BufEnter *.ts,*.tsx  call TSOnBufEnter(expand('<afile>'))
   autocmd BufUnload *.ts,*.tsx  call TSOnBufLeave(expand('%:p'))
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   " if get(g:, 'nvim_typescript#signature_complete', 1) "{{{
@@ -186,4 +186,3 @@ augroup nvim-typescript "{{{
   "}}}
 
 augroup end "}}}
-

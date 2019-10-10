@@ -519,12 +519,16 @@ export default class TSHost {
   }
 
   @Command('TSGetDiagnostics')
-  async getDiagnostics() {
+  async getDiagnostics(fileToDiag?: string) {
     if (this.enableDiagnostics) {
       if (this.doingCompletion === false) {
         console.warn('DOING DiagnosticHost')
-        await this.reloadFile();
         const file = await this.getCurrentFile();
+        if (fileToDiag && file !== fileToDiag && !file.endsWith(fileToDiag)) {
+            return;
+        }
+
+        await this.reloadFile();
         const sematicErrors = await this.getSematicErrors(file);
         const syntaxErrors = await this.getSyntaxErrors(file);
         let res = [...sematicErrors, ...syntaxErrors];
@@ -733,20 +737,22 @@ export default class TSHost {
 
   // autocmd function syncs
   @Function('TSOnBufEnter')
-  async onBufEnter() {
+  async onBufEnter(arg: [string]) {
+    const [file] = arg;
+    if (!file) return;
+
     if (this.client.serverHandle == null) {
       await this.tsstart();
     }
     else {
-      const file = await this.getCurrentFile();
       // const buffer = await this.nvim.buffer;
       // const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
       // const fileContent = bufContent.join('\n');
       this.client.openFile({ file });
       if (this.enableDiagnostics) {
         await this.onCursorMoved();
-        await this.getDiagnostics();
-        await this.nvim.buffer.listen('lines', debounce(() => this.getDiagnostics(), 500));
+        await this.getDiagnostics(file);
+        await this.nvim.buffer.listen('lines', debounce(() => this.getDiagnostics(file), 500));
       }
     }
   }
@@ -772,7 +778,7 @@ export default class TSHost {
       await printHighlight(this.nvim, `Starting Server...`, 'Question');
     }
     await this.client.startServer();
-    await this.onBufEnter();
+    await this.onBufEnter([await this.getCurrentFile()]);
     await this.createWatcher()
   }
   async createWatcher() {
