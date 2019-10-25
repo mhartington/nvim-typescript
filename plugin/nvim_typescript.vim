@@ -177,10 +177,13 @@ augroup nvim-typescript "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif ""}}}
   if get(g:, 'nvim_typescript#diagnostics_enable', 1) "{{{
-    autocmd CursorHold,CursorHoldI *.ts,*.tsx call TSEchoMessage()
+    autocmd CursorHold *.ts,*.tsx call TSEchoMessage()
+    autocmd CursorHoldI *.ts,*.tsx call TSEchoMessage()
   endif "}}}
 
-  autocmd CursorMoved,CursorMovedI,InsertLeave *.ts,*.tsx call TSCloseWindow()
+  autocmd CursorMoved *.ts,*.tsx call TSCloseWindow()
+  autocmd CursorMovedI *.ts,*.tsx call TSCloseWindow()
+  autocmd InsertLeave *.ts,*.tsx call TSCloseWindow()
   autocmd BufWritePost tsconfig.json TSReloadProject
   autocmd User CmSetup call cm#sources#typescript#register()
   " Cleanup required to prevent hanging on Windows exit

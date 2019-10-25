@@ -23,7 +23,6 @@ export default {
     'fs',
     'child_process',
     'neovim',
-    'lodash',
     'tmp',
     'path',
     'events',

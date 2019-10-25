@@ -17,6 +17,7 @@ export class Client extends EventEmitter {
   public serverPath = 'tsserver';
   public serverOptions: string[] = [];
   public logFunc: Function = null;
+  public completionCommand = 'completionInfo';
   public tsConfigVersion: {
     major: number;
     minor: number;
@@ -56,7 +57,6 @@ export class Client extends EventEmitter {
       }
 
       this.serverHandle = spawn(cmd, args, options);
-
 
       this._rl = createInterface({
         input: this.serverHandle.stdout,
@@ -106,6 +106,9 @@ export class Client extends EventEmitter {
       minor: parseInt(minor),
       patch: parseInt(patch)
     };
+
+    this.completionCommand = this.isCurrentVersionHighter(300) ? 'completionInfo' : 'completions';
+
   }
   isCurrentVersionHighter(val: number) {
     const local =
@@ -124,10 +127,7 @@ export class Client extends EventEmitter {
   updateFile(args: protocol.ReloadRequestArgs): Promise<protocol.ReloadResponse> { return this._makeTssRequest('reload', args); }
   quickInfo(args: protocol.FileLocationRequestArgs): Promise<protocol.QuickInfoResponseBody> { return this._makeTssRequest('quickinfo', args); }
   getDef(args: protocol.FileLocationRequestArgs): Promise<protocol.DefinitionResponse['body']> { return this._makeTssRequest('definition', args); }
-  getCompletions(args: protocol.CompletionsRequestArgs): Promise<protocol.CompletionInfoResponse['body']> {
-    let requestCmd = this.isCurrentVersionHighter(300) ? 'completionInfo' : 'completions';
-    return this._makeTssRequest(requestCmd, args);
-  }
+  getCompletions(args: protocol.CompletionsRequestArgs): Promise<protocol.CompletionInfoResponse['body']> { return this._makeTssRequest(this.completionCommand, args); }
   getCompletionDetails(args: protocol.CompletionDetailsRequestArgs): Promise<protocol.CompletionDetailsResponse['body']> { return this._makeTssRequest('completionEntryDetails', args); }
   getProjectInfo(args: protocol.ProjectInfoRequestArgs): Promise<protocol.ProjectInfo> { return this._makeTssRequest('projectInfo', args); }
   getSymbolRefs(args: protocol.FileLocationRequestArgs): Promise<protocol.ReferencesResponse['body']> { return this._makeTssRequest('references', args); }

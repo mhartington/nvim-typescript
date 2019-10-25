@@ -1,5 +1,5 @@
 import { statSync, writeFileSync } from 'fs';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { Autocmd, Command, Function, Neovim, Plugin, Window } from 'neovim';
 import { fileSync } from 'tmp';
 import protocol from 'typescript/lib/protocol';
@@ -16,11 +16,10 @@ export default class TSHost {
   private diagnosticHost = DiagnosticHost;
   private maxCompletion: number;
   private expandSnippet: boolean;
+
   enableDiagnostics: boolean;
   quietStartup: boolean;
   openFiles = [];
-  // private completionChangeEvent: CompletionChangeEvent;
-  // private completedItem: CompletionItem;
 
   floatingWindow: Window = null;
   doingCompletion = false;
@@ -28,27 +27,9 @@ export default class TSHost {
   updateTime: number;
   constructor(public nvim: Neovim) { }
 
-  // @Autocmd('TextChangedP', { pattern: '*', sync: true })
-  // async onTextChangedP() {
-  //   console.warn("MENU ITEM CHANGED")
-  // //   await this.tssig();
-  // }
 
-  // @Autocmd('CompleteChanged', { pattern: '*' })
-  // async stopDiag() {
-  //   // this.completionChangeEvent = await this.nvim.getVvar('event') as CompletionChangeEvent;
-  //   // console.warn(JSON.stringify(this.completionChangeEvent));
-
-  //   console.warn('COMPLETION START')
-  //   // this.doingCompletion = true
-  //   await this.onCursorMoved();
-  // }
-
-  @Autocmd('CompleteDone', { pattern: '*', sync: true })
+  @Autocmd('CompleteDone', { pattern: '*' })
   async onCompleteDone() {
-    // this.completedItem = await this.nvim.getVvar('completed_item') as CompletionItem;
-    // console.warn(JSON.stringify(this.completedItem));
-
     console.warn("COMPLECTION DONE")
     this.doingCompletion = false
     this.getDiagnostics()
@@ -342,7 +323,7 @@ export default class TSHost {
         await this.nvim.setVar(nvimVar, completionRes);
         return completionRes;
       } else {
-        const entryNames = completions.map(v => v.name)
+        const entryNames = completions.map((v: { name: any; }) => v.name)
         let detailedCompletions = await this.client.getCompletionDetails({
           file,
           line,
@@ -355,8 +336,6 @@ export default class TSHost {
         await this.nvim.setVar(nvimVar, completionResDetailed);
         return completionResDetailed;
       }
-
-
     } else {
       await this.nvim.setVar(nvimVar, []);
       return []
@@ -415,9 +394,6 @@ export default class TSHost {
     let line = cursorPos[0];
 
     let [prefix, offset] = args;
-
-    // console.warn("prefix", prefix);
-    // console.warn(JSON.stringify(offset))
     // sets the vim var, but doesn't need to return anything
     this.complete(file, prefix, offset, line, 'nvim_typescript#completion_res');
   }
@@ -545,9 +521,9 @@ export default class TSHost {
   @Function('TSCloseWindow')
   async closeFloatingWindow() {
     if (!!this.floatingWindow) {
-      await this.floatingWindow.close(true)
-        .catch(err => { throw new Error(`There was an error, ${err}`) })
-      this.floatingWindow = null;
+       this.floatingWindow.close(true).then(
+        () => this.floatingWindow = null
+       )
     }
   }
 
@@ -646,6 +622,7 @@ export default class TSHost {
         const promptSel = await promptForSelection(fixes, this.nvim);
         await this.diagnosticHost.clearAllHighlights(file)
         await applyCodeFixes(promptSel, this.nvim)
+        await this.getDiagnostics()
       } else {
         await printHighlight(this.nvim, 'No fix');
       }
@@ -657,7 +634,7 @@ export default class TSHost {
     await printHighlight(this.nvim, `Building...`, 'Question');
     await this.reloadFile();
     const file = await this.getCurrentFile();
-    await this.client.getProjectError({ file, delay: 0 })
+    this.client.getProjectError({ file, delay: 0 })
   }
   async processProjectErrorRes(res: any[]) {
     const fmtErrors = processErrors(res)
@@ -706,7 +683,7 @@ export default class TSHost {
       endOffset: column_end
     }
     // console.warn(JSON.stringify(args))
-    const refactorRes = await this.client.getApplicableRefactors(args);
+    // const refactorRes = await this.client.getApplicableRefactors(args);
     // console.warn(JSON.stringify(refactorRes))
 
   }
@@ -774,7 +751,7 @@ export default class TSHost {
         if (this.enableDiagnostics) {
           await this.closeFloatingWindow();
           await this.getDiagnostics();
-          this.nvim.buffer.listen('lines', debounce((() => this.getDiagnostics()), this.updateTime))
+          this.nvim.buffer.listen('lines', debounce((() => this.getDiagnostics()), 1000))
         }
       } else {
         await this.closeFloatingWindow();
@@ -795,7 +772,7 @@ export default class TSHost {
     const [file] = arg;
     if (file) {
       this.openFiles = this.openFiles.filter(e => e != file);
-      await this.client.closeFile({ file });
+      this.client.closeFile({ file });
     }
   }
 
@@ -808,7 +785,6 @@ export default class TSHost {
     }
     this.client.startServer();
     await this.onBufEnter();
-    // await this.createWatcher()
   }
   async createWatcher() {
     // const dir = await this.nvim.call('getcwd');
@@ -911,7 +887,7 @@ export default class TSHost {
 
   @Command('TSReloadProject')
   async reloadProject() {
-    await this.client.reloadProject();
+    this.client.reloadProject();
     await this.getDiagnostics();
   }
 
@@ -1031,10 +1007,10 @@ export default class TSHost {
       this.nvim.getVar('nvim_typescript#quiet_startup'),
       this.nvim.apiInfo,
       this.nvim.getVar('nvim_typescript#suggestions_enabled'),
-      this.nvim.getOption('redrawtime') as Promise<number>,
+      this.nvim.getOption('redrawtime') as Promise<string>,
     ]);
 
-    this.updateTime = redrawTime;
+    this.updateTime = parseInt(redrawTime);
     await this.nvim.setVar('nvim_typescript#channel_id', channelID[0]);
     this.enableDiagnostics = !!enableDiagnostics;
     this.quietStartup = !!quietStartup;

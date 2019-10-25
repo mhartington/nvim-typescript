@@ -1,6 +1,6 @@
 import { Neovim } from 'neovim';
 import { Diagnostic } from 'typescript/lib/protocol';
-import { createLocList } from './utils';
+import { createLocList, getBufferFromFile } from './utils';
 
 interface SignStoreSign extends Diagnostic {
   id: number;
@@ -42,9 +42,9 @@ class DiagnosticProvider {
 
     // Normalize signs
     const normSigns = this.normalizeSigns(incomingSigns);
-
+    current.signs = [];
     current.signs = normSigns;
-
+    console.warn(JSON.stringify(current.signs))
     // Set buffer var for airline
     await this.nvim.buffer.setVar('nvim_typescript_diagnostic_info', current.signs);
     // console.warn("NOW SETTING SIGN")
@@ -95,20 +95,22 @@ class DiagnosticProvider {
     }
   }
   async clearHighlight(sign: SignStoreSign) {
-    // console.warn('CALLING CLEAR HIGHLIGHT: ', JSON.stringify(sign))
     const buffer = await this.nvim.buffer;
     buffer.clearNamespace({
       nsId: this.namespaceId,
-      lineStart: sign.start.line - 1,
-      lineEnd: sign.end.line,
+      // lineStart: sign.start.line - 1,
+      // lineEnd: sign.end.line,
+      lineStart: 0,
+      lineEnd: -1,
     })
     return sign;
   }
   async highlightLine(current: { file: string, signs: SignStoreSign[] }) {
+    const buffer = await getBufferFromFile(this.nvim, current.file);
     await Promise.all([
       current.signs.map(async sign => {
         let hlGroup = this.getSignHighlight(sign);
-        await this.nvim.buffer.addHighlight({
+        await buffer.addHighlight({
           srcId: this.namespaceId,
           hlGroup,
           line: sign.start.line - 1,
@@ -127,7 +129,7 @@ class DiagnosticProvider {
       }
     }
   }
-  async clearAllHighlights(file: string){
+  async clearAllHighlights(file: string) {
     const current = this.signStore.find(entry => entry.file === file);
     await Promise.all(current.signs.map(async sign => await this.clearHighlight(sign)));
   }

@@ -6,7 +6,7 @@ let windowRef: Window = null;
 const col = async (nvim: Neovim) => await nvim.window.width
 const createBuffer = async (nvim: Neovim) => await nvim.createBuffer(false, false);
 
-const processHoverText = (symbol: protocol.QuickInfoResponseBody) => {
+function processHoverText(symbol: protocol.QuickInfoResponseBody){
   const text = symbol.displayString.split(/\r|\n/g).map(e => leftpad(e, 1, true));
   let sepLength = text[0].length;
   if (symbol.documentation !== '') {
@@ -50,11 +50,11 @@ const processErrorText = (symbol: protocol.Diagnostic) => {
     return leftpad(e, 1);
   });
 }
-const popupWindowSize = async (nvim: Neovim, contents: string[]): Promise<[number, number]> => {
+async function popupWindowSize(nvim: Neovim, contents: string[]): Promise<[number, number]> {
   let width = 0;
   let colsize = await col(nvim);
   let max_width = Math.min(colsize, 20)
-  let max_height= 20;
+  let max_height = 20;
   let height = 0;
   for (let line of contents) {
     let lw = line.length;
@@ -65,14 +65,14 @@ const popupWindowSize = async (nvim: Neovim, contents: string[]): Promise<[numbe
       width = lw;
     }
     height += 1;
-    if(height > max_height){
+    if (height > max_height) {
       height = max_height;
     }
   }
 
   return [Math.round(width), Math.round(height)];
 };
-const getWindowPos = async (nvim: Neovim, width: number, height: number, errorStart: protocol.Location): Promise<any> => {
+async function getWindowPos(nvim: Neovim, width: number, height: number, errorStart: protocol.Location): Promise<any> {
   const [line, offset] = await nvim.window.cursor;
   const lastLine = await nvim.window.height;
   const coluns = await nvim.window.width;
@@ -103,7 +103,7 @@ const getWindowPos = async (nvim: Neovim, width: number, height: number, errorSt
     col: col
   };
 };
-const lockBuffer = async (window: Window, buffer: Buffer) => {
+async function lockBuffer(window: Window, buffer: Buffer) {
   return Promise.all([
     window.setOption('winhl', 'Normal:nvimTypescriptPopupNormal,EndOfBuffer:nvimTypescriptEndOfBuffer'),
     buffer.setOption('filetype', 'nvimtypescriptpopup'),
@@ -122,12 +122,12 @@ const lockBuffer = async (window: Window, buffer: Buffer) => {
     buffer.setOption('modifiable', false),
   ]);
 };
-const unlockBuffer = async (buffer: Buffer) => {
+async function unlockBuffer(buffer: Buffer) {
   return Promise.all([
     buffer.setOption('modifiable', true),
   ]);
 };
-export const createFloatingWindow = async (nvim: Neovim, symbol: any, type: "Error" | "Type"): Promise<Window> => {
+export async function createFloatingWindow(nvim: Neovim, symbol: any, type: "Error" | "Type"): Promise<Window> {
   const buffer = (await createBuffer(nvim)) as Buffer;
   let text: string[];
   if (type === "Error") {
@@ -149,7 +149,7 @@ export const createFloatingWindow = async (nvim: Neovim, symbol: any, type: "Err
   windowRef = floatingWindow;
   return floatingWindow;
 };
-export const updateFloatingWindow = async (nvim: Neovim, window: Window, symbol: any, type: "Error" | "Type"): Promise<Window> => {
+export async function updateFloatingWindow(nvim: Neovim, window: Window, symbol: any, type: "Error" | "Type"): Promise<Window> {
   const refText = await windowRef.buffer.lines
   let text: string[];
   if (type === 'Error') {
@@ -176,4 +176,4 @@ export const updateFloatingWindow = async (nvim: Neovim, window: Window, symbol:
   await lockBuffer(window, await window.buffer);
   return window
 }
-const checkArrays = (arrA: string[], arrB: string[]) => arrB.map(entry => arrA.includes(entry))[0];
+function checkArrays(arrA: string[], arrB: string[]) { return arrB.map(entry => arrA.includes(entry))[0] };
