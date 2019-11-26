@@ -28,7 +28,7 @@ By default, this plugin will look in your `node_modules` folder first for typesc
 npm -g install typescript
 ```
 
-Then add the following plugins. This example uses Dein.vim, but any plugin manager will work.
+Then add the following plugins. This example shows [Dein.vim](https://github.com/Shougo/dein.vim) and  [Plug.vim](https://github.com/junegunn/vim-plug), but any plugin manager will work.
 
 ```viml
  " Dein
