@@ -106,7 +106,7 @@ async function getWindowPos(nvim: Neovim, width: number, height: number, errorSt
 async function lockBuffer(window: Window, buffer: Buffer) {
   return Promise.all([
     window.setOption('winhl', 'Normal:nvimTypescriptPopupNormal,EndOfBuffer:nvimTypescriptEndOfBuffer'),
-    buffer.setOption('filetype', 'nvimtypescriptpopup'),
+    buffer.setOption('filetype', 'typescript'),
     buffer.setOption('buftype', 'nofile'),
     buffer.setOption('bufhidden', 'wipe'),
     window.setOption('relativenumber', false),

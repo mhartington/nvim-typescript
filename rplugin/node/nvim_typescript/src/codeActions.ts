@@ -7,12 +7,12 @@ const leadingAndTrailingNewLineRegex = /^\n|\n$/;
 
 export async function promptForSelection(options: CodeAction[], nvim: Neovim): Promise<any> {
   const changeDescriptions = options.map(change => change.description);
-  const candidates = changeDescriptions.map((change, idx) => `\n[${idx}]: ${change}`);
+  const candidates = changeDescriptions.map((change, idx) => `\n${idx + 1}: ${change}`);
   return new Promise(async (res, rej) => {
-    const input = await nvim.call('input', `nvim-ts: Please Select from the following options: \n${candidates} \nplease choose one: `);
+    const input = await nvim.call('inputlist', [['nvim-ts: Please Select from the following options:',  ...candidates]]);
     if (!input) return rej('Nothing selected');
-    if (parseInt(input) > options.length - 1) return rej('Not a valid options');
-    return res(options[parseInt(input)].changes);
+    if (parseInt(input) > options.length) return rej('Not a valid options');
+    return res(options[parseInt(input)-1].changes);
   });
 }
 export async function applyCodeFixes(fixes: ReadonlyArray<FileCodeEdits>, nvim: Neovim) {
@@ -86,8 +86,6 @@ async function spanLineEdit(fix: CodeEdit, nvim: Neovim): Promise<Array<any>> {
 
   return commands;
 };
-
-
 async function midLineEdit(nvim: Neovim, textChange: CodeEdit) {
   let commands = [];
   const startLine = await nvim.buffer.getLines({ start: textChange.start.line - 1, end: textChange.start.line, strictIndexing: true });

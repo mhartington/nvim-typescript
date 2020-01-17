@@ -1,4 +1,4 @@
-import { statSync, writeFileSync } from 'fs';
+import { statSync, writeFileSync, rename } from 'fs';
 import { debounce } from 'lodash-es';
 import { Autocmd, Command, Function, Neovim, Plugin, Window } from 'neovim';
 import { fileSync } from 'tmp';
@@ -130,7 +130,7 @@ export default class TSHost {
     } else {
       const input = await this.nvim.call(
         'input',
-        `nvim-ts: rename ${symbol} to `
+        [`nvim-ts: rename to `, symbol]
       );
       if (!input) {
         await printHighlight(this.nvim, 'Rename canceled', 'ErrorMsg');
@@ -139,7 +139,6 @@ export default class TSHost {
         newName = input;
       }
     }
-
     let changedFiles = [];
     await this.reloadFile();
     const renameArgs = await this.getCommonData();
@@ -153,19 +152,21 @@ export default class TSHost {
     if (renameResults) {
       if (isRenameSuccess(renameResults.info)) {
         let changeCount = 0;
-
         for (let fileLocation of renameResults.locs) {
           let defFile = fileLocation.file;
-          await this.nvim.command(`e! ${defFile}`);
+          
+          if(defFile !== renameArgs.file){
+            await this.nvim.command(`keepjumps keepalt edit ${defFile}`);
+          }
           const commands = [];
-
-          for (let rename of fileLocation.locs) {
+          for (let rename of fileLocation.locs.reverse()) {
             let { line, offset } = rename.start;
             const editLine = await this.nvim.buffer.getLines({
               start: line - 1,
               end: line,
               strictIndexing: true
             });
+
             const newLine = editLine[0].replace(symbol as string, newName);
             commands.concat(
               await this.nvim.buffer.setLines(newLine, {
@@ -174,31 +175,28 @@ export default class TSHost {
                 strictIndexing: true
               })
             );
-
+          
             changedFiles.push({
               filename: defFile,
               lnum: line,
               col: offset,
               text: `Replaced ${symbol} with ${newName}`
             });
-
+          
             changeCount += 1;
           }
-          console.warn(JSON.stringify(commands))
           await this.nvim.callAtomic(commands);
         }
 
         await this.nvim.command(`buffer ${buffNum}`);
-        await this.nvim.call('cursor', [
-          renameResults.info.triggerSpan.start.line,
-          renameResults.info.triggerSpan.start.offset
-        ]);
-
+        await this.nvim.call('cursor', [ renameResults.info.triggerSpan.start.line, renameResults.info.triggerSpan.start.offset ]);
+        
         await createQuickFixList(this.nvim, changedFiles, 'Renames', false);
         await printHighlight(this.nvim, `Replaced ${changeCount} in ${renameResults.locs.length} files`);
         await this.getDiagnostics();
 
-      } else {
+      }
+      else {
         printHighlight(
           this.nvim,
           renameResults.info.localizedErrorMessage,
@@ -501,7 +499,6 @@ export default class TSHost {
   async getDiagnostics() {
     if (this.enableDiagnostics) {
       // console.warn("GETTING DiagnosticHost")
-      if (this.doingCompletion === false) {
         await this.reloadFile();
         const file = await this.getCurrentFile();
         const sematicErrors = await this.getSematicErrors(file);
@@ -514,7 +511,6 @@ export default class TSHost {
         await this.diagnosticHost.placeSigns(res, file);
         await this.closeFloatingWindow();
         await this.handleCursorMoved();
-      }
     }
   }
 
@@ -751,7 +747,11 @@ export default class TSHost {
         if (this.enableDiagnostics) {
           await this.closeFloatingWindow();
           await this.getDiagnostics();
-          this.nvim.buffer.listen('lines', debounce((() => this.getDiagnostics()), 1000))
+          this.nvim.buffer.listen('lines', debounce((() => {
+            // if(!this.doingCompletion){
+              this.getDiagnostics()
+            // }
+          }), 1000))
         }
       } else {
         await this.closeFloatingWindow();
@@ -1010,7 +1010,7 @@ export default class TSHost {
       this.nvim.getOption('redrawtime') as Promise<string>,
     ]);
 
-    this.updateTime = parseInt(redrawTime);
+    this.updateTime = parseInt(redrawTime as string);
     await this.nvim.setVar('nvim_typescript#channel_id', channelID[0]);
     this.enableDiagnostics = !!enableDiagnostics;
     this.quietStartup = !!quietStartup;

@@ -44,7 +44,7 @@ class DiagnosticProvider {
     const normSigns = this.normalizeSigns(incomingSigns);
     current.signs = [];
     current.signs = normSigns;
-    console.warn(JSON.stringify(current.signs))
+    // console.warn(JSON.stringify(current.signs))
     // Set buffer var for airline
     await this.nvim.buffer.setVar('nvim_typescript_diagnostic_info', current.signs);
     // console.warn("NOW SETTING SIGN")
@@ -63,7 +63,6 @@ class DiagnosticProvider {
     return signs.map(sign => ({ ...sign, id: this.signID++ }));
   }
   async clearSigns(current: { file: string, signs: SignStoreSign[] }) {
-    // this.clearHighlight(current);
     await this.unsetSigns(current)
   }
   async unsetSigns(current: { file: string, signs: SignStoreSign[] }) {
