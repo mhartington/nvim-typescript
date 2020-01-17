@@ -1,12 +1,10 @@
-import { spawn, ChildProcess, execSync, SpawnOptions } from 'child_process';
-import { normalize } from 'path';
+import { ChildProcess, execSync, spawn, SpawnOptions } from 'child_process';
 import { EventEmitter } from 'events';
 import { existsSync } from 'fs';
-import { platform, EOL } from 'os';
+import { EOL, platform } from 'os';
+import { normalize } from 'path';
 import { createInterface } from 'readline';
-
 import protocol from 'typescript/lib/protocol';
-
 import { trim } from './utils';
 
 export class Client extends EventEmitter {
@@ -19,6 +17,7 @@ export class Client extends EventEmitter {
   public serverPath = 'tsserver';
   public serverOptions: string[] = [];
   public logFunc: Function = null;
+  public completionCommand = 'completionInfo';
   public tsConfigVersion: {
     major: number;
     minor: number;
@@ -59,7 +58,6 @@ export class Client extends EventEmitter {
 
       this.serverHandle = spawn(cmd, args, options);
 
-
       this._rl = createInterface({
         input: this.serverHandle.stdout,
         output: this.serverHandle.stdin,
@@ -95,7 +93,6 @@ export class Client extends EventEmitter {
   stopServer() {
     this.serverHandle.kill('SIGINT');
   }
-
   setTSConfigVersion() {
     const command = this.serverPath.replace('tsserver', 'tsc');
     const rawOutput = execSync(`${command} --version`).toString();
@@ -109,8 +106,10 @@ export class Client extends EventEmitter {
       minor: parseInt(minor),
       patch: parseInt(patch)
     };
-  }
 
+    this.completionCommand = this.isCurrentVersionHighter(300) ? 'completionInfo' : 'completions';
+
+  }
   isCurrentVersionHighter(val: number) {
     const local =
       this.tsConfigVersion.major * 100 +
@@ -120,142 +119,61 @@ export class Client extends EventEmitter {
   }
 
   // LangServer Commands
-  openFile(args: protocol.OpenRequestArgs): Promise<any> {
-    return this._makeTssRequest(protocol.CommandTypes.Open, args);
-  }
-  closeFile(args: protocol.FileRequestArgs): Promise<any> {
-    return this._makeTssRequest(protocol.CommandTypes.Close, args);
-  }
-  reloadProject() {
-    return this._makeTssRequest(protocol.CommandTypes.ReloadProjects, null);
-  }
-  updateFile(
-    args: protocol.ReloadRequestArgs
-  ): Promise<protocol.ReloadResponse> {
-    return this._makeTssRequest(protocol.CommandTypes.Reload, args);
-  }
-  quickInfo(
-    args: protocol.FileLocationRequestArgs
-  ): Promise<protocol.QuickInfoResponseBody> {
-    return this._makeTssRequest(protocol.CommandTypes.Quickinfo, args);
-  }
-  getDef(
-    args: protocol.FileLocationRequestArgs
-  ): Promise<protocol.DefinitionResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.Definition, args);
-  }
-  getCompletions(
-    args: protocol.CompletionsRequestArgs
-  ): Promise<protocol.CompletionInfoResponse['body']> {
-    let requestCmd = this.isCurrentVersionHighter(300) ? protocol.CommandTypes.CompletionInfo : protocol.CommandTypes.Completions;
-    return this._makeTssRequest(requestCmd, args);
-  }
-  getCompletionDetails(
-    args: protocol.CompletionDetailsRequestArgs
-  ): Promise<protocol.CompletionDetailsResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.CompletionDetails, args);
-  }
-  getProjectInfo(
-    args: protocol.ProjectInfoRequestArgs
-  ): Promise<protocol.ProjectInfo> {
-    return this._makeTssRequest(protocol.CommandTypes.ProjectInfo, args);
-  }
-  getSymbolRefs(
-    args: protocol.FileLocationRequestArgs
-  ): Promise<protocol.ReferencesResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.References, args);
-  }
-  getSignature(
-    args: protocol.FileLocationRequestArgs
-  ): Promise<protocol.SignatureHelpResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.SignatureHelp, args);
-  }
-  renameSymbol(
-    args: protocol.RenameRequestArgs
-  ): Promise<protocol.RenameResponseBody> {
-    return this._makeTssRequest(protocol.CommandTypes.Rename, args);
-  }
-  getTypeDef(
-    args: protocol.FileLocationRequestArgs
-  ): Promise<protocol.TypeDefinitionResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.TypeDefinition, args);
-  }
+  //
+  openFile(args: protocol.OpenRequestArgs) { this._makeNoResponseRequest('open', args); }
+  closeFile(args: protocol.FileRequestArgs) { this._makeNoResponseRequest('close', args); }
+  reloadProject() { this._makeNoResponseRequest('reloadProjects', null); }
 
-  getDocumentSymbols(
-    args: protocol.FileRequestArgs
-  ): Promise<protocol.NavTreeResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.NavTree, args);
-  }
-
-  getWorkspaceSymbols(
-    args: protocol.NavtoRequestArgs
-  ): Promise<protocol.NavtoResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.Navto, args);
-  }
-
-  getSemanticDiagnosticsSync(
-    args: protocol.SemanticDiagnosticsSyncRequestArgs
-  ): Promise<protocol.Diagnostic[]> {
-    return this._makeTssRequest(protocol.CommandTypes.SemanticDiagnosticsSync, args);
-  }
-  getSyntacticDiagnosticsSync(
-    args: protocol.SyntacticDiagnosticsSyncRequestArgs
-  ): Promise<protocol.Diagnostic[]> {
-    return this._makeTssRequest(protocol.CommandTypes.SyntacticDiagnosticsSync, args);
-  }
-  getSuggestionDiagnosticsSync(
-    args: protocol.SuggestionDiagnosticsSyncRequestArgs
-  ): Promise<protocol.Diagnostic[]> {
-    return this._makeTssRequest(protocol.CommandTypes.SuggestionDiagnosticsSync, args);
-  }
-
-  getCodeFixes(
-    args: protocol.CodeFixRequestArgs
-  ): Promise<protocol.GetCodeFixesResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.GetCodeFixes, args);
-  }
-
-  getApplicableRefactors(
-    args: protocol.GetApplicableRefactorsRequestArgs
-  ): Promise<protocol.GetApplicableRefactorsResponse['body']> {
-
-    return this._makeTssRequest(protocol.CommandTypes.GetApplicableRefactors, args);
-  }
-
-  getSupportedCodeFixes(): Promise<
-    protocol.GetSupportedCodeFixesResponse['body']
-  > {
-    return this._makeTssRequest(protocol.CommandTypes.GetSupportedCodeFixes, null);
-  }
-
-  getCombinedCodeFix(args: protocol.GetCombinedCodeFixRequestArgs): Promise<protocol.GetCombinedCodeFixResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.GetCombinedCodeFix, args);
-  }
-
-  getOrganizedImports(args: protocol.OrganizeImportsRequestArgs): Promise<protocol.OrganizeImportsResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.OrganizeImports, args);
-  }
-
-  getProjectError(args: protocol.GeterrForProjectRequestArgs): void {
-    this._makeTssRequest(protocol.CommandTypes.GeterrForProject, args)
-  }
-  getEditsForFileRename(args: protocol.GetEditsForFileRenameRequestArgs): Promise<protocol.GetEditsForFileRenameResponse['body']> {
-    return this._makeTssRequest(protocol.CommandTypes.GetEditsForFileRename, args)
-  }
+  updateFile(args: protocol.ReloadRequestArgs): Promise<protocol.ReloadResponse> { return this._makeTssRequest('reload', args); }
+  quickInfo(args: protocol.FileLocationRequestArgs): Promise<protocol.QuickInfoResponseBody> { return this._makeTssRequest('quickinfo', args); }
+  getDef(args: protocol.FileLocationRequestArgs): Promise<protocol.DefinitionResponse['body']> { return this._makeTssRequest('definition', args); }
+  getCompletions(args: protocol.CompletionsRequestArgs): Promise<protocol.CompletionInfoResponse['body']> { return this._makeTssRequest(this.completionCommand, args); }
+  getCompletionDetails(args: protocol.CompletionDetailsRequestArgs): Promise<protocol.CompletionDetailsResponse['body']> { return this._makeTssRequest('completionEntryDetails', args); }
+  getProjectInfo(args: protocol.ProjectInfoRequestArgs): Promise<protocol.ProjectInfo> { return this._makeTssRequest('projectInfo', args); }
+  getSymbolRefs(args: protocol.FileLocationRequestArgs): Promise<protocol.ReferencesResponse['body']> { return this._makeTssRequest('references', args); }
+  getSignature(args: protocol.FileLocationRequestArgs): Promise<protocol.SignatureHelpResponse['body']> { return this._makeTssRequest('signatureHelp', args); }
+  renameSymbol(args: protocol.RenameRequestArgs): Promise<protocol.RenameResponseBody> { return this._makeTssRequest('rename', args); }
+  getTypeDef(args: protocol.FileLocationRequestArgs): Promise<protocol.TypeDefinitionResponse['body']> { return this._makeTssRequest('typeDefinition', args); }
+  getDocumentSymbols(args: protocol.FileRequestArgs): Promise<protocol.NavTreeResponse['body']> { return this._makeTssRequest('navtree', args); }
+  getWorkspaceSymbols(args: protocol.NavtoRequestArgs): Promise<protocol.NavtoResponse['body']> { return this._makeTssRequest('navto', args); }
+  getSemanticDiagnosticsSync(args: protocol.SemanticDiagnosticsSyncRequestArgs): Promise<protocol.Diagnostic[]> { return this._makeTssRequest('semanticDiagnosticsSync', args); }
+  getSyntacticDiagnosticsSync(args: protocol.SyntacticDiagnosticsSyncRequestArgs): Promise<protocol.Diagnostic[]> { return this._makeTssRequest('syntacticDiagnosticsSync', args); }
+  getSuggestionDiagnosticsSync(args: protocol.SuggestionDiagnosticsSyncRequestArgs): Promise<protocol.Diagnostic[]> { return this._makeTssRequest('suggestionDiagnosticsSync', args); }
+  getCodeFixes(args: protocol.CodeFixRequestArgs): Promise<protocol.GetCodeFixesResponse['body']> { return this._makeTssRequest('getCodeFixes', args); }
+  getApplicableRefactors(args: protocol.GetApplicableRefactorsRequestArgs): Promise<protocol.GetApplicableRefactorsResponse['body']> { return this._makeTssRequest('getApplicableRefactors', args); }
+  getSupportedCodeFixes(): Promise<protocol.GetSupportedCodeFixesResponse['body']> { return this._makeTssRequest('getSupportedCodeFixes', null); }
+  getCombinedCodeFix(args: protocol.GetCombinedCodeFixRequestArgs): Promise<protocol.GetCombinedCodeFixResponse['body']> { return this._makeTssRequest('getCombinedCodeFix', args); }
+  getOrganizedImports(args: protocol.OrganizeImportsRequestArgs): Promise<protocol.OrganizeImportsResponse['body']> { return this._makeTssRequest('organizeImports', args); }
+  getProjectError(args: protocol.GeterrForProjectRequestArgs): void { this._makeTssRequest('geterrForProject', args) }
+  getEditsForFileRename(args: protocol.GetEditsForFileRenameRequestArgs): Promise<protocol.GetEditsForFileRenameResponse['body']> { return this._makeTssRequest('getEditsForFileRename', args) }
 
   // Server communication
-  _makeTssRequest<T>(commandName: string, args?: any): Promise<T> {
+  _makeTssRequest<T>(commandName?: string, args?: any): Promise<T> {
     const seq = this._seqNumber++;
     const payload = {
       seq,
       type: 'request',
-      command: commandName,
       arguments: args
     };
+    if (commandName) {
+      payload['command'] = commandName;
+    }
     const ret = this.createDeferredPromise();
     this._seqToPromises[seq] = ret;
     this.serverHandle.stdin.write(JSON.stringify(payload) + EOL);
     return ret.promise;
+  }
+  _makeNoResponseRequest(commandName?: string, args?: any) {
+    const seq = this._seqNumber++;
+    const payload = {
+      seq,
+      type: 'request',
+      arguments: args
+    };
+    if (commandName) {
+      payload['command'] = commandName;
+    }
+    this.serverHandle.stdin.write(JSON.stringify(payload) + EOL);
   }
   parseResponse(returnedData: string): void {
     const response = JSON.parse(returnedData);
@@ -276,7 +194,7 @@ export class Client extends EventEmitter {
         if (response.event && response.event === 'telemetry') {
         }
         if (response.event && response.event === 'projectsUpdatedInBackground') {
-          console.warn('projectsUpdatedInBackground: ', JSON.stringify(response.body))
+          // console.warn('projectsUpdatedInBackground: ', JSON.stringify(response.body))
         }
         if (response.event && response.event === 'projectLoadingFinish') {
           this.emit('projectLoadingFinish')

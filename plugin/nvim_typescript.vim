@@ -124,6 +124,7 @@ augroup nvim-typescript "{{{
     autocmd BufEnter *.js,*.jsx  call nvim_typescript#DefaultKeyMap()
     autocmd BufEnter *.js,*.jsx  call TSOnBufEnter()
     autocmd BufUnload *.js,*.jsx  call TSOnBufLeave(expand('%:p'))
+    autocmd BufLeave *.js,*jsx call TSCloseWindow()
     autocmd BufWritePost *.js,*.jsx call TSOnBufSave()
     " if get(g:, 'nvim_typescript#signature_complete', 1)
     "    autocmd CompleteDone *.js,*.jsx TSSig
@@ -162,8 +163,9 @@ augroup nvim-typescript "{{{
 
   " Core {{{
   autocmd BufEnter *.ts,*.tsx  call nvim_typescript#DefaultKeyMap()
-  autocmd BufEnter *.ts,*.tsx  call TSOnBufEnter()
+  autocmd BufEnter *.ts,*.tsx  call TSOnBufEnter(expand('%:p'))
   autocmd BufUnload *.ts,*.tsx  call TSOnBufLeave(expand('%:p'))
+  autocmd BufUnload *.ts,*tsx call TSCloseWindow()
   autocmd BufWritePost *.ts,*.tsx call TSOnBufSave()
   " if get(g:, 'nvim_typescript#signature_complete', 1) "{{{
   "   autocmd CompleteDone *.ts,*.tsx TSSig
@@ -175,10 +177,13 @@ augroup nvim-typescript "{{{
     autocmd DirChanged * call TSOnBufSave()
   endif ""}}}
   if get(g:, 'nvim_typescript#diagnostics_enable', 1) "{{{
-    autocmd CursorHold,CursorHoldI *.ts,*.tsx call TSEchoMessage()
+    autocmd CursorHold *.ts,*.tsx call TSEchoMessage()
+    autocmd CursorHoldI *.ts,*.tsx call TSEchoMessage()
   endif "}}}
 
-  autocmd CursorMoved,CursorMovedI,InsertLeave *.ts,*.tsx call TSCloseWindow()
+  autocmd CursorMoved *.ts,*.tsx call TSCloseWindow()
+  autocmd CursorMovedI *.ts,*.tsx call TSCloseWindow()
+  autocmd InsertLeave *.ts,*.tsx call TSCloseWindow()
   autocmd BufWritePost tsconfig.json TSReloadProject
   autocmd User CmSetup call cm#sources#typescript#register()
   " Cleanup required to prevent hanging on Windows exit

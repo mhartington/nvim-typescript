@@ -3,22 +3,30 @@
   "version": "1.0.0",
   "description": "",
   "main": "./lib/index.js",
+  "module": "./lib/index.esm.js",
   "scripts": {
-    "build": "tsc --pretty -p tsconfig.json",
-    "watch": "tsc --pretty -p tsconfig.json --watch true"
+    "build": "rollup -c",
+    "watch": "rollup -cw"
   },
   "keywords": [],
   "author": "Mike Hartington <mikehartington@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@types/lodash": "4.14.136",
+    "@types/lodash-es": "4.17.3",
     "@types/node": "12.6.8",
     "@types/tmp": "0.1.0",
-    "typescript": "3.4.0-rc"
+    "rollup": "1.20.3",
+    "rollup-plugin-node-resolve": "5.2.0",
+    "rollup-plugin-terser": "5.1.1",
+    "rollup-plugin-typescript": "1.0.1",
+    "typescript": "3.6.2"
   },
   "dependencies": {
+    "@types/lodash": "4.14.138",
     "lodash": "4.17.15",
+    "lodash-es": "4.17.15",
     "neovim": "4.5.0",
-    "tmp": "0.1.0"
+    "tmp": "0.1.0",
+    "tslib": "1.10.0"
   }
 }

@@ -6,6 +6,17 @@ export function trim(s: string) {
   return (s || '').replace(/^\s+|\s+$/g, '');
 }
 
+export async function getBufferFromFile(nvim: Neovim, file: string) {
+  const buffers = await nvim.buffers;
+  const buf = buffers.find(async buffer => {
+    let bufname = await buffer.name;
+    if (bufname === file) {
+      return buf
+    }
+  });
+  return buf
+}
+
 export function convertToDisplayString(displayParts?: any[]) {
   let ret = '';
   if (!displayParts) return ret;
@@ -15,10 +26,7 @@ export function convertToDisplayString(displayParts?: any[]) {
   return ret;
 }
 
-export function getParams(
-  members: Array<{ text: string; documentation: string }>,
-  separator: string
-): string {
+export function getParams(members: Array<{ text: string; documentation: string }>, separator: string): string {
   let ret = '';
   members.forEach((member, idx) => {
     if (idx === members.length - 1) {
@@ -43,10 +51,7 @@ export async function getCurrentImports(client: Client, file: string) {
   }
 }
 
-export async function convertEntry(
-  nvim: Neovim,
-  entry: protocol.CompletionEntry
-): Promise<any> {
+export async function convertEntry(nvim: Neovim, entry: protocol.CompletionEntry): Promise<any> {
   let kind = await getKind(nvim, entry.kind);
   return {
     word: entry.name,
@@ -54,11 +59,7 @@ export async function convertEntry(
   };
 }
 
-export async function convertDetailEntry(
-  nvim: Neovim,
-  entry: protocol.CompletionEntryDetails,
-  expandSnippet = false
-): Promise<any> {
+export async function convertDetailEntry(nvim: Neovim, entry: protocol.CompletionEntryDetails, expandSnippet = false): Promise<any> {
   let displayParts = entry.displayParts;
   let signature = '';
   for (let p of displayParts) {
@@ -70,7 +71,7 @@ export async function convertDetailEntry(
     ''
   );
   const word = !!expandSnippet ? `${entry.name}${getAbbr(entry)}` : entry.name;
-  const info = entry.documentation.map(d => d.text).join('\n');
+  const info = entry.documentation ? entry.documentation.map(d => d.text).join('\n') : '';
   let kind = await getKind(nvim, entry.kind);
 
   return {
@@ -97,17 +98,12 @@ export async function getKind(nvim: any, kind: string): Promise<any> {
 }
 
 function toTitleCase(str: string) {
-  return str.replace(/\w\S*/g, function(txt) {
+  return str.replace(/\w\S*/g, function (txt) {
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
   });
 }
 
-export async function createLocList(
-  nvim: Neovim,
-  list: Array<{ filename: string; lnum: number; col: number; text: string }>,
-  title: string,
-  autoOpen = true
-): Promise<any> {
+export async function createLocList(nvim: Neovim, list: Array<{ filename: string; lnum: number; col: number; text: string }>, title: string, autoOpen = false): Promise<any> {
   return new Promise(
     async (resolve: any): Promise<any> => {
       await nvim.call('setloclist', [0, list, 'r', title]);
@@ -119,28 +115,12 @@ export async function createLocList(
   );
 }
 
-export async function createQuickFixList(
-  nvim: Neovim,
-  list: Array<{
-    filename: string;
-    lnum: number;
-    col: number;
-    text: string;
-    nr?: number;
-    type?: string;
-  }>,
-  title: string,
-  autoOpen = true
-): Promise<any> {
-    const qfList =  await nvim.call('setqflist', [list, 'r', title]);
-    console.warn("test: ", JSON.stringify(qfList))
-    if (autoOpen) await nvim.command('botright copen');
+export async function createQuickFixList(nvim: Neovim, list: Array<{ filename: string; lnum: number; col: number; text: string; nr?: number; type?: string; }>, title: string, autoOpen = false): Promise<any> {
+  await nvim.call('setqflist', [list, 'r', title]);
+  if (autoOpen) await nvim.command('botright copen');
 }
 
-export async function truncateMsg(
-  nvim: Neovim,
-  message: string
-): Promise<string> {
+export async function truncateMsg(nvim: Neovim, message: string): Promise<string> {
   /**
    * Print as much of msg as possible without triggering "Press Enter"
    * Inspired by neomake, which is in turn inspired by syntastic.
@@ -151,12 +131,7 @@ export async function truncateMsg(
   return msg;
 }
 
-export async function printHighlight(
-  nvim: Neovim,
-  message: string | Promise<string>,
-  statusHL = 'None',
-  messageHL = 'NormalNC'
-): Promise<any> {
+export async function printHighlight(nvim: Neovim, message: string | Promise<string>, statusHL = 'None', messageHL = 'NormalNC'): Promise<any> {
   const ruler = (await nvim.getOption('ruler')) as boolean;
   const showCmd = (await nvim.getOption('showcmd')) as boolean;
   const msg = (message as string).replace(/\"/g, '\\"');
@@ -171,10 +146,7 @@ export async function printHighlight(
 
 // ReduceByPrefix takes a list of basic complettions and a prefix and eliminates things
 // that don't match the prefix
-export const reduceByPrefix = (
-  prefix: string,
-  c: ReadonlyArray<protocol.CompletionEntry>
-): protocol.CompletionEntry[] => {
+export const reduceByPrefix = (prefix: string, c: ReadonlyArray<protocol.CompletionEntry>): protocol.CompletionEntry[] => {
   const re = new RegExp(prefix, 'i');
   return c.filter(v => re.test(v.name));
 };
@@ -210,7 +182,7 @@ export function leftpad(str: string, len: number, padRight = false, ch = ' ') {
   return lpad + str + rpad;
 }
 
-export function processErrors(res: Array<{file: string; diagnostics: protocol.Diagnostic[]}>) {
+export function processErrors(res: Array<{ file: string; diagnostics: protocol.Diagnostic[] }>) {
   return res
     .filter(e => !!e.diagnostics.length)
     .filter(e => !e.file.includes('node_module'))
