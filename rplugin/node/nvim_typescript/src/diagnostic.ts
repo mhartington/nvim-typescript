@@ -19,14 +19,13 @@ class DiagnosticProvider {
       defaults.map(async (sign: any) => {
         let name = Object.keys(sign)[0];
         let data = sign[name];
-        await this.nvim.command(`sign define ${name} text=${data.signText} texthl=${data.signTexthl}`)
-        // await this.nvim.call('sign_define', [name, { text: data.signText, texthl: data.signTexthl }]);
+        // await this.nvim.command(`sign define ${name} text=${data.signText} texthl=${data.signTexthl}`)
+        await this.nvim.call('sign_define', [name, { text: data.signText, texthl: data.signTexthl }]);
       })
     );
   }
   async createNamespace() {
     this.namespaceId = await this.nvim.createNamespace(name)
-    // console.warn('namespaceId: ', this.namespaceId)
   }
   async placeSigns(incomingSigns: Diagnostic[], file: string) {
     const locList = [];
@@ -51,7 +50,6 @@ class DiagnosticProvider {
     await Promise.all(
       current.signs.map(async sign => {
         await this.nvim.call('sign_place', [sign.id, name, `TS${sign.category}`, current.file, { lnum: sign.start.line, priority: 90 }]);
-        // await this.nvim.command(`sign place ${sign.id} line=${sign.start.line}, name=TS${sign.category} file=${current.file}`);
         locList.push({ filename: current.file, lnum: sign.start.line, col: sign.start.offset, text: sign.text, code: sign.code, type: sign.category[0].toUpperCase() });
       })
     )
@@ -63,20 +61,18 @@ class DiagnosticProvider {
     return signs.map(sign => ({ ...sign, id: this.signID++ }));
   }
   async clearSigns(current: { file: string, signs: SignStoreSign[] }) {
-    await this.unsetSigns(current)
-  }
-  async unsetSigns(current: { file: string, signs: SignStoreSign[] }) {
-    // console.warn('CALLING UNSET SIGNS')
     if (current.signs.length > 0) {
-      await Promise.all(
-        current.signs
-          .map(async (sign: SignStoreSign) => await this.clearHighlight(sign))
-          .map(async () => await this.nvim.call('sign_unplace', [name, { buffer: current.file }]))
-        // .map(async (sign) => await this.nvim.command(`sign unplace file=${current.file}`))
-        // .filter(() => false)
-      )
-
+      await this.clearHighlight();
+      await this.nvim.call('sign_unplace', [name, { buffer: current.file }])
     }
+  }
+  async clearHighlight() {
+    const buffer = await this.nvim.buffer;
+    buffer.clearNamespace({
+      nsId: this.namespaceId,
+      lineStart: 0,
+      lineEnd: -1,
+    })
   }
   getSign(file: string, line: number, offset: number): SignStoreSign {
     const current = this.signStore.find(entry => entry.file === file);
@@ -92,17 +88,6 @@ class DiagnosticProvider {
         }
       }
     }
-  }
-  async clearHighlight(sign: SignStoreSign) {
-    const buffer = await this.nvim.buffer;
-    buffer.clearNamespace({
-      nsId: this.namespaceId,
-      // lineStart: sign.start.line - 1,
-      // lineEnd: sign.end.line,
-      lineStart: 0,
-      lineEnd: -1,
-    })
-    return sign;
   }
   async highlightLine(current: { file: string, signs: SignStoreSign[] }) {
     const buffer = await getBufferFromFile(this.nvim, current.file);
@@ -130,7 +115,8 @@ class DiagnosticProvider {
   }
   async clearAllHighlights(file: string) {
     const current = this.signStore.find(entry => entry.file === file);
-    await Promise.all(current.signs.map(async sign => await this.clearHighlight(sign)));
+    console.log(current)
+    await this.clearHighlight();
   }
 }
 export const DiagnosticHost = new DiagnosticProvider();

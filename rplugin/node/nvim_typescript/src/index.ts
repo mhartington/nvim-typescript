@@ -6,9 +6,22 @@ import protocol from 'typescript/lib/protocol';
 import { TSServer } from './client';
 import { applyCodeFixes, promptForSelection } from './codeActions';
 import { DiagnosticHost } from './diagnostic';
-import { createFloatingWindow, updateFloatingWindow } from './floatingWindow';
+import { createFloatingWindow, updateFloatingWindow, windowRef, unsetWindow } from './floatingWindow';
 // import { CompletionChangeEvent, CompletionItem } from './types';
-import { convertDetailEntry, convertEntry, createLocList, createQuickFixList, getKind, isRenameSuccess, printHighlight, reduceByPrefix, triggerChar, trim, truncateMsg, processErrors } from './utils';
+import {
+  convertDetailEntry,
+  convertEntry,
+  createLocList,
+  createQuickFixList,
+  getKind,
+  isRenameSuccess,
+  printHighlight,
+  reduceByPrefix,
+  triggerChar,
+  trim,
+  truncateMsg,
+  processErrors
+} from './utils';
 
 @Plugin({ dev: false })
 export default class TSHost {
@@ -21,19 +34,13 @@ export default class TSHost {
   quietStartup: boolean;
   openFiles = [];
 
-  floatingWindow: Window = null;
   doingCompletion = false;
   suggestionsEnabled: any;
   updateTime: number;
   constructor(public nvim: Neovim) { }
 
-
   @Autocmd('CompleteDone', { pattern: '*' })
-  async onCompleteDone() {
-    console.warn("COMPLECTION DONE")
-    this.doingCompletion = false
-    this.getDiagnostics()
-  }
+  async onCompleteDone() {}
 
   @Command('TSType')
   async getType() {
@@ -43,15 +50,28 @@ export default class TSHost {
       const typeInfo = await this.client.quickInfo(args);
       if (Object.getOwnPropertyNames(typeInfo).length > 0) {
         try {
-          if (!this.floatingWindow) {
-            this.floatingWindow = await createFloatingWindow(this.nvim, typeInfo, 'Type')
+          if (!windowRef) {
+            await createFloatingWindow(
+              this.nvim,
+              typeInfo,
+              'Type'
+            );
           } else {
-            this.floatingWindow = await updateFloatingWindow(this.nvim, this.floatingWindow, typeInfo, 'Type');
+            await updateFloatingWindow(
+              this.nvim,
+              windowRef,
+              typeInfo,
+              'Type'
+            );
           }
-        }
-        catch (e) {
-          console.warn("ERROR", e)
-          await printHighlight(this.nvim, await truncateMsg(this.nvim, typeInfo.displayString), 'MoreMsg', 'Function');
+        } catch (e) {
+          console.warn('ERROR', e);
+          await printHighlight(
+            this.nvim,
+            await truncateMsg(this.nvim, typeInfo.displayString),
+            'MoreMsg',
+            'Function'
+          );
         }
       }
     } catch (err) {
@@ -75,7 +95,10 @@ export default class TSHost {
 
   @Command('TSImport')
   async tsImport() {
-    await printHighlight(this.nvim, 'TSImport is depreciated, please use TSGetCodeFix')
+    await printHighlight(
+      this.nvim,
+      'TSImport is depreciated, please use TSGetCodeFix'
+    );
     await this.getCodeFix();
   }
 
@@ -127,10 +150,10 @@ export default class TSHost {
     if (args.length > 0) {
       newName = args[0];
     } else {
-      const input = await this.nvim.call(
-        'input',
-        [`nvim-ts: rename to `, symbol]
-      );
+      const input = await this.nvim.call('input', [
+        `nvim-ts: rename to `,
+        symbol
+      ]);
       if (!input) {
         await printHighlight(this.nvim, 'Rename canceled', 'ErrorMsg');
         return;
@@ -153,8 +176,8 @@ export default class TSHost {
         let changeCount = 0;
         for (let fileLocation of renameResults.locs) {
           let defFile = fileLocation.file;
-          
-          if(defFile !== renameArgs.file){
+
+          if (defFile !== renameArgs.file) {
             await this.nvim.command(`keepjumps keepalt edit ${defFile}`);
           }
           const commands = [];
@@ -174,28 +197,32 @@ export default class TSHost {
                 strictIndexing: true
               })
             );
-          
+
             changedFiles.push({
               filename: defFile,
               lnum: line,
               col: offset,
               text: `Replaced ${symbol} with ${newName}`
             });
-          
+
             changeCount += 1;
           }
           await this.nvim.callAtomic(commands);
         }
 
         await this.nvim.command(`buffer ${buffNum}`);
-        await this.nvim.call('cursor', [ renameResults.info.triggerSpan.start.line, renameResults.info.triggerSpan.start.offset ]);
-        
-        await createQuickFixList(this.nvim, changedFiles, 'Renames', false);
-        await printHighlight(this.nvim, `Replaced ${changeCount} in ${renameResults.locs.length} files`);
-        await this.getDiagnostics();
+        await this.nvim.call('cursor', [
+          renameResults.info.triggerSpan.start.line,
+          renameResults.info.triggerSpan.start.offset
+        ]);
 
-      }
-      else {
+        await createQuickFixList(this.nvim, changedFiles, 'Renames', false);
+        await printHighlight(
+          this.nvim,
+          `Replaced ${changeCount} in ${renameResults.locs.length} files`
+        );
+        await this.getDiagnostics();
+      } else {
         printHighlight(
           this.nvim,
           renameResults.info.localizedErrorMessage,
@@ -213,7 +240,7 @@ export default class TSHost {
     const file = await this.getCurrentFile();
     const [line, offset] = await this.getCursorPos();
     const info = await this.client.getSignature({ file, line, offset });
-    console.warn("INFO", info)
+    console.warn('INFO', info);
 
     //   const signatureHelpItems = info.items.map(item => {
     //     return {
@@ -278,12 +305,17 @@ export default class TSHost {
     }
   }
 
-  async complete(file: string, prefix: string, offset: number, line: number, nvimVar: string) {
-    // console.warn(prefix, offset, line)
+  async complete(
+    file: string,
+    prefix: string,
+    offset: number,
+    line: number,
+    nvimVar: string
+  ) {
     this.doingCompletion = true
-    await this.closeFloatingWindow();
-    const currentLine = await this.nvim.call('nvim_get_current_line')
-    // console.warn(currentLine)
+    const didClose = await this.closeFloatingWindow();
+    console.warn("didClose", didClose)
+    const currentLine = await this.nvim.line;
     let completeArgs: protocol.CompletionsRequestArgs = {
       file,
       line,
@@ -293,7 +325,10 @@ export default class TSHost {
       includeExternalModuleExports: false
     };
     if (this.client.isCurrentVersionHighter(300)) {
-      completeArgs = { ...completeArgs, triggerCharacter: triggerChar(currentLine) }
+      completeArgs = {
+        ...completeArgs,
+        triggerCharacter: triggerChar(currentLine)
+      };
     }
 
     let completions: any;
@@ -307,35 +342,48 @@ export default class TSHost {
       //   completions
       // - lets run a regex on the completions so that as the user narrows down the range of possibilities
       //   they will eventually see detailed completions for the member
-      completions = isMemberCompletion && prefix ? reduceByPrefix(prefix, entries) : entries;
+      completions =
+        isMemberCompletion && prefix
+          ? reduceByPrefix(prefix, entries)
+          : entries;
     }
     else {
       // console.warn('in ts 2.x')
       completions = await this.client.getCompletions(completeArgs);
     }
-
+    // console.warn(JSON.stringify(completions))
     if (completions.length > 0) {
       if (completions.length > this.maxCompletion) {
-        let completionRes = await Promise.all(completions.map(async (entry: protocol.CompletionEntry) => await convertEntry(this.nvim, entry)));
+        let completionRes = await Promise.all(
+          completions.map(
+            async (entry: protocol.CompletionEntry) =>
+              await convertEntry(this.nvim, entry)
+          )
+        );
         await this.nvim.setVar(nvimVar, completionRes);
         return completionRes;
       } else {
-        const entryNames = completions.map((v: { name: any; }) => v.name)
+        const entryNames = completions.map((v: { name: any }) => v.name);
         let detailedCompletions = await this.client.getCompletionDetails({
           file,
           line,
           offset,
           entryNames
         });
-        console.warn(JSON.stringify(detailedCompletions))
-        let completionResDetailed = await Promise.all(detailedCompletions.map(async (entry) => await convertDetailEntry(this.nvim, entry, this.expandSnippet)));
+        // console.warn(JSON.stringify(detailedCompletions));
+        let completionResDetailed = await Promise.all(
+          detailedCompletions.map(
+            async entry =>
+              await convertDetailEntry(this.nvim, entry, this.expandSnippet)
+          )
+        );
 
         await this.nvim.setVar(nvimVar, completionResDetailed);
         return completionResDetailed;
       }
     } else {
       await this.nvim.setVar(nvimVar, []);
-      return []
+      return [];
     }
   }
 
@@ -346,19 +394,9 @@ export default class TSHost {
     if (!!args[0]) {
       let currentLine = await this.nvim.line;
       let [, col] = await this.getCursorPos();
-      let start = col - 1;
-
-      // [\S+$]
-      // \w\+$
-      while (start > 0 && currentLine[start - 1].match(/[(\w|\_|\.|\-|\>)$]/)) {
-        // while (start > 0 && currentLine[start - 1].match(/[\w\+$]/)) {
-        if (currentLine[start] === '.') {
-          console.warn('currentline position is .')
-          return start + 1;
-        }
-        start--;
-      }
-      return start;
+      const lineToCursor = currentLine.substring(0, col);
+      let textMatch = await this.nvim.call('match', [lineToCursor, '\\k*$']);
+      return textMatch
     } else {
       // Args[1] is good.
       return await this.tsComplete(args[1]);
@@ -430,7 +468,7 @@ export default class TSHost {
     await this.reloadFile();
     const file = await this.getCurrentFile();
     const symbols = await this.client.getDocumentSymbols({ file });
-    console.warn(JSON.stringify(symbols))
+    console.warn(JSON.stringify(symbols));
     return symbols;
   }
 
@@ -448,7 +486,6 @@ export default class TSHost {
 
   @Function('TSGetWorkspaceSymbolsFunc', { sync: true })
   async getWorkspaceSymbolsFunc(args: any[]) {
-
     const searchValue = args.length > 0 ? args[0] : '';
     const maxResultCount = 50;
     const results = await this.client.getWorkspaceSymbols({
@@ -497,29 +534,31 @@ export default class TSHost {
   @Command('TSGetDiagnostics')
   async getDiagnostics() {
     if (this.enableDiagnostics) {
-      // console.warn("GETTING DiagnosticHost")
-        await this.reloadFile();
-        const file = await this.getCurrentFile();
-        const sematicErrors = await this.getSematicErrors(file);
-        const syntaxErrors = await this.getSyntaxErrors(file);
-        let res = [...sematicErrors, ...syntaxErrors];
-        if (this.suggestionsEnabled) {
-          const suggestionErrors = await this.getSuggested(file);
-          res = [...res, ...suggestionErrors];
-        }
-        await this.diagnosticHost.placeSigns(res, file);
-        await this.closeFloatingWindow();
-        await this.handleCursorMoved();
+      console.warn("GETTING DiagnosticHost")
+      await this.reloadFile();
+      const file = await this.getCurrentFile();
+      const sematicErrors = await this.getSematicErrors(file);
+      const syntaxErrors = await this.getSyntaxErrors(file);
+      let res = [...sematicErrors, ...syntaxErrors];
+      if (this.suggestionsEnabled) {
+        const suggestionErrors = await this.getSuggested(file);
+        res = [...res, ...suggestionErrors];
+      }
+      await this.diagnosticHost.placeSigns(res, file);
+      await this.closeFloatingWindow();
+      await this.handleCursorMoved();
     }
   }
 
   @Function('TSCloseWindow')
   async closeFloatingWindow() {
-    if (!!this.floatingWindow) {
-       this.floatingWindow.close(true).then(
-        () => this.floatingWindow = null
-       )
-    }
+    try {
+       await windowRef.close(true);
+      unsetWindow();
+
+    } catch (error) { }
+    return
+
   }
 
   @Function('TSEchoMessage')
@@ -531,21 +570,16 @@ export default class TSHost {
     const errorSign = this.diagnosticHost.getSign(file, line, offset);
 
     if (errorSign) {
-      (debounce(async () => {
-        try {
-          if (!this.floatingWindow) {
-            this.floatingWindow = await createFloatingWindow(this.nvim, errorSign, 'Error')
-
-          } else {
-            this.floatingWindow = await updateFloatingWindow(this.nvim, this.floatingWindow, errorSign, 'Error')
-          }
+      debounce(async () => {
+        // try {
+        if (!(windowRef)) {
+           await createFloatingWindow( this.nvim, errorSign, 'Error' );
         }
-        catch (e) {
-          await printHighlight(this.nvim, await truncateMsg(this.nvim, errorSign.text), 'ErrorMsg');
+        else {
+          await updateFloatingWindow( this.nvim, windowRef, errorSign, 'Error' );
         }
-      }, this.updateTime + 200))()
+      }, this.updateTime + 200)();
     }
-
   }
 
   @Command('TSGetErrorFull')
@@ -593,7 +627,6 @@ export default class TSHost {
     const { file, line, offset } = await this.getCommonData();
     const errorAtCursor = this.diagnosticHost.getSign(file, line, offset);
     if (errorAtCursor) {
-
       // scope: {
       //   type: 'file',
       //   args: { file }
@@ -603,7 +636,6 @@ export default class TSHost {
       //   scope: { type: 'file', args: {file} },
       //   fixId: {}});
       //   console.warn('COMBO FIXES: ', JSON.stringify(combinedFixes))
-
 
       const fixes = await this.client.getCodeFixes({
         file,
@@ -615,9 +647,9 @@ export default class TSHost {
       });
       if (fixes.length !== 0) {
         const promptSel = await promptForSelection(fixes, this.nvim);
-        await this.diagnosticHost.clearAllHighlights(file)
-        await applyCodeFixes(promptSel, this.nvim)
-        await this.getDiagnostics()
+        await this.diagnosticHost.clearAllHighlights(file);
+        await applyCodeFixes(promptSel, this.nvim);
+        await this.getDiagnostics();
       } else {
         await printHighlight(this.nvim, 'No fix');
       }
@@ -629,15 +661,15 @@ export default class TSHost {
     await printHighlight(this.nvim, `Building...`, 'Question');
     await this.reloadFile();
     const file = await this.getCurrentFile();
-    this.client.getProjectError({ file, delay: 0 })
+    this.client.getProjectError({ file, delay: 0 });
   }
   async processProjectErrorRes(res: any[]) {
-    const fmtErrors = processErrors(res)
+    const fmtErrors = processErrors(res);
     try {
       await printHighlight(this.nvim, `Build done`, 'MoreMsg');
-      await createQuickFixList(this.nvim, fmtErrors, 'Errors')
+      await createQuickFixList(this.nvim, fmtErrors, 'Errors');
     } catch (e) {
-      console.warn("ERR in processing", e)
+      console.warn('ERR in processing', e);
     }
   }
 
@@ -651,9 +683,6 @@ export default class TSHost {
   async extract() {
     await this.reloadFile();
 
-
-
-
     // const [start, end] = range;
     const file = await this.getCurrentFile();
 
@@ -663,7 +692,6 @@ export default class TSHost {
     // const lines = await this.nvim.buffer.getLines({start: start-1, end, strictIndexing: true})
     // const firstLine = lines[0]
     // const lastLine = lines[lines.length-1]
-
 
     // REGEX: Get the position of the first char that is not whitespace
     // const startOffset = firstLine.search(/\S/g)+1;
@@ -676,11 +704,10 @@ export default class TSHost {
       endLine: line_end,
       startOffset: column_start,
       endOffset: column_end
-    }
+    };
     // console.warn(JSON.stringify(args))
     // const refactorRes = await this.client.getApplicableRefactors(args);
     // console.warn(JSON.stringify(refactorRes))
-
   }
 
   async getSematicErrors(file: string) {
@@ -730,8 +757,7 @@ export default class TSHost {
   async onBufEnter(arg?: [string]) {
     if (this.client.serverHandle == null) {
       await this.tsstart();
-    }
-    else {
+    } else {
       const file = await this.getCurrentFile();
       if (arg && arg[0] !== file) {
         console.warn('Current buffer no longer file that triggered BufEnter');
@@ -740,26 +766,30 @@ export default class TSHost {
       if (!this.openFiles.includes(file)) {
         this.openFiles.push(file);
         const buffer = await this.nvim.buffer;
-        const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
+        const bufContent = (await buffer.getOption('endofline'))
+          ? [...(await buffer.lines), '\n']
+          : await buffer.lines;
         const fileContent = bufContent.join('\n');
         this.client.openFile({ file, fileContent });
         if (this.enableDiagnostics) {
           await this.closeFloatingWindow();
           await this.getDiagnostics();
-          this.nvim.buffer.listen('lines', debounce((() => {
-            // if(!this.doingCompletion){
-              this.getDiagnostics()
-            // }
-          }), 1000))
+          this.nvim.buffer.listen(
+            'lines',
+            debounce(() => {
+              // if(!this.doingCompletion){
+              this.getDiagnostics();
+              // }
+            }, 1000)
+          );
         }
       } else {
         await this.closeFloatingWindow();
         await this.getDiagnostics();
       }
-      console.warn("OPENED FILES", JSON.stringify(this.openFiles))
+      console.warn('OPENED FILES', JSON.stringify(this.openFiles));
     }
   }
-
 
   @Function('TSOnBufSave')
   async onBufSave() {
@@ -788,8 +818,6 @@ export default class TSHost {
   async createWatcher() {
     // const dir = await this.nvim.call('getcwd');
     // const { fileNames } = await this.getProjectInfoFunc()
-
-
     // [
     //   {
     //     "action": 0, // nsfw.actions.CREATED
@@ -824,9 +852,6 @@ export default class TSHost {
     //     console.warn(JSON.stringify(events))
     // })
     // await watcher.start()
-
-
-
     // createMonitor(dir,{
     //   ignoreDotFiles: true,
     //   ignoreDirectoryPattern: /node_modules/
@@ -842,8 +867,6 @@ export default class TSHost {
     //     // Handle file changes
     //   })
     // })
-
-
     // const watcher = watch('', {
     //   ignored: ['node_modules/**', '.git/**', '*.log'],
     //   ignoreInitial: true,
@@ -852,11 +875,7 @@ export default class TSHost {
     //   usePolling: false,
     //   awaitWriteFinish: true
     // });
-
-
     // watcher.on('ready', path => console.warn(`READY: ${path}`))
-
-
     //   watcher.add(fileNames);
     //   watcher.on('raw', (event, path, {watchedPath}) => {
     //     if (event === 'rename') {
@@ -871,10 +890,7 @@ export default class TSHost {
     //   if (stats) console.warn(`File ${path} changed size to ${stats.size}`);
     // });
     // console.warn(JSON.stringify(watcher.getWatched()));
-
-
   }
-
 
   @Command('TSStop')
   async tsstop() {
@@ -1006,7 +1022,7 @@ export default class TSHost {
       this.nvim.getVar('nvim_typescript#quiet_startup'),
       this.nvim.apiInfo,
       this.nvim.getVar('nvim_typescript#suggestions_enabled'),
-      this.nvim.getOption('redrawtime') as Promise<string>,
+      this.nvim.getOption('redrawtime') as Promise<string>
     ]);
 
     this.updateTime = parseInt(redrawTime as string);
@@ -1028,7 +1044,10 @@ export default class TSHost {
         await printHighlight(this.nvim, `Server started`, 'MoreMsg');
       }
     });
-    this.client.on('getErrCompleted', async res => await this.processProjectErrorRes(res));
+    this.client.on(
+      'getErrCompleted',
+      async res => await this.processProjectErrorRes(res)
+    );
 
     // this.nvim.on('notification', async (method, args)=> {
     //   console.warn(method)
@@ -1038,13 +1057,15 @@ export default class TSHost {
   async reloadFile(): Promise<any> {
     const file = await this.getCurrentFile();
     const buffer = await this.nvim.buffer;
-    const bufContent = await buffer.getOption('endofline') ? [...(await buffer.lines), '\n'] : await buffer.lines
+    const bufContent = (await buffer.getOption('endofline'))
+      ? [...(await buffer.lines), '\n']
+      : await buffer.lines;
 
     const contents = bufContent.join('\n');
 
     const temp = fileSync();
     writeFileSync(temp.name, contents, 'utf8');
-    await this.client.updateFile({ file, tmpfile: temp.name })
+    await this.client.updateFile({ file, tmpfile: temp.name });
     temp.removeCallback();
   }
   async getCurrentFile(): Promise<string> {
@@ -1053,7 +1074,11 @@ export default class TSHost {
   async getCursorPos(): Promise<[number, number]> {
     return await this.nvim.window.cursor;
   }
-  async getCommonData(): Promise<{ file: string; line: number; offset: number; }> {
+  async getCommonData(): Promise<{
+    file: string;
+    line: number;
+    offset: number;
+  }> {
     let file = await this.getCurrentFile();
     let cursorPos = await this.getCursorPos();
     return {
