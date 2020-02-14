@@ -82,7 +82,6 @@ export default class TSHost {
   @Command('TSDef')
   async getDef() {
     const definition = await this.getDefFunc();
-    console.warn(JSON.stringify(definition))
     if (definition) {
       const defFile = definition[0].file;
       const defLine = definition[0].start.line;
