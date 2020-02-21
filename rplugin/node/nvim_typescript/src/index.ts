@@ -258,7 +258,7 @@ export default class TSHost {
       };
     });
     // Uses QuickFix list as refs can span multiple files. QFList is better.
-    createQuickFixList(this.nvim, locationList, 'References');
+    createQuickFixList(this.nvim, locationList, 'References', true);
   }
 
   @Command('TSEditConfig')
