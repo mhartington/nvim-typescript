@@ -1,21 +1,21 @@
 import { Buffer, Neovim, Window } from 'neovim';
-import { leftpad } from './utils';
+import { padString } from './utils';
 import { OpenWindowOptions } from 'neovim/lib/api/Neovim';
 
 export let windowRef: Window = null;
 const col = async (nvim: Neovim) => await nvim.window.width
-const createBuffer = async (nvim: Neovim) => await nvim.createBuffer(false, false);
+const createBuffer = async (nvim: Neovim) => await nvim.createBuffer(false, true);
 
 function processHoverText(symbol: protocol.QuickInfoResponseBody){
-  const text = symbol.displayString.split(/\r|\n/g).map(e => leftpad(e, 1, true));
+  const text = symbol.displayString.split(/\r|\n/g).map(e => padString(e, 1, true));
   let sepLength = text[0].length;
   if (symbol.documentation !== '') {
-    const docs = symbol.documentation.split(/\r|\n/g).map(e => leftpad(e, 1, true));
+    const docs = symbol.documentation.split(/\r|\n/g).map(e => padString(e, 1, true));
     let separatorLength = docs.reduce((a, b) => a.length > b.length ? a : b).length;
     if (separatorLength > sepLength) {
       sepLength = separatorLength
     }
-    const sep = '—'.repeat(sepLength);
+    const sep = '-'.repeat(sepLength);
     text.push(sep, ...docs)
   }
   if (symbol.tags && symbol.tags.length > 0) {
@@ -23,10 +23,10 @@ function processHoverText(symbol: protocol.QuickInfoResponseBody){
 
     symbol.tags.forEach(tag => {
       if (tag.name) {
-        tags.push(`${leftpad('@' + tag.name, 1)}`);
+        tags.push(`${padString('@' + tag.name, 1)}`);
       }
       if (tag.text) {
-        tags.push(...tag.text.split(/\r|\n/g).filter(Boolean).map(e => leftpad(e, 1)))
+        tags.push(...tag.text.split(/\r|\n/g).filter(Boolean).map(e => padString(e, 1)))
       }
     })
 
@@ -42,12 +42,12 @@ function processHoverText(symbol: protocol.QuickInfoResponseBody){
 const processErrorText = (symbol: protocol.Diagnostic) => {
   return symbol.text.split('\n').map((e: string, idx: number) => {
     if (idx === 0) {
-      return leftpad(
+      return padString(
         `${symbol.source ? '[' + symbol.source + ']: ' : ''}${e}`,
         1
       );
     }
-    return leftpad(e, 1);
+    return padString(e, 1);
   });
 }
 async function popupWindowSize(nvim: Neovim, contents: string[]): Promise<[number, number]> {
@@ -106,13 +106,9 @@ async function getWindowPos(nvim: Neovim, width: number, height: number, errorSt
 async function lockBuffer(window: Window, buffer: Buffer) {
   return Promise.all([
     window.setOption('winhl', 'Normal:nvimTypescriptPopupNormal,EndOfBuffer:nvimTypescriptEndOfBuffer'),
-    buffer.setOption('filetype', 'typescript'),
+    buffer.setOption('filetype', 'markdown'),
     buffer.setOption('buftype', 'nofile'),
     buffer.setOption('bufhidden', 'wipe'),
-    window.setOption('relativenumber', false),
-    window.setOption('signcolumn', 'no'),
-    window.setOption('number', false),
-    window.setOption('cursorline', false),
     window.setOption('wrap', true),
     window.setOption('foldenable', false),
     window.setOption('spell', false),
@@ -138,7 +134,7 @@ export async function createFloatingWindow(nvim: Neovim, symbol: any, type: "Err
   }
   const [width, height] = await popupWindowSize(nvim, text);
   const windowPos = await getWindowPos(nvim, width, height, symbol.start);
-  const options: OpenWindowOptions = { ...windowPos, height, width, focusable: true };
+  const options: OpenWindowOptions = { ...windowPos, height, width, focusable: true, style: 'minimal'};
   await buffer.setLines(text, { start: 0, end: -1, strictIndexing: false })
   const floatingWindow = (await nvim.openWindow(
     buffer,
@@ -148,9 +144,8 @@ export async function createFloatingWindow(nvim: Neovim, symbol: any, type: "Err
   await lockBuffer(floatingWindow, buffer);
   windowRef = floatingWindow;
   return
-  
-};
 
+};
 export function unsetWindow(){
   windowRef = null;
 }

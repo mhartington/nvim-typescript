@@ -1,6 +1,6 @@
 import { Neovim } from 'neovim';
 import { FileCodeEdits, CodeAction, CodeEdit } from 'typescript/lib/protocol';
-import { leftpad } from './utils';
+import { padString } from './utils';
 
 const leadingNewLineRexeg = /^\n/;
 const leadingAndTrailingNewLineRegex = /^\n|\n$/;
@@ -79,7 +79,7 @@ async function spanLineEdit(fix: CodeEdit, nvim: Neovim): Promise<Array<any>> {
     // There is new text, let's just call set lines
     const text = fix.newText.split('\n').filter(e => e.trim() != '');
     if (fix.start.offset > 0) {
-      text[0] = leftpad(text[0], fix.start.offset - 1);
+      text[0] = padString(text[0], fix.start.offset - 1);
     }
     commands.push(await buffer.setLines(text, { start: fix.start.line - 1, end: fix.end.line, strictIndexing: true }));
   }

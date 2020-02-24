@@ -178,11 +178,11 @@ augroup nvim-typescript "{{{
   endif ""}}}
   if get(g:, 'nvim_typescript#diagnostics_enable', 1) "{{{
     autocmd CursorHold *.ts,*.tsx call TSEchoMessage()
-    autocmd CursorHoldI *.ts,*.tsx call TSEchoMessage()
+    " autocmd CursorHoldI *.ts,*.tsx call TSEchoMessage()
   endif "}}}
 
   autocmd CursorMoved *.ts,*.tsx call TSCloseWindow()
-  autocmd CursorMovedI *.ts,*.tsx call TSCloseWindow()
+  " autocmd CursorMovedI *.ts,*.tsx call TSCloseWindow()
   autocmd InsertLeave *.ts,*.tsx call TSCloseWindow()
   autocmd BufWritePost tsconfig.json TSReloadProject
   autocmd User CmSetup call cm#sources#typescript#register()

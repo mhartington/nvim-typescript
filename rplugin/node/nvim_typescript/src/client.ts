@@ -119,7 +119,6 @@ export class Client extends EventEmitter {
   }
 
   // LangServer Commands
-  //
   openFile(args: protocol.OpenRequestArgs) { this._makeNoResponseRequest('open', args); }
   closeFile(args: protocol.FileRequestArgs) { this._makeNoResponseRequest('close', args); }
   reloadProject() { this._makeNoResponseRequest('reloadProjects', null); }

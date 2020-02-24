@@ -151,7 +151,7 @@ export const reduceByPrefix = (prefix: string, c: ReadonlyArray<protocol.Complet
   return c.filter(v => re.test(v.name));
 };
 
-// for testing rename results to gurantee the object type
+// for testing rename results to guarantee the object type
 export const isRenameSuccess = (
   obj: protocol.RenameInfoSuccess | protocol.RenameInfoFailure
 ): obj is protocol.RenameInfoSuccess => obj.canRename;
@@ -168,7 +168,7 @@ export const triggerChar = (
     : undefined;
 };
 
-export function leftpad(str: string, len: number, padRight = false, ch = ' ') {
+export function padString(str: string, len: number, padRight = false, ch = ' ') {
   var lpad = '';
   var rpad = '';
   while (lpad.length < len) {
