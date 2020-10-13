@@ -8,5 +8,6 @@ else
 		cd rplugin/node/nvim_typescript && yarn && yarn build
 	else
 		echo "You must have NPM or Yarn installed"
+		exit 1
 	fi
 fi
