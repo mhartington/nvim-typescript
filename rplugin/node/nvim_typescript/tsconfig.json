@@ -6,11 +6,12 @@
     "experimentalDecorators": true,
     "allowUnreachableCode": false,
     "lib": ["es2019", "dom"],
-    "module": "commonjs",
+    "module": "ES2015",
     "moduleResolution": "node",
     "sourceMap": false,
-    "target": "esNext",
-    "outDir": "./lib",
+    "target": "ESNext",
+    "rootDir": "src",
     "incremental": false
-  }
+  },
+  "include": ["src"]
 }

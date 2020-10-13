@@ -115,7 +115,7 @@ class DiagnosticProvider {
   }
   async clearAllHighlights(file: string) {
     const current = this.signStore.find(entry => entry.file === file);
-    console.log(current)
+    // console.log(current)
     await this.clearHighlight();
   }
 }

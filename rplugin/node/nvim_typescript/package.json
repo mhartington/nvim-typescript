@@ -12,20 +12,21 @@
   "author": "Mike Hartington <mikehartington@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "@neovim/decorators": "^4.9.0",
+    "@rollup/plugin-node-resolve": "^8.4.0",
+    "@rollup/plugin-typescript": "^5.0.2",
     "@types/lodash-es": "4.17.3",
-    "@types/node": "12.6.8",
+    "@types/node": "^12.12.30",
     "@types/tmp": "0.1.0",
-    "rollup": "1.20.3",
-    "rollup-plugin-node-resolve": "5.2.0",
-    "rollup-plugin-terser": "5.1.1",
-    "rollup-plugin-typescript": "1.0.1",
-    "typescript": "3.7.5"
+    "rollup": "^2.23.0",
+    "rollup-plugin-terser": "^6.1.0",
+    "typescript": "^3.8.3"
   },
   "dependencies": {
     "@types/lodash": "4.14.138",
-    "lodash": "4.17.15",
-    "lodash-es": "4.17.15",
-    "neovim": "4.5.0",
+    "lodash": "^4.17.19",
+    "lodash-es": "^4.17.15",
+    "neovim": "^4.9.0",
     "tmp": "0.1.0",
     "tslib": "1.10.0"
   }

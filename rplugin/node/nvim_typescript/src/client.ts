@@ -64,20 +64,20 @@ export class Client extends EventEmitter {
         terminal: false
       });
 
-      this.serverHandle.stderr.on('data', (data: string, _err: any) => {
-        console.error('Error from tss: ' + data);
+      this.serverHandle.stderr.on('data', (_data: string, _err: any) => {
+        // console.error('Error from tss: ' + data);
       });
 
-      this.serverHandle.on('error', data => {
-        console.log(`ERROR Event: ${data}`);
+      this.serverHandle.on('error', _data => {
+        // console.log(`ERROR Event: ${data}`);
       });
 
-      this.serverHandle.on('exit', data => {
-        console.log(`exit Event: ${data}`);
+      this.serverHandle.on('exit', _data => {
+        // console.log(`exit Event: ${data}`);
       });
 
-      this.serverHandle.on('close', data => {
-        console.log(`Close Event: ${data}`);
+      this.serverHandle.on('close', _data => {
+        // console.log(`Close Event: ${data}`);
       });
 
       this._rl.on('line', (msg: string) => {
@@ -92,6 +92,7 @@ export class Client extends EventEmitter {
   }
   stopServer() {
     this.serverHandle.kill('SIGINT');
+    this.serverHandle = null
   }
   setTSConfigVersion() {
     const command = this.serverPath.replace('tsserver', 'tsc');
@@ -147,16 +148,14 @@ export class Client extends EventEmitter {
   getEditsForFileRename(args: protocol.GetEditsForFileRenameRequestArgs): Promise<protocol.GetEditsForFileRenameResponse['body']> { return this._makeTssRequest('getEditsForFileRename', args) }
 
   // Server communication
-  _makeTssRequest<T>(commandName?: string, args?: any): Promise<T> {
+  _makeTssRequest<T>(commandName: string, args?: any): Promise<T> {
     const seq = this._seqNumber++;
     const payload = {
       seq,
       type: 'request',
-      arguments: args
+      arguments: args,
+      command: commandName
     };
-    if (commandName) {
-      payload['command'] = commandName;
-    }
     const ret = this.createDeferredPromise();
     this._seqToPromises[seq] = ret;
     this.serverHandle.stdin.write(JSON.stringify(payload) + EOL);

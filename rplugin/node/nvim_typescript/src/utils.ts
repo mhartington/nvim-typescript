@@ -131,6 +131,9 @@ export async function truncateMsg(nvim: Neovim, message: string): Promise<string
   return msg;
 }
 
+export async function print(nvim: Neovim, message: string){
+  await nvim.outWrite(`${message} \n`)
+}
 export async function printHighlight(nvim: Neovim, message: string | Promise<string>, statusHL = 'None', messageHL = 'NormalNC'): Promise<any> {
   const ruler = (await nvim.getOption('ruler')) as boolean;
   const showCmd = (await nvim.getOption('showcmd')) as boolean;

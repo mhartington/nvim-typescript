@@ -43,7 +43,8 @@ export async function applyCodeFixes(fixes: ReadonlyArray<FileCodeEdits>, nvim: 
       }
     }
   }
-  await nvim.callAtomic(commands).catch(err => console.warn("err", err));
+  await nvim.callAtomic(commands)
+  // .catch(err => console.warn("err", err));
   nvim.window.cursor = cursorPos;
 
 }
@@ -100,7 +101,7 @@ async function midLineEdit(nvim: Neovim, textChange: CodeEdit) {
   repList.forEach(async (line) => {
     if (count <= textChange.end.line) {
       if (addingTrailingComma && lineAlreadyHasTrailingComma) {
-        console.warn('LINE HAS A COMMA');
+        // console.warn('LINE HAS A COMMA');
         return;
       }
       commands.push(nvim.buffer.setLines(line, { start: count - 1, end: count, strictIndexing: true }));
