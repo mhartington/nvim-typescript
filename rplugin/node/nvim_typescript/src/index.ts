@@ -1,6 +1,6 @@
 import { statSync, writeFileSync } from 'fs';
 import { debounce } from 'lodash-es';
-import { Neovim, NvimPlugin } from 'neovim';
+import { Neovim, NvimPlugin, Window } from 'neovim';
 import { fileSync } from 'tmp';
 import protocol from 'typescript/lib/protocol';
 import { TSServer } from './client';
@@ -9,8 +9,6 @@ import { DiagnosticHost } from './diagnostic';
 import {
   createFloatingWindow,
   updateFloatingWindow,
-  windowRef,
-  unsetWindow,
 } from './floatingWindow';
 import {
   convertDetailEntry,
@@ -25,7 +23,6 @@ import {
   trim,
   truncateMsg,
   processErrors,
-  print,
 } from './utils';
 
 module.exports = (plugin: NvimPlugin) => {
@@ -34,14 +31,47 @@ module.exports = (plugin: NvimPlugin) => {
   const client = TSServer;
   const diagnosticHost = DiagnosticHost;
 
+  let windowRef: Window = null;
   let maxCompletion: number = 50;
   let expandSnippet: boolean = false;
   let enableDiagnostics: boolean = false;
   let quietStartup: boolean = false;
   let openFiles = [];
-  let doingCompletion = false;
+
   let suggestionsEnabled: any = false;
   let updateTime: number = 0;
+  let windowLock = false;
+
+  const showInWindow = async(symbol: any, type: "Error" | "Type") => {
+    if (windowLock) {
+      await new Promise((resolve) => {
+        const intervalId = setInterval(() => {
+          if (!windowLock) {
+            clearInterval(intervalId);
+            resolve();
+          }
+        }, 100);
+      });
+    }
+    windowLock = true;
+
+    try {
+      if (!windowRef) {
+        windowRef = await createFloatingWindow(nvim, symbol, type)
+      } else {
+        windowRef = await updateFloatingWindow(nvim, windowRef, symbol, type);
+      }
+    }
+
+
+    catch {
+      // Probably window was closed by the user
+      windowRef = null;
+      await showInWindow(symbol, type);
+    }
+    windowLock = false;
+  }
+
   // Utils
   const init = async () => {
     diagnosticHost.nvim = nvim;
@@ -228,18 +258,9 @@ module.exports = (plugin: NvimPlugin) => {
       const typeInfo = await client.quickInfo(args);
       if (Object.getOwnPropertyNames(typeInfo).length > 0) {
         try {
-          if (!windowRef) {
-            await createFloatingWindow(nvim, typeInfo, 'Type');
-          } else {
-            await updateFloatingWindow(nvim, windowRef, typeInfo, 'Type');
-          }
+          showInWindow(typeInfo, 'Type')
         } catch (e) {
-          await printHighlight(
-            nvim,
-            await truncateMsg(nvim, typeInfo.displayString),
-            'MoreMsg',
-            'Function'
-          );
+          await printHighlight(nvim, await truncateMsg(nvim, typeInfo.displayString), 'MoreMsg', 'Function');
         }
       }
     } catch (err) {
@@ -395,9 +416,9 @@ module.exports = (plugin: NvimPlugin) => {
     // console.warn("IMHERE")
     await reloadFile();
 
-    const file = await getCurrentFile();
-    const [line, offset] = await getCursorPos();
-    const info = await client.getSignature({ file, line, offset });
+    // const file = await getCurrentFile();
+    // const [line, offset] = await getCursorPos();
+    // const info = await client.getSignature({ file, line, offset });
     // console.warn('INFO', info);
 
     //   const signatureHelpItems = info.items.map(item => {
@@ -496,7 +517,6 @@ module.exports = (plugin: NvimPlugin) => {
     complete(file, prefix, offset, line, 'nvim_typescript#completion_res');
   };
   const complete = async ( file: string, prefix: string, offset: number, line: number, nvimVar: string) => {
-    doingCompletion = true;
     await closeFloatingWindow();
     // console.warn('didClose', didClose);
     const currentLine = await nvim.line;
@@ -690,7 +710,7 @@ module.exports = (plugin: NvimPlugin) => {
   const closeFloatingWindow = async () => {
     try {
       await windowRef.close(true);
-      unsetWindow();
+      windowRef = null
     } catch (error) {}
     return;
   };
@@ -704,12 +724,8 @@ module.exports = (plugin: NvimPlugin) => {
 
     if (errorSign) {
       debounce(async () => {
-        // try {
-        if (!windowRef) {
-          await createFloatingWindow(nvim, errorSign, 'Error');
-        } else {
-          await updateFloatingWindow(nvim, windowRef, errorSign, 'Error');
-        }
+        // print(nvim,`ERROR${JSON.stringify(errorSign)}`);
+        await showInWindow(errorSign, 'Error');
       }, updateTime + 200)();
     }
   };

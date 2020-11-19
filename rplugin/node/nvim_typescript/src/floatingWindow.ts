@@ -1,8 +1,7 @@
 import { Buffer, Neovim, Window } from 'neovim';
-import { padString } from './utils';
+import { padString, print } from './utils';
 import { OpenWindowOptions } from 'neovim/lib/api/Neovim';
 
-export let windowRef: Window = null;
 const col = async (nvim: Neovim) => await nvim.window.width
 const createBuffer = async (nvim: Neovim) => await nvim.createBuffer(false, true);
 
@@ -142,15 +141,11 @@ export async function createFloatingWindow(nvim: Neovim, symbol: any, type: "Err
     options
   )) as Window;
   await lockBuffer(floatingWindow, buffer);
-  windowRef = floatingWindow;
-  return
-
+  return floatingWindow;
 };
-export function unsetWindow(){
-  windowRef = null;
-}
+
 export async function updateFloatingWindow(nvim: Neovim, window: Window, symbol: any, type: "Error" | "Type"): Promise<Window> {
-  const refText = await windowRef.buffer.lines
+  const refText = await window.buffer.lines
   let text: string[];
   if (type === 'Error') {
     text = processErrorText(symbol);
