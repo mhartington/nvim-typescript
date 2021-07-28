@@ -2,7 +2,7 @@
 
 ## DEPRECATED
 
-The time has finally come. Since Neovim 0.5 is out, and LSP is officially supported, I'd suggest you migrate over to it. I have been using it instead of this plugin for a while and it solves many pain points that I've not been able to. This will stay around for older neovim release, but everyone should upgrade. Thanks for the support and for using this plugin 🚀
+[The time has finally come](https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#tsserver). Since Neovim 0.5 is out, and LSP is officially supported, I'd suggest you migrate over to it. I have been using it instead of this plugin for a while and it solves many pain points that I've not been able to. This will stay around for older neovim release, but everyone should upgrade. Thanks for the support and for using this plugin 🚀
 
 
 
